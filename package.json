@@ -1,0 +1,27 @@
+{
+    "name": "drawdy-extension-starter",
+    "version": "0.1.0",
+    "description": "Drawdy extension starter template.",
+    "license": "UNLICENSED",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "gen:editor": "node scripts/gen-editor.mjs",
+        "predev": "npm run gen:editor",
+        "dev": "vite",
+        "prebuild": "npm run gen:editor",
+        "build": "node build.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "node --import ./test/register.mjs --test test/syntax.test.ts test/driver.test.ts"
+    },
+    "devDependencies": {
+        "@drawdy/driver-protocol": "^1.5.0",
+        "@rollup/plugin-typescript": "^12.1.2",
+        "@types/node": "^20",
+        "fflate": "^0.8.2",
+        "rollup": "^4.34.0",
+        "tslib": "^2.8.1",
+        "typescript": "^5",
+        "vite": "^8.2.1"
+    }
+}

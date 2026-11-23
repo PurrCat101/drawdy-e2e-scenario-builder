@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E2E Scenario Builder</title>
+<style>
+  :root { --ink:var(--dd-text-primary,#111827); --mut:var(--dd-text-secondary,#6b7280); --line:var(--dd-border-medium,#e5e7eb); --bg:var(--dd-surface-panel,#ffffff); --soft:var(--dd-control-surface,#f3f4f6); --hover:var(--dd-interaction-hover,#e5e7eb); --lime:var(--dd-accent,#c8f500); --lime2:var(--dd-accent-hover,#b5de00); --onlime:var(--dd-on-accent,#111827); --bad:var(--dd-status-danger,#b42318); --badbg:var(--dd-status-danger-subtle,#fdecea); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--dd-font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif); }
+  body { padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .sub { color: var(--mut); font-size: 12px; margin: 0 0 12px; }
+  textarea { width: 100%; min-height: 110px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
+  textarea:focus { outline: 2px solid var(--lime); background: var(--bg); }
+  .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 0 14px; height: 36px; }
+  button:hover { background: var(--hover); }
+  .ghost { height: 30px; font-size: 12px; background: var(--bg); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; height: 30px; font-size: 12px; background: var(--bg); padding: 0 12px; }
+  .seg button.on { background: var(--lime); color: var(--onlime); font-weight: 600; }
+  .lbl { font-size: 12px; color: var(--mut); margin-right: 4px; }
+  .counts { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; min-height: 28px; }
+  .chip { background: var(--soft); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+  .chip b { font-weight: 700; }
+  .hint { color: var(--mut); font-size: 12px; }
+  .issues { font-size: 12px; color: var(--bad); margin: 2px 0 6px; }
+  .grp { font-size: 11px; color: var(--mut); margin: 12px 0 4px; letter-spacing: .02em; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .acts button { height: 32px; font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: 16px; }
+  .acts .wide { grid-column: 1 / -1; }
+  .plan { font-size: 12px; margin: 2px 0 0; color: var(--ink); }
+  .plan.warn { color: var(--bad); }
+  .target { font-size: 13px; font-weight: 600; color: var(--ink); margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--soft); border-left: 4px solid var(--line); }
+  .target::before { content: "The buttons below will use"; display: block; font-size: 10px; font-weight: 500; letter-spacing: .04em; color: var(--mut); margin-bottom: 2px; }
+  .target.sel { border-left-color: var(--lime); background: var(--dd-accent-subtle, #f6fbd6); }
+  .acts button.scoped { border-color: var(--lime); box-shadow: 0 0 0 2px var(--lime); }
+  .primary { background: var(--lime); border-color: var(--lime); color: var(--onlime); }
+  .acts button[disabled] { opacity: .45; cursor: default; }
+  .primary:hover { background: var(--lime2); }
+  .status { min-height: 18px; font-size: 12px; color: var(--mut); margin-top: 8px; }
+  .status.bad { color: var(--bad); }
+  details { margin-top: 10px; font-size: 12px; color: var(--mut); }
+  details code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  summary { cursor: pointer; }
+</style>
+<style id="dd-theme">/*__DRAWDY_STYLING__*/</style>
+</head>
+<body>
+  <h1>E2E Scenario Builder</h1>
+  <p class="sub">Write a flow as text, or pull it from a sticky note that starts with @builder</p>
+
+  <textarea id="t" spellcheck="false" placeholder="@builder
+1. Login
+- ok
+- failed -> end
+2. Pick item
+- shirt
+- shoes
+3. Checkout
+- paid
+- card declined -> end"></textarea>
+
+  <div class="row">
+    <button id="pull" class="ghost">Pull from selected note</button>
+    <span class="lbl">Mode</span>
+    <span class="seg" id="mode">
+      <button data-m="all" title="Every path">All</button>
+      <button data-m="ep" class="on" title="Equivalence Partitioning (default)">EP</button>
+      <button data-m="pair" title="Pairwise (2-wise)">Pair</button>
+      <button data-m="min" title="Each-Choice (1-wise)">Each</button>
+    </span>
+  </div>
+
+  <div class="counts" id="counts"><span class="hint">Type a flow to see the number of test cases</span></div>
+  <div class="issues" id="issues"></div>
+
+  <div class="plan" id="plan"></div>
+  <div class="target" id="target"></div>
+
+  <div class="grp">Draw on the board</div>
+  <div class="acts">
+    <button id="flow" title="Draw only the flow diagram">Flow</button>
+    <button id="cases" title="Draw only the scenario notes of the chosen mode">Cases</button>
+    <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Cases</button>
+    <button id="table" class="wide" title="Test sequence tables (step, condition, setup, test data, expected)">Table</button>
+  </div>
+
+  <div class="grp">Copy</div>
+  <div class="acts">
+    <button id="copy" class="wide" title="Copy the table to the clipboard">Copy table</button>
+  </div>
+  <textarea id="clip" readonly tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0"></textarea>
+  <div class="status" id="status"></div>
+
+  <details>
+    <summary>syntax</summary>
+    <p>The first line of a sticky note must be <code>@builder</code> (not needed in this box)</p>
+    <p><code>1. Step name</code> · <code>- choice</code> · fields <code>given:</code> <code>data:</code> <code>then:</code> <code>req:</code></p>
+    <p>After a choice: <code>-&gt; end</code> (ends the flow) · <code>-&gt; loop</code> (same step again) · <code>-&gt; loop to step 3</code> (back to step 3) · <code>max 2</code> (most rounds)</p>
+    <p>In <code>[ ]</code>: <code>P1</code> <code>variant</code> <code>negative</code> <code>sets lv1</code> <code>needs !a or b</code></p>
+  </details>
+
+<script>
+(function () {
+  var api = acquireDrawdyApi();
+  var $ = function (id) { return document.getElementById(id); };
+  var mode = 'ep';
+  var timer = null;
+
+  function send(m) { api.postMessage(m); }
+  function setStatus(text, bad) {
+    var s = $('status');
+    s.textContent = text || '';
+    s.className = 'status' + (bad ? ' bad' : '');
+  }
+  var lastCounts = null;
+  var MODE_NAME = { ep: 'EP', all: 'All', pair: 'Pair', min: 'Each' };
+  function updatePlan() {
+    var el = $('plan');
+    if (!lastCounts) { el.textContent = ''; el.className = 'plan'; return; }
+    var n = lastCounts[mode];
+    var many = n > 50;
+    el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' cases' + (many ? ' (a lot; the board may get slow. Try EP or Pair)' : '');
+    el.className = 'plan' + (many ? ' warn' : '');
+  }
+  var target = { kind: 'none', n: 0 };
+  function hasText() { return !!lastCounts && $('t').value.trim().length > 0; }
+  function updateTarget() {
+    var el = $('target'), tb = $('table'), cp = $('copy');
+    var N = lastCounts ? lastCounts[mode] : 0, M = MODE_NAME[mode];
+    var k = target.kind, n = target.n, line, tl, cl;
+    if (k === 'frame') {
+      line = 'A scenario frame is selected → all its cases (' + n + ')';
+      tl = 'Table · all cases in the frame (' + n + ')'; cl = 'Copy table · all cases in the frame (' + n + ')';
+    } else if (k === 'cases') {
+      line = n + ' case note(s) selected → Flow + Table draws the case flow and its table';
+      tl = 'Table · selected cases (' + n + ')'; cl = 'Copy table · selected cases (' + n + ')';
+    } else if (k === 'table') {
+      line = 'A table is selected → Copy table copies that table';
+      cl = 'Copy table · selected table';
+    } else if (k === 'flows') {
+      line = n + ' @builder note(s) selected → the draw buttons use them';
+    } else if (k === 'flowframe') {
+      line = 'A flow frame is selected → Cases / Flow + Cases draw new cases from that flow';
+    }
+    if (!line) line = hasText()
+      ? 'Nothing selected on the board → the flow in the text box'
+      : 'Write a flow in the text box, or select a note / frame on the board';
+    if (!tl) tl = hasText() ? 'Table · all cases of mode ' + M + ' (' + N + ')' : 'Table';
+    if (!cl) cl = hasText() ? 'Copy table · all cases of mode ' + M + ' (' + N + ')' : 'Copy table';
+    var sel = k === 'frame' || k === 'cases' || k === 'table' || k === 'flows' || k === 'flowframe';
+    // which buttons make sense for what is selected; the others are greyed out
+    var ok = { flow: true, cases: true, board: true, table: true, copy: true };
+    var have = hasText();
+    if (k === 'none') { ok.flow = ok.cases = ok.board = ok.table = ok.copy = have; }
+    else if (k === 'cases') { ok.cases = false; ok.board = false; }          // a case note: its flow, table or copy
+    else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new cases, table or copy
+    else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new cases, table or copy
+    else if (k === 'table') { ok.flow = ok.cases = ok.board = ok.table = false; } // a table: only copy
+    // a selected case note: the Flow button draws that case's flow and its table
+    $('flow').textContent = k === 'cases' ? 'Flow + Table' : 'Flow';
+    var why = 'Not available for what is selected';
+    ['flow', 'cases', 'board', 'table', 'copy'].forEach(function (id) {
+      var b = $(id);
+      b.disabled = !ok[id];
+      if (!ok[id]) b.setAttribute('data-title', b.getAttribute('data-title') || b.title);
+      b.title = ok[id] ? (b.getAttribute('data-title') || b.title) : why;
+    });
+    el.textContent = line;
+    el.className = 'target' + (sel ? ' sel' : '');
+    tb.textContent = tl;
+    cp.textContent = cl;
+    tb.classList.toggle('scoped', k === 'frame' || k === 'cases');
+    cp.classList.toggle('scoped', k === 'frame' || k === 'cases' || k === 'table');
+  }
+  setInterval(function () { send({ type: 'target' }); }, 1200);
+  $('t').addEventListener('input', function () { updateTarget(); });
+  function setMode(m) {
+    mode = m;
+    updateTarget();
+    updatePlan();
+    var bs = document.querySelectorAll('#mode button');
+    for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-m') === m ? 'on' : '';
+  }
+  var modeButtons = document.querySelectorAll('#mode button');
+  for (var i = 0; i < modeButtons.length; i++) {
+    (function (b) { b.onclick = function () { setMode(b.getAttribute('data-m')); }; })(modeButtons[i]);
+  }
+
+  function preview() {
+    clearTimeout(timer);
+    timer = setTimeout(function () { send({ type: 'preview', text: $('t').value }); }, 250);
+  }
+  $('t').addEventListener('input', preview);
+  $('pull').onclick = function () { send({ type: 'pull' }); };
+
+  ['board', 'flow', 'cases', 'table', 'copy'].forEach(function (id) {
+    $(id).onclick = function () {
+      setStatus('Working...');
+      send({ type: 'action', action: id, text: $('t').value, mode: mode });
+    };
+  });
+
+  function chip(label, n) {
+    var c = document.createElement('span');
+    c.className = 'chip';
+    c.appendChild(document.createTextNode(label + ' '));
+    var b = document.createElement('b');
+    b.textContent = n;
+    c.appendChild(b);
+    return c;
+  }
+
+  api.onMessage(function (m) {
+    if (!m) return;
+    if (m.type === 'fill') {
+      $('t').value = m.text;
+      preview();
+    } else if (m.type === 'counts') {
+      var box = $('counts');
+      box.textContent = '';
+      if (!m.counts) {
+        var h = document.createElement('span');
+        h.className = 'hint';
+        h.textContent = 'Cannot read the flow yet';
+        box.appendChild(h);
+      } else {
+        box.appendChild(chip('steps', m.steps));
+        box.appendChild(chip('All', m.counts.all));
+        box.appendChild(chip('EP', m.counts.ep));
+        box.appendChild(chip('Pairwise', m.counts.pair));
+        box.appendChild(chip('Each-Choice', m.counts.min));
+      }
+      lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
+      updatePlan();
+      updateTarget();
+      $('issues').textContent = (m.issues || []).join('  ·  ');
+    } else if (m.type === 'status') {
+      setStatus(m.text, m.bad);
+    } else if (m.type === 'clip') {
+      var ta = $('clip'), ok = false;
+      var done = 'Copied ' + m.cases + ' case(s). Paste with Ctrl+V';
+      var fail = 'Could not copy (the browser blocked the clipboard)';
+      ta.value = m.text;
+      ta.focus();
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      if (ok) setStatus(done);
+      else if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(m.text).then(function () { setStatus(done); }, function () { setStatus(fail, true); });
+      else setStatus(fail, true);
+    } else if (m.type === 'target') {
+      target = { kind: m.kind, n: m.n };
+      updateTarget();
+    } else if (m.type === 'theme') {
+      $('dd-theme').textContent = m.css;
+    }
+  });
+
+  updateTarget();
+  send({ type: 'ready' });
+  preview();
+})();
+</script>
+</body>
+</html>
