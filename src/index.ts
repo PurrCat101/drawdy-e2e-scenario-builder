@@ -170,7 +170,7 @@ async function drawFromFlow(
     if (kind === "cases") {
         // the scenarios only, no flow diagram
         await drawScenarios(flow, mode, anchor);
-        return "Cases drawn";
+        return "Scenarios drawn";
     }
     const box = await drawFlow(flow, anchor);
     if (!box) return "Could not draw the flow (see the note on the board)";
@@ -183,7 +183,7 @@ async function drawFromFlow(
         return `Flow drawn (${flow.steps.length} steps)`;
     }
     await drawScenarios(flow, mode, box);
-    return "Flow and cases drawn";
+    return "Flow and scenarios drawn";
 }
 
 /** Draw from text typed in the panel. Returns a status line for the panel. */
@@ -212,7 +212,7 @@ const TEMPLATE_W = 520;
 /**
  * Drop a starter note (a ready-made `@builder` text) on the board, in free space
  * inside the view, and fly to it. The writer edits it on the board, where there is
- * room, then selects it and presses Flow + Cases.
+ * room, then selects it and presses Flow + Scenarios.
  */
 async function addTemplateNote(t: Template): Promise<string> {
     const vp = await run("command:camera:get-viewport-rect", undefined);
@@ -245,7 +245,7 @@ async function addTemplateNote(t: Template): Promise<string> {
         flyDurationMs: 400,
         zoom: 0.5,
     });
-    return `${t.label} note added. Edit it on the board, then select it and press Flow + Cases`;
+    return `${t.label} note added. Edit it on the board, then select it and press Flow + Scenarios`;
 }
 
 /** Messages from the panel's page. */
@@ -528,16 +528,16 @@ async function addInBatches(elements: DrawdyElementSchema[], size = 30): Promise
 const casePath = (sc: { path: { i: number; c: { id: string } | null }[] }) =>
     sc.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null]);
 
-/** Title of a case in the tables: id, kind, priority and the choices it takes. */
+/** Title of a scenario in the tables: id, kind, priority and the choices it takes. */
 function caseTitle(id: string, type: string, pri: string | number | undefined, sub: Flow): string {
     const picks = sub.steps.flatMap((s) => s.conds.map((c) => c.label)).join(" · ");
     return `${id} · ${type === "happy" ? "Happy" : "Negative"}${pri ? " · P" + pri : ""}${picks ? "   " + picks : ""}`;
 }
 
 /**
- * Button 3: the test sequence of many cases as tables (step, condition, setup,
+ * Button 3: the test sequence of many scenarios as tables (step, condition, setup,
  * test data, expected result), to check them against the flow. From the text in
- * the panel, from a selected scenario frame (all its cases) or from selected
+ * the panel, from a selected scenario frame (all its scenarios) or from selected
  * scenario notes.
  */
 type Collected = { cases: CaseItem[]; anchor: Box; label: string };
@@ -595,12 +595,12 @@ async function collectCases(text: string, uiMode: Mode): Promise<Collected | str
         label = `Test sequence · ${mode.toUpperCase()}`;
     }
     if (!cases.length || !anchor)
-        return "Write a flow in the box first, or select a scenario frame / case note on the board";
+        return "Write a flow in the box first, or select a scenario frame / scenario note on the board";
     return { cases, anchor, label };
 }
 
 /**
- * Button 3: the test sequence of many cases as tables (step, condition, setup,
+ * Button 3: the test sequence of many scenarios as tables (step, condition, setup,
  * test data, expected result), to check them against the flow.
  */
 async function tableAction(text: string, uiMode: Mode): Promise<string> {
@@ -609,11 +609,11 @@ async function tableAction(text: string, uiMode: Mode): Promise<string> {
     const { cases, anchor, label } = got;
     const size = renderCaseTables({ cases, name: label, origin: [0, 0], generateId });
     const origin = findFree(await occupiedRects(), anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
-    const out = renderCaseTables({ cases, name: `${label} · ${cases.length} cases`, origin, generateId });
+    const out = renderCaseTables({ cases, name: `${label} · ${cases.length} scenarios`, origin, generateId });
     const failed = await addInBatches(out.elements);
     if (failed) return "Could not draw the table: " + failed;
     await run("command:camera:fly-to-elements", { drawdyElementIds: [out.frameId], flyDurationMs: 400, zoom: 0.3 });
-    return `Table drawn (${cases.length} cases)`;
+    return `Table drawn (${cases.length} scenarios)`;
 }
 
 /**
@@ -642,7 +642,7 @@ async function drawCaseTable(flow: Flow, name: string, below: Box) {
     const origin = findFree(await occupiedRects(), below.x, below.y + below.height + 100, size.width, size.height);
     const out = renderCaseTables({ cases: one, name: `${name} · table`, origin, generateId });
     const failed = await addInBatches(out.elements);
-    if (failed) await note(`Could not draw the case table
+    if (failed) await note(`Could not draw the scenario table
 ${failed}`, below.x, below.y - 200, "#fecaca");
 }
 
@@ -727,7 +727,7 @@ async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) 
 const HINT_FLOW =
     "Select a sticky note that starts with @builder, then press the button again\n\n" +
     "Example:\n@builder\n1. Login\n- ok\n- failed -> end\n2. Checkout\n- paid\n- card declined -> end\n\n" +
-    "Or select a case note (TSS-… / TSN-…) to see the flow of that case";
+    "Or select a scenario note (TSS-… / TSN-…) to see the flow of that scenario";
 
 /** What is selected, in a few words, for hint notes (helps when nothing happens). */
 function describeSel(sel: Picked[]): string {
@@ -739,9 +739,9 @@ function describeSel(sel: Picked[]): string {
 }
 
 /**
- * Button 2: draw a flow, without test cases.
+ * Button 2: draw a flow, without scenarios.
  *  - a note with the flow text   -> that flow, under the note
- *  - a scenario note (TSS-/TSN-) -> the flow of just that case, next to its frame
+ *  - a scenario note (TSS-/TSN-) -> the flow of just that scenario, next to its frame
  */
 async function actionFlow(sel: Picked[]) {
     const items = sel.filter(
@@ -777,7 +777,7 @@ async function actionFlow(sel: Picked[]) {
                     const path = p.meta.path as [number, string | null][];
                     sub = caseFlow(flow, path);
                     success = !pathFails(flow, path);
-                    name = `E2E Flow · ${p.meta.id ?? "case"}`;
+                    name = `E2E Flow · ${p.meta.id ?? "scenario"}`;
                 }
             }
             // otherwise read the note's own text in the flow syntax

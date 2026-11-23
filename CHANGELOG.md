@@ -5,6 +5,10 @@
 - Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
   note on the board, with the syntax explained in `#` comments, so a flow is
   written on the board instead of in the small panel.
+- One word for one thing: what the panel, the board and the README called "cases"
+  are now always "scenarios" (buttons **Scenarios** and **Flow + Scenarios**,
+  the table's first column, frame names, status lines). Boards drawn before keep
+  working: the stored keys are unchanged.
 - The panel is more compact: the paste box is folded away, and the status line sits
   right under the buttons.
 

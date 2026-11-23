@@ -156,7 +156,7 @@ test("the panel reports what is selected", async () => {
     assert.equal(t.n, 2);
 });
 
-test("Table: a selected case note gives one table, the text gives all of them", async () => {
+test("Table: a selected scenario note gives one table, the text gives all of them", async () => {
     const h = await drawn();
     h.select(h.idOf(caseNotes(h)[0]));
     await h.action("table", FLOW);
@@ -188,11 +188,11 @@ test("a selection wins over the text left in the panel", async () => {
     await h.action("copy", "s1 > s2 > s3 > s4");
     const clip = h.lastClip();
     assert.equal(clip.cases, 1);
-    assert.match(clip.text, /^Case\t#\tStep\tCondition\tSetup\tTest data\tExpected result\n/);
+    assert.match(clip.text, /^Scenario\t#\tStep\tCondition\tSetup\tTest data\tExpected result\n/);
     assert.ok(!clip.text.includes("s4"));
 });
 
-test("Copy table: nothing selected copies every case of the mode; a table copies itself", async () => {
+test("Copy table: nothing selected copies every scenario of the mode; a table copies itself", async () => {
     const h = await drawn();
     await h.action("copy", FLOW);
     assert.equal(h.lastClip().cases, 2);
@@ -215,7 +215,7 @@ test("Copy table: without a flow or a selection it says so and copies nothing", 
     assert.ok(status.bad);
 });
 
-test("Flow on a case note draws that case's flow and its table, and not the other cases", async () => {
+test("Flow on a scenario note draws that scenario's flow and its table, and not the other scenarios", async () => {
     const h = await drawn();
     const before = h.frames().length;
     h.select(h.idOf(caseNotes(h)[0]));
@@ -226,7 +226,7 @@ test("Flow on a case note draws that case's flow and its table, and not the othe
     assert.ok(added.some((f) => f.meta?.e2eCaseTable));
 });
 
-test("Cases and Flow + Cases on a case note do not draw anything (the panel disables them)", async () => {
+test("Scenarios and Flow + Scenarios on a scenario note do not draw anything (the panel disables them)", async () => {
     const h = await drawn();
     h.select(h.idOf(caseNotes(h)[0]));
     const before = h.scene.size;
@@ -236,7 +236,7 @@ test("Cases and Flow + Cases on a case note do not draw anything (the panel disa
     assert.ok(h.scene.size - before <= 1);
 });
 
-test("mode: the same flow in All gives more cases than in EP", async () => {
+test("mode: the same flow in All gives more scenarios than in EP", async () => {
     const flow = "@builder\n1. a\n   - x [variant]\n   - y [variant]\n2. b\n   - p [variant]\n   - q [variant]\n";
     const ep = await makeHost();
     await ep.action("cases", flow, "ep");
@@ -378,14 +378,14 @@ test("panel: labels follow the selection and say what will be used", () => {
         p.els.t.value = "x";
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
         p.send({ type: "target", kind: "none", n: 0 });
-        assert.equal(p.els.table.textContent, "Table · all cases of mode EP (28)");
-        assert.equal(p.els.copy.textContent, "Copy table · all cases of mode EP (28)");
+        assert.equal(p.els.table.textContent, "Table · all scenarios of mode EP (28)");
+        assert.equal(p.els.copy.textContent, "Copy table · all scenarios of mode EP (28)");
         assert.equal(p.els.flow.textContent, "Flow");
         p.send({ type: "target", kind: "cases", n: 2 });
-        assert.equal(p.els.table.textContent, "Table · selected cases (2)");
+        assert.equal(p.els.table.textContent, "Table · selected scenarios (2)");
         assert.equal(p.els.flow.textContent, "Flow + Table");
         p.send({ type: "target", kind: "frame", n: 28 });
-        assert.equal(p.els.copy.textContent, "Copy table · all cases in the frame (28)");
+        assert.equal(p.els.copy.textContent, "Copy table · all scenarios in the frame (28)");
         p.send({ type: "target", kind: "table", n: 1 });
         assert.equal(p.els.copy.textContent, "Copy table · selected table");
     } finally {
@@ -393,11 +393,11 @@ test("panel: labels follow the selection and say what will be used", () => {
     }
 });
 
-test("panel: a lot of cases gets a warning, and the mode count follows the switch", () => {
+test("panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
     const p = loadPanel();
     try {
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode EP: 28 cases");
+        assert.equal(p.els.plan.textContent, "Mode EP: 28 scenarios");
         assert.equal(p.els.plan.className, "plan");
     } finally {
         p.restore();
@@ -425,10 +425,40 @@ test("panel: the clipboard message copies and reports", () => {
     try {
         p.send({ type: "clip", text: "a\tb", cases: 2 });
         assert.equal(p.els.clip.value, "a\tb");
-        assert.match(p.els.status.textContent, /Copied 2 case\(s\)/);
+        assert.match(p.els.status.textContent, /Copied 2 scenario\(s\)/);
     } finally {
         p.restore();
     }
+});
+
+test("one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
+    const word = /\b(test )?cases?\b/i;
+    // the files people read (a "letter case" in the README is something else)
+    for (const f of ["../README.md", "../src/templates.ts"]) {
+        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "");
+        const hit = text.split("\n").find((l) => word.test(l) && !/^## /.test(l));
+        assert.ok(!hit, f + ": " + hit);
+    }
+    // what the driver writes on the board and says to the panel in a full run
+    const h = await makeHost();
+    await h.action("board", FLOW);
+    await h.action("table", FLOW);
+    await h.action("copy", FLOW);
+    await h.panel({ type: "template", id: "basic" });
+    const said = h.toPanel.filter((m) => m.type === "status").map((m) => m.text);
+    const names = h.frames().map((f) => f.name);
+    const texts = h.find((e) => typeof e.text === "string" && e.text).map((e) => e.text);
+    for (const t of [...said, ...names]) assert.ok(!word.test(t), t);
+    assert.ok(texts.length > 0);
+    // the first column of the copied table
+    assert.match(h.lastClip().text.split("\n")[0], /^Scenario\t/);
+    // the panel page itself: labels, hints and messages (the identifiers are internal)
+    const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+    // labels, tooltips and placeholders always count; a quoted string in the script
+    // counts when it is a sentence (single words there are identifiers like 'cases')
+    const shown = [...html.matchAll(/>([^<>]+)<\/(?:button|span|div|summary|p)>|(?:title|placeholder)="([^"]*)"|'([^']*)'/g)]
+        .flatMap((m) => (m[3] !== undefined ? (/\s/.test(m[3]) && !/^\s*\+|\+\s*$/.test(m[3]) ? [m[3]] : []) : [m[1] ?? m[2] ?? ""]));
+    for (const t of shown) assert.ok(!word.test(t), t);
 });
 
 test("no Thai text is left in what the user sees", () => {

@@ -71,7 +71,7 @@ function coverageLine(shown: Scenario[], gen: Generated): string {
     });
     const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 100);
     return (
-        `Coverage of ${shown.length} cases: ` +
+        `Coverage of ${shown.length} scenarios: ` +
         `condition ${gotC.size}/${allC.size} (${pct(gotC.size, allC.size)}%) · ` +
         `pair ${gotP.size}/${allP.size} (${pct(gotP.size, allP.size)}%)`
     );
@@ -142,7 +142,7 @@ export function renderScenarios(opts: {
     elements.push({
         type: "frame",
         drawdyElementId: frameId,
-        name: `Scenarios · ${MODE_LABEL[mode]} · ${shown.length} cases`,
+        name: `Scenarios · ${MODE_LABEL[mode]} · ${shown.length} scenarios`,
         position: [ox, oy],
         width: frameW,
         height: frameH,

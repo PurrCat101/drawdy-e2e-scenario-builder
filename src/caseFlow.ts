@@ -92,6 +92,6 @@ export function caseFromText(
     return {
         flow: { steps },
         fails: rows[rows.length - 1].mark === "✖",
-        id: head ? head[1] : "case",
+        id: head ? head[1] : "scenario",
     };
 }

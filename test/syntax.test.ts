@@ -288,7 +288,7 @@ test("an empty or step-less text says so", () => {
     assert.equal(parseFlowText("").flow.steps.length, 0);
 });
 
-test("a scenario note is written in the flow syntax and reads back as that case", () => {
+test("a scenario note is written in the flow syntax and reads back as that scenario", () => {
     const flow = parseFlowText(BLOCKS).flow;
     const gen = generate(flow);
     const shown = pick(gen, "ep");
@@ -384,18 +384,18 @@ test("given / then are the field names; setup / expect are still read", () => {
     assert.match(parseFlowText("@builder\n1. a\n   gven: x\n").warnings.join(""), /given:/);
 });
 
-test("cases as tab-separated text for a spreadsheet", async () => {
+test("scenarios as tab-separated text for a spreadsheet", async () => {
     const { casesToTsv } = await import("../src/caseTable.ts");
     const flow = parseFlowText("@builder\n1. Login\n   given: g\n   data: line one\n   line two\n   then: t\n   - ok\n").flow;
     const tsv = casesToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
     const lines = tsv.split("\n");
-    assert.equal(lines[0], "Case\t#\tStep\tCondition\tSetup\tTest data\tExpected result");
+    assert.equal(lines[0], "Scenario\t#\tStep\tCondition\tSetup\tTest data\tExpected result");
     // a cell with two lines is quoted, so a spreadsheet keeps it in one cell
     assert.equal(lines[1], 'TSS-001 · Happy · P1\t1\t1. Login\tok\tg\t"line one\nline two"'.split("\n")[0]);
     assert.ok(tsv.includes('"line one\nline two"\tt'));
 });
 
-test("starter templates: marked, read without warnings, make cases, no flow errors", () => {
+test("starter templates: marked, read without warnings, make scenarios, no flow errors", () => {
     assert.deepEqual(TEMPLATES.map((t) => t.id), ["basic", "loop", "levels"]);
     for (const t of TEMPLATES) {
         assert.ok(hasMarker(t.text), t.id + ": starts with @builder");
@@ -403,7 +403,7 @@ test("starter templates: marked, read without warnings, make cases, no flow erro
         assert.deepEqual(r.warnings, [], t.id + ": no reading warnings");
         assert.ok(r.flow.steps.length >= 2, t.id + ": has steps");
         const gen = generate(r.flow);
-        assert.ok(gen.list.length >= 2, t.id + ": makes cases");
+        assert.ok(gen.list.length >= 2, t.id + ": makes scenarios");
         assert.deepEqual(
             validate(r.flow, gen).filter((i) => i.lv === "err"),
             [],

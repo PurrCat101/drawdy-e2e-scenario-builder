@@ -53,7 +53,7 @@
   <h1>E2E Scenario Builder</h1>
 
   <div class="target" id="target"></div>
-  <div class="counts" id="counts"><span class="hint">Case counts show here for text in the paste box</span></div>
+  <div class="counts" id="counts"><span class="hint">Scenario counts show here for text in the paste box</span></div>
   <div class="issues" id="issues"></div>
   <div class="plan" id="plan"></div>
 
@@ -69,8 +69,8 @@
 
   <div class="acts">
     <button id="flow" title="Draw only the flow diagram">Flow</button>
-    <button id="cases" title="Draw only the scenario notes of the chosen mode">Cases</button>
-    <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Cases</button>
+    <button id="cases" title="Draw only the scenario notes of the chosen mode">Scenarios</button>
+    <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Scenarios</button>
     <button id="table" class="wide" title="Test sequence tables (step, condition, setup, test data, expected)">Table</button>
     <button id="copy" class="wide" title="Copy the table to the clipboard">Copy table</button>
   </div>
@@ -82,7 +82,7 @@
     <button id="tpl-loop" class="ghost" title="a retry loop, a negative choice and variants">Loop</button>
     <button id="tpl-levels" class="ghost" title="choices that set and need tags (sets / needs)">Levels</button>
   </div>
-  <div class="hint">Drops a note on the board. Edit it there, select it, press Flow + Cases.</div>
+  <div class="hint">Drops a note on the board. Edit it there, select it, press Flow + Scenarios.</div>
 
   <details id="paste">
     <summary>Paste or type text here</summary>
@@ -130,7 +130,7 @@
     if (!lastCounts) { el.textContent = ''; el.className = 'plan'; return; }
     var n = lastCounts[mode];
     var many = n > 50;
-    el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' cases' + (many ? ' (a lot; the board may get slow. Try EP or Pair)' : '');
+    el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' scenarios' + (many ? ' (a lot; the board may get slow. Try EP or Pair)' : '');
     el.className = 'plan' + (many ? ' warn' : '');
   }
   var target = { kind: 'none', n: 0 };
@@ -140,32 +140,32 @@
     var N = lastCounts ? lastCounts[mode] : 0, M = MODE_NAME[mode];
     var k = target.kind, n = target.n, line, tl, cl;
     if (k === 'frame') {
-      line = 'A scenario frame is selected → all its cases (' + n + ')';
-      tl = 'Table · all cases in the frame (' + n + ')'; cl = 'Copy table · all cases in the frame (' + n + ')';
+      line = 'A scenario frame is selected → all its scenarios (' + n + ')';
+      tl = 'Table · all scenarios in the frame (' + n + ')'; cl = 'Copy table · all scenarios in the frame (' + n + ')';
     } else if (k === 'cases') {
-      line = n + ' case note(s) selected → Flow + Table draws the case flow and its table';
-      tl = 'Table · selected cases (' + n + ')'; cl = 'Copy table · selected cases (' + n + ')';
+      line = n + ' scenario note(s) selected → Flow + Table draws the scenario flow and its table';
+      tl = 'Table · selected scenarios (' + n + ')'; cl = 'Copy table · selected scenarios (' + n + ')';
     } else if (k === 'table') {
       line = 'A table is selected → Copy table copies that table';
       cl = 'Copy table · selected table';
     } else if (k === 'flows') {
       line = n + ' @builder note(s) selected → the draw buttons use them';
     } else if (k === 'flowframe') {
-      line = 'A flow frame is selected → Cases / Flow + Cases draw new cases from that flow';
+      line = 'A flow frame is selected → Scenarios / Flow + Scenarios draw new scenarios from that flow';
     }
     if (!line) line = hasText()
       ? 'Nothing selected on the board → the flow in the text box'
       : 'Write a flow in the text box, or select a note / frame on the board';
-    if (!tl) tl = hasText() ? 'Table · all cases of mode ' + M + ' (' + N + ')' : 'Table';
-    if (!cl) cl = hasText() ? 'Copy table · all cases of mode ' + M + ' (' + N + ')' : 'Copy table';
+    if (!tl) tl = hasText() ? 'Table · all scenarios of mode ' + M + ' (' + N + ')' : 'Table';
+    if (!cl) cl = hasText() ? 'Copy table · all scenarios of mode ' + M + ' (' + N + ')' : 'Copy table';
     var sel = k === 'frame' || k === 'cases' || k === 'table' || k === 'flows' || k === 'flowframe';
     // which buttons make sense for what is selected; the others are greyed out
     var ok = { flow: true, cases: true, board: true, table: true, copy: true };
     var have = hasText();
     if (k === 'none') { ok.flow = ok.cases = ok.board = ok.table = ok.copy = have; }
-    else if (k === 'cases') { ok.cases = false; ok.board = false; }          // a case note: its flow, table or copy
-    else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new cases, table or copy
-    else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new cases, table or copy
+    else if (k === 'cases') { ok.cases = false; ok.board = false; }          // a scenario note: its flow, table or copy
+    else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
+    else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
     else if (k === 'table') { ok.flow = ok.cases = ok.board = ok.table = false; } // a table: only copy
     // a selected case note: the Flow button draws that case's flow and its table
     $('flow').textContent = k === 'cases' ? 'Flow + Table' : 'Flow';
@@ -257,7 +257,7 @@
       setStatus(m.text, m.bad);
     } else if (m.type === 'clip') {
       var ta = $('clip'), ok = false;
-      var done = 'Copied ' + m.cases + ' case(s). Paste with Ctrl+V';
+      var done = 'Copied ' + m.cases + ' scenario(s). Paste with Ctrl+V';
       var fail = 'Could not copy (the browser blocked the clipboard)';
       ta.value = m.text;
       ta.focus();

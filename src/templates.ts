@@ -1,9 +1,9 @@
 // Starter notes: ready-made `@builder` texts that the panel drops on the board as a
 // sticky note. The writer then edits the note on the board (a lot more room than the
-// panel) and presses Flow + Cases. Lines starting with `#` are comments, so each
+// panel) and presses Flow + Scenarios. Lines starting with `#` are comments, so each
 // template doubles as a syntax cheat sheet and the comments can simply be deleted.
 //
-// Every template must read without warnings and make cases; test/syntax.test.ts
+// Every template must read without warnings and make scenarios; test/syntax.test.ts
 // checks that, so a change to the syntax cannot leave a stale template behind.
 
 export type Template = {
@@ -20,11 +20,11 @@ const BASIC = `@builder
 # HOW TO WRITE (lines starting with # are ignored; delete them when done)
 # 1. Step name          a step: a number, then its name
 # - choice              a choice at that step; a step may have many
-# - choice -> end       the flow stops here (a negative case)
+# - choice -> end       the flow stops here (a negative scenario)
 # [P1]                  priority at the end of a choice: P1, P2 or P3
 # given: / data: / then:   setup, test data, expected result
 #                       (before the first choice = the step, after = that choice)
-# Then select this note and press "Flow + Cases" in the panel.
+# Then select this note and press "Flow + Scenarios" in the panel.
 
 1. Open the site and sign in
    given: the site is up
@@ -52,7 +52,7 @@ const LOOP = `@builder
 # -> loop to step 2 max 2   go back to step 2, at most 2 rounds (default 1, up to 9)
 # [negative]                a failing choice where the flow still goes on
 # [variant]                 choices marked variant do not multiply each other,
-#                           so EP keeps one case for them
+#                           so EP keeps one scenario for them
 # Lines starting with # are ignored. Delete them when done.
 
 1. Sign in

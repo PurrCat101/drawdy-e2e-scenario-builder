@@ -68,10 +68,10 @@ export type CaseItem = { title: string; flow: Flow };
 const esc = (x: string) =>
     x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** The cases as text for a spreadsheet: tab-separated, a Case column first, one header row. */
+/** The scenarios as text for a spreadsheet: tab-separated, a Scenario column first, one header row. */
 export function casesToTsv(cases: CaseItem[]): string {
     const q = (v: string) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
-    const rows: string[][] = [["Case", ...COLS.map((c) => c.title)]];
+    const rows: string[][] = [["Scenario", ...COLS.map((c) => c.title)]];
     for (const cs of cases) {
         const id = cs.title.split("   ")[0];
         for (const r of caseRows(cs.flow)) rows.push([id, ...COLS.map((c) => r[c.key] ?? "")]);

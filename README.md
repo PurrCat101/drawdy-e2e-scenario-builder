@@ -3,12 +3,12 @@
 # E2E Scenario Builder — Drawdy extension
 
 Write an end-to-end flow as plain text, and get the flow diagram and its test
-scenarios (happy, negative and loop cases) drawn on the board, with a table of the
-test sequence for each case.
+scenarios (happy, negative and loop) drawn on the board, with a table of the
+test sequence for each scenario.
 
 Install the extension, click its button on the right edge of the board, press a
 **Starter note** button (Basic, Loop or Levels) to drop a ready-made flow note on the
-board, edit it there, select it and press **Flow + Cases**. (Or write a flow in the
+board, edit it there, select it and press **Flow + Scenarios**. (Or write a flow in the
 panel's paste box, or in any sticky note that starts with `@builder`.)
 
 ![E2E Scenario Builder: a flow diagram, its scenario notes and test sequence tables drawn on a Drawdy board](assets/demo.jpg)
@@ -42,18 +42,18 @@ panel's paste box, or in any sticky note that starts with `@builder`.)
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
-   and of test cases in every mode (All, EP, Pairwise, Each-Choice), the problems
+   and of test scenarios in every mode (All, EP, Pairwise, Each-Choice), the problems
    found in the text (with their line) and in the flow.
 4. **Pick the mode** with the switch (All, EP, Pair, Each; EP is the default). Under
-   it the panel says how many cases that mode makes, and warns above 50.
+   it the panel says how many scenarios that mode makes, and warns above 50.
 5. **Press a button.**
 
 | Button | Result |
 | --- | --- |
-| **Flow** | The flow diagram only. With a case note selected it reads **Flow + Table**: the flow of that case, and under it the table of that case |
-| **Cases** | The scenario notes of the chosen mode, without the diagram |
-| **Flow + Cases** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the cases cover |
-| **Table** | The test sequence of the cases as tables (step, condition, setup, test data, expected result) |
+| **Flow** | The flow diagram only. With a scenario note selected it reads **Flow + Table**: the flow of that scenario, and under it the table of that scenario |
+| **Scenarios** | The scenario notes of the chosen mode, without the diagram |
+| **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover |
+| **Table** | The test sequence of the scenarios as tables (step, condition, setup, test data, expected result) |
 | **Copy table** | Copies those tables as tab-separated text to the clipboard, ready to paste into a spreadsheet |
 
 ### What the buttons use
@@ -62,14 +62,14 @@ A selection on the board wins over the text left in the panel. The panel says wh
 the buttons will use ("The buttons below will use ..."), the **Table** and **Copy table**
 labels follow it, and buttons that do not fit the selection are greyed out.
 
-| Selected on the board | Flow | Cases | Flow + Cases | Table / Copy table |
+| Selected on the board | Flow | Scenarios | Flow + Scenarios | Table / Copy table |
 | --- | --- | --- | --- | --- |
-| nothing, with a flow in the text box | on | on | on | all cases of the mode |
+| nothing, with a flow in the text box | on | on | on | all scenarios of the mode |
 | nothing, text box empty | off | off | off | off |
-| a case note (`TSS-…` / `TSN-…`) | **Flow + Table**: that case | off | off | only the selected cases |
-| a scenario frame | off | on (cases again, chosen mode) | off | all cases in the frame |
-| a drawn flow frame | off | on (new cases) | on | cases of the chosen mode |
-| a sticky note that starts with `@builder` | on | on | on | its cases |
+| a scenario note (`TSS-…` / `TSN-…`) | **Flow + Table**: that scenario | off | off | only the selected scenarios |
+| a scenario frame | off | on (scenarios again, chosen mode) | off | all scenarios in the frame |
+| a drawn flow frame | off | on (new scenarios) | on | scenarios of the chosen mode |
+| a sticky note that starts with `@builder` | on | on | on | its scenarios |
 | a table | off | off | off | **Copy table** copies that table |
 
 **Only sticky notes that start with `@builder` are read.** Any other note is left
@@ -81,12 +81,12 @@ in the panel does not need the marker.)
 - New results are placed in free space: under the selected note, or in view if
   nothing is selected. If something is already there, the result moves down.
 - Scenario notes are coloured: green = happy path, pink = negative, orange = loop.
-  They are ordered happy cases first, then negative, each by priority. IDs are
+  They are ordered happy scenarios first, then negative, each by priority. IDs are
   `TSS-001…` (success) and `TSN-001…` (negative).
 - Each scenario note is itself written in the flow syntax (`@builder`, a
-  `@title TSS-001 · Happy · P1`, the steps and choices of that case with their
+  `@title TSS-001 · Happy · P1`, the steps and choices of that scenario with their
   `given:` / `data:` / `then:`), so it can be selected and read back.
-- A lot of cases is laid out in more columns, so the frame stays about as wide as
+- A lot of scenarios is laid out in more columns, so the frame stays about as wide as
   it is tall. There is no limit on the number of notes, but the panel warns when a
   mode makes more than 50.
 - A table is one embedded page of the board. **Drawdy's canvas catches the mouse over
@@ -153,8 +153,8 @@ written `→` or `=>`.
 
 | Write | Meaning |
 | --- | --- |
-| `P1` `P2` `P3` | priority of the case (no option = P2; a case takes the highest number on its path) |
-| `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative case |
+| `P1` `P2` `P3` | priority of the scenario (no option = P2; a scenario takes the highest number on its path) |
+| `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `sets lv1` | marks the path with a tag (several: `sets lv1 lv2`) |
 | `needs lv1 and master` | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !master or lv2` and `needs master and lv1` |
@@ -251,16 +251,16 @@ Choose the mode with the panel's switch.
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
 | All | every path that can actually be walked |
-| Pairwise (2-wise) | every pair of conditions that can meet is in at least one case |
-| Each (each-choice, 1-wise) | the fewest cases that touch every condition once |
+| Pairwise (2-wise) | every pair of conditions that can meet is in at least one scenario |
+| Each (each-choice, 1-wise) | the fewest scenarios that touch every condition once |
 
 The header of the scenario frame always shows the counts of all four modes, so
 you can compare them.
 
 ### Flow check
 
-The panel and the scenario frame list problems found in the flow: a step no case
-can reach, a condition no case uses, a `needs` that refers to a tag nobody sets, a
+The panel and the scenario frame list problems found in the flow: a step no scenario
+can reach, a condition no scenario uses, a `needs` that refers to a tag nobody sets, a
 loop that points forward, duplicate or empty labels.
 
 ## Notes
@@ -286,7 +286,7 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
 - `test/syntax.test.ts`: the text syntax, the scenario counts, notes and tables.
 - `test/driver.test.ts`: the driver against a small fake Drawdy host (an in-memory
   scene), and the panel page against a stub DOM. It checks what each button does for
-  each kind of selection (case note, scenario frame, flow frame, table, `@builder`
+  each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
 
 These tests do not see how things *look*, or what Drawdy itself does. Before a
@@ -295,17 +295,17 @@ release, check by hand in Drawdy (about five minutes):
 1. Add the dev server, allow the permissions, click the extension's button: the
    panel opens in English.
 2. Type a flow with `given:` / `data:` / `then:`: the counts and the "Mode EP: N
-   cases" line appear; a typo shows `Line N: ...`.
-3. **Flow + Cases**: a flow frame and a scenario frame appear, happy cases first.
-4. Select one case note: the line says "1 case note(s) selected", **Flow** reads
-   **Flow + Table**, **Cases** and **Flow + Cases** are greyed out. Press **Table**
-   and **Flow + Table**: one table, and the case's flow with its table.
+   scenarios" line appear; a typo shows `Line N: ...`.
+3. **Flow + Scenarios**: a flow frame and a scenario frame appear, happy scenarios first.
+4. Select one scenario note: the line says "1 scenario note(s) selected", **Flow** reads
+   **Flow + Table**, **Scenarios** and **Flow + Scenarios** are greyed out. Press **Table**
+   and **Flow + Table**: one table, and the scenario's flow with its table.
 5. Select the scenario frame and press **Copy table**, then paste into a
-   spreadsheet: one row per step, a **Case** column first.
+   spreadsheet: one row per step, a **Scenario** column first.
 6. Select a table and press **Copy table**: it copies that table.
 7. Press each **Starter note** button (Basic, Loop, Levels): a yellow note that starts
    with `@builder` appears in view and the camera flies to it; a second press puts the
-   next note below the first, not on top. Select a note and press **Flow + Cases**: a
+   next note below the first, not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
 
 `src/syntax.ts` is the only place that reads the text syntax, so the panel and
