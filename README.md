@@ -4,7 +4,7 @@
 
 Write an end-to-end flow as plain text, and get the flow diagram and its test
 scenarios (happy, negative and loop) drawn on the board, with a table of the
-test sequence for each scenario.
+test cases of each scenario.
 
 Install the extension, click its button on the right edge of the board, press a
 **Starter note** button (Basic, Loop or Levels) to drop a ready-made flow note on the
@@ -31,6 +31,17 @@ panel's paste box, or in any sticky note that starts with `@builder`.)
    - card declined -> end [P1]
 ```
 
+## Terms
+
+| Word | Means |
+| --- | --- |
+| **Flow** | The whole business flow you write: steps, each with its choices |
+| **Scenario** | One path through the flow, from the first step to where it ends: several test cases in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-001…` (happy) and `TSN-001…` (negative) |
+| **Test case** | One step of a scenario with the choice taken there, and its setup (`given:`), test data (`data:`) and expected result (`then:`). It is one row of the table |
+
+So a scenario is a chain of test cases, and the number the panel shows is the number
+of scenarios.
+
 ## How to use
 
 1. **Open the panel.** Click the extension's button on the right edge of the
@@ -53,7 +64,7 @@ panel's paste box, or in any sticky note that starts with `@builder`.)
 | **Flow** | The flow diagram only. With a scenario note selected it reads **Flow + Table**: the flow of that scenario, and under it the table of that scenario |
 | **Scenarios** | The scenario notes of the chosen mode, without the diagram |
 | **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover |
-| **Table** | The test sequence of the scenarios as tables (step, condition, setup, test data, expected result) |
+| **Table** | The test cases of each scenario, in order, as tables: one row per test case (step, condition, setup, test data, expected result) |
 | **Copy table** | Copies those tables as tab-separated text to the clipboard, ready to paste into a spreadsheet |
 
 ### What the buttons use
@@ -301,7 +312,7 @@ release, check by hand in Drawdy (about five minutes):
    **Flow + Table**, **Scenarios** and **Flow + Scenarios** are greyed out. Press **Table**
    and **Flow + Table**: one table, and the scenario's flow with its table.
 5. Select the scenario frame and press **Copy table**, then paste into a
-   spreadsheet: one row per step, a **Scenario** column first.
+   spreadsheet: one row per test case, a **Scenario** column first.
 6. Select a table and press **Copy table**: it copies that table.
 7. Press each **Starter note** button (Basic, Loop, Levels): a yellow note that starts
    with `@builder` appears in view and the camera flies to it; a second press puts the

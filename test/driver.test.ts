@@ -433,9 +433,9 @@ test("panel: the clipboard message copies and reports", () => {
 
 test("one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
     const word = /\b(test )?cases?\b/i;
-    // the files people read (a "letter case" in the README is something else)
+    // the files people read ("letter case" is something else; "test case" is defined in the README)
     for (const f of ["../README.md", "../src/templates.ts"]) {
-        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "");
+        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "").replace(/test cases?/gi, ""); // "test case" is a defined term (README: Terms)
         const hit = text.split("\n").find((l) => word.test(l) && !/^## /.test(l));
         assert.ok(!hit, f + ": " + hit);
     }
