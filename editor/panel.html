@@ -69,7 +69,7 @@
 
   <div class="acts">
     <button id="flow" title="Draw only the flow diagram">Flow</button>
-    <button id="cases" title="Draw only the scenario notes of the chosen mode">Scenarios</button>
+    <button id="scenarios" title="Draw only the scenario notes of the chosen mode">Scenarios</button>
     <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Scenarios</button>
     <button id="table" class="wide" title="Test sequence tables (step, condition, setup, test data, expected)">Table</button>
     <button id="copy" class="wide" title="Copy the table to the clipboard">Copy table</button>
@@ -142,7 +142,7 @@
     if (k === 'frame') {
       line = 'A scenario frame is selected → all its scenarios (' + n + ')';
       tl = 'Table · all scenarios in the frame (' + n + ')'; cl = 'Copy table · all scenarios in the frame (' + n + ')';
-    } else if (k === 'cases') {
+    } else if (k === 'scenarios') {
       line = n + ' scenario note(s) selected → Flow + Table draws the scenario flow and its table';
       tl = 'Table · selected scenarios (' + n + ')'; cl = 'Copy table · selected scenarios (' + n + ')';
     } else if (k === 'table') {
@@ -158,19 +158,19 @@
       : 'Write a flow in the text box, or select a note / frame on the board';
     if (!tl) tl = hasText() ? 'Table · all scenarios of mode ' + M + ' (' + N + ')' : 'Table';
     if (!cl) cl = hasText() ? 'Copy table · all scenarios of mode ' + M + ' (' + N + ')' : 'Copy table';
-    var sel = k === 'frame' || k === 'cases' || k === 'table' || k === 'flows' || k === 'flowframe';
+    var sel = k === 'frame' || k === 'scenarios' || k === 'table' || k === 'flows' || k === 'flowframe';
     // which buttons make sense for what is selected; the others are greyed out
-    var ok = { flow: true, cases: true, board: true, table: true, copy: true };
+    var ok = { flow: true, scenarios: true, board: true, table: true, copy: true };
     var have = hasText();
-    if (k === 'none') { ok.flow = ok.cases = ok.board = ok.table = ok.copy = have; }
-    else if (k === 'cases') { ok.cases = false; ok.board = false; }          // a scenario note: its flow, table or copy
+    if (k === 'none') { ok.flow = ok.scenarios = ok.board = ok.table = ok.copy = have; }
+    else if (k === 'scenarios') { ok.scenarios = false; ok.board = false; }          // a scenario note: its flow, table or copy
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
-    else if (k === 'table') { ok.flow = ok.cases = ok.board = ok.table = false; } // a table: only copy
-    // a selected case note: the Flow button draws that case's flow and its table
-    $('flow').textContent = k === 'cases' ? 'Flow + Table' : 'Flow';
+    else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = false; } // a table: only copy
+    // a selected case note: the Flow button draws that scenario's flow and its table
+    $('flow').textContent = k === 'scenarios' ? 'Flow + Table' : 'Flow';
     var why = 'Not available for what is selected';
-    ['flow', 'cases', 'board', 'table', 'copy'].forEach(function (id) {
+    ['flow', 'scenarios', 'board', 'table', 'copy'].forEach(function (id) {
       var b = $(id);
       b.disabled = !ok[id];
       if (!ok[id]) b.setAttribute('data-title', b.getAttribute('data-title') || b.title);
@@ -180,8 +180,8 @@
     el.className = 'target' + (sel ? ' sel' : '');
     tb.textContent = tl;
     cp.textContent = cl;
-    tb.classList.toggle('scoped', k === 'frame' || k === 'cases');
-    cp.classList.toggle('scoped', k === 'frame' || k === 'cases' || k === 'table');
+    tb.classList.toggle('scoped', k === 'frame' || k === 'scenarios');
+    cp.classList.toggle('scoped', k === 'frame' || k === 'scenarios' || k === 'table');
   }
   setInterval(function () { send({ type: 'target' }); }, 1200);
   $('t').addEventListener('input', function () { updateTarget(); });
@@ -204,7 +204,7 @@
   $('t').addEventListener('input', preview);
   $('pull').onclick = function () { send({ type: 'pull' }); };
 
-  ['board', 'flow', 'cases', 'table', 'copy'].forEach(function (id) {
+  ['board', 'flow', 'scenarios', 'table', 'copy'].forEach(function (id) {
     $(id).onclick = function () {
       setStatus('Working...');
       send({ type: 'action', action: id, text: $('t').value, mode: mode });
@@ -257,7 +257,7 @@
       setStatus(m.text, m.bad);
     } else if (m.type === 'clip') {
       var ta = $('clip'), ok = false;
-      var done = 'Copied ' + m.cases + ' scenario(s). Paste with Ctrl+V';
+      var done = 'Copied ' + m.scenarios + ' scenario(s). Paste with Ctrl+V';
       var fail = 'Could not copy (the browser blocked the clipboard)';
       ta.value = m.text;
       ta.focus();

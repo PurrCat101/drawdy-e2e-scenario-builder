@@ -1,7 +1,7 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import type { Flow, Mode } from "./flow";
 import type { Generated, Issue, Scenario } from "./scenarios";
-import { caseFlow } from "./caseFlow";
+import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
 const W = 300;
@@ -27,7 +27,7 @@ function lines(sc: Scenario, flow: Flow): string[] {
     const title =
         `${sc.id} · ${sc.type === "happy" ? "Happy" : "Negative"} · P${sc.pri}` +
         (sc.loops ? ` · loop x${sc.loops}` : "");
-    const cf = caseFlow(
+    const cf = scenarioFlow(
         flow,
         sc.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null])
     );
@@ -47,7 +47,7 @@ const wrapped = (ls: string[]) =>
 const fillOf = (sc: Scenario) =>
     sc.type === "neg" ? "pink" : sc.loops ? "orange" : "lime";
 
-/** How much of the flow the shown cases touch: conditions and pairs of conditions. */
+/** How much of the flow the shown scenarios touch: conditions and pairs of conditions. */
 function coverageLine(shown: Scenario[], gen: Generated): string {
     const conds = (sc: Scenario) => [...new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))].sort();
     const pairs = (sc: Scenario) => {
@@ -77,8 +77,8 @@ function coverageLine(shown: Scenario[], gen: Generated): string {
     );
 }
 
-/** Happy cases first, then negative; each group by priority (P1 first), then id. */
-export function orderCases(list: Scenario[]): Scenario[] {
+/** Happy scenarios first, then negative; each group by priority (P1 first), then id. */
+export function orderScenarios(list: Scenario[]): Scenario[] {
     return [...list].sort(
         (a, b) =>
             (a.type === "happy" ? 0 : 1) - (b.type === "happy" ? 0 : 1) ||
@@ -101,9 +101,9 @@ export function renderScenarios(opts: {
     generateId: () => string;
 }): BoardOut {
     const { flow, mode, gen, counts, issues, origin, generateId } = opts;
-    // happy cases first, then negative; each group by priority (P1 first), then id
-    const shown = orderCases(opts.shown);
-    // a few cases sit in 4 columns; a lot of cases spread over more columns,
+    // happy scenarios first, then negative; each group by priority (P1 first), then id
+    const shown = orderScenarios(opts.shown);
+    // a few scenarios sit in 4 columns; a lot of scenarios spread over more columns,
     // so the frame stays about as wide as it is tall
     const COLS = shown.length <= 40 ? 4 : Math.min(12, Math.ceil(Math.sqrt(shown.length * 0.8)));
     const [ox, oy] = origin;

@@ -325,7 +325,7 @@ test("a scenario note is written in the flow syntax and reads back as that scena
 });
 
 test("scenario notes carry setup, data and expected result, and the table rows match", async () => {
-    const { caseRows } = await import("../src/caseTable.ts");
+    const { scenarioRows } = await import("../src/scenarioTable.ts");
     const flow = parseFlowText(`@builder
 1. Login
    setup: stack is up
@@ -362,7 +362,7 @@ test("scenario notes carry setup, data and expected result, and the table rows m
     // the note reads back, and its table has the same cells
     const back = parseFlowText(happy.text);
     assert.deepEqual(back.warnings, []);
-    const rows = caseRows(back.flow);
+    const rows = scenarioRows(back.flow);
     assert.equal(rows[0].data, "user a\ngood password");
     assert.equal(rows[0].exp, "dialog opens\ntoken stored");
     assert.equal(rows[0].pre, "stack is up");
@@ -385,9 +385,9 @@ test("given / then are the field names; setup / expect are still read", () => {
 });
 
 test("scenarios as tab-separated text for a spreadsheet", async () => {
-    const { casesToTsv } = await import("../src/caseTable.ts");
+    const { scenariosToTsv } = await import("../src/scenarioTable.ts");
     const flow = parseFlowText("@builder\n1. Login\n   given: g\n   data: line one\n   line two\n   then: t\n   - ok\n").flow;
-    const tsv = casesToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
+    const tsv = scenariosToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
     const lines = tsv.split("\n");
     assert.equal(lines[0], "Scenario\t#\tStep\tCondition\tSetup\tTest data\tExpected result");
     // a cell with two lines is quoted, so a spreadsheet keeps it in one cell

@@ -43,7 +43,7 @@ function linesIn(text: string, w: number): number {
 export type Row = Record<string, string>;
 
 /** One row per choice taken (a step without choices is one row). */
-export function caseRows(flow: Flow): Row[] {
+export function scenarioRows(flow: Flow): Row[] {
     const rows: Row[] = [];
     flow.steps.forEach((s, i) => {
         const base = { step: `${i + 1}. ${s.name}` };
@@ -63,28 +63,28 @@ export function caseRows(flow: Flow): Row[] {
     return rows;
 }
 
-export type CaseItem = { title: string; flow: Flow };
+export type ScenarioItem = { title: string; flow: Flow };
 
 const esc = (x: string) =>
     x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** The scenarios as text for a spreadsheet: tab-separated, a Scenario column first, one header row. */
-export function casesToTsv(cases: CaseItem[]): string {
+export function scenariosToTsv(scenarios: ScenarioItem[]): string {
     const q = (v: string) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
     const rows: string[][] = [["Scenario", ...COLS.map((c) => c.title)]];
-    for (const cs of cases) {
+    for (const cs of scenarios) {
         const id = cs.title.split("   ")[0];
-        for (const r of caseRows(cs.flow)) rows.push([id, ...COLS.map((c) => r[c.key] ?? "")]);
+        for (const r of scenarioRows(cs.flow)) rows.push([id, ...COLS.map((c) => r[c.key] ?? "")]);
     }
     return rows.map((r) => r.map(q).join("\t")).join("\n");
 }
 
 /** The tables as one HTML page: real table cells, so rows size themselves. */
-function tablesHtml(cases: CaseItem[]): string {
+function tablesHtml(scenarios: ScenarioItem[]): string {
     const head = COLS.map((c) => `<th style="width:${c.w}px">${esc(c.title)}</th>`).join("");
-    const body = cases
+    const body = scenarios
         .map((cs) => {
-            const rows = caseRows(cs.flow)
+            const rows = scenarioRows(cs.flow)
                 .map(
                     (r) =>
                         "<tr>" +
@@ -115,24 +115,24 @@ function tablesHtml(cases: CaseItem[]): string {
  * One frame holding a table per case, as a single embedded page (real HTML
  * tables), each case under its own title.
  */
-export function renderCaseTables(opts: {
-    cases: CaseItem[];
+export function renderScenarioTables(opts: {
+    scenarios: ScenarioItem[];
     name: string;
     origin: [number, number];
     generateId: () => string;
 }): { frameId: string; elements: DrawdyElementSchema[]; width: number; height: number } {
-    const { cases, name, origin, generateId } = opts;
+    const { scenarios, name, origin, generateId } = opts;
     const [ox, oy] = origin;
     const frameId = generateId();
-    const tsv = casesToTsv(cases); // kept on the table, so "copy" can read it from a selection
+    const tsv = scenariosToTsv(scenarios); // kept on the table, so "copy" can read it from a selection
     const tableW = COLS.reduce((a, c) => a + c.w, 0);
     // The page is laid out by the browser and a board page cannot report its height back,
     // so the height is worked out from the same widths and fonts (a few percent of slack).
     const LINE = 18.9; // 13px * 1.45
     let inner = 24; // body padding
-    cases.forEach((cs, k) => {
+    scenarios.forEach((cs, k) => {
         inner += (k ? 18 : 0) + 20 + 6 + (12 + LINE + 1); // title, space, header row
-        for (const r of caseRows(cs.flow))
+        for (const r of scenarioRows(cs.flow))
             inner += 12 + 1 + LINE * Math.max(...COLS.map((c) => linesIn(r[c.key] ?? "", c.w)));
     });
     const frameW = tableW + 80 + 24;
@@ -148,7 +148,7 @@ export function renderCaseTables(opts: {
             width: frameW,
             height: frameH,
             rotation: 0,
-            meta: { e2eCaseTable: true, cases: cases.length, tsv },
+            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv },
         },
         {
             type: "component",
@@ -159,11 +159,11 @@ export function renderCaseTables(opts: {
             y: oy + 50,
             width: compW,
             height: compH,
-            meta: { e2eCaseTable: true, cases: cases.length, tsv },
+            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv },
             schema: {
                 type: "iframe",
                 label: name,
-                child: { srcDoc: tablesHtml(cases) },
+                child: { srcDoc: tablesHtml(scenarios) },
                 styles: { width: [compW, "px"], height: [compH, "px"] },
             },
         } as DrawdyElementSchema,
@@ -171,14 +171,14 @@ export function renderCaseTables(opts: {
     return { frameId, elements, width: frameW, height: frameH };
 }
 
-export function renderCaseTable(opts: {
+export function renderScenarioTable(opts: {
     flow: Flow;
     title: string;
     origin: [number, number];
     generateId: () => string;
 }) {
-    return renderCaseTables({
-        cases: [{ title: opts.title, flow: opts.flow }],
+    return renderScenarioTables({
+        scenarios: [{ title: opts.title, flow: opts.flow }],
         name: opts.title,
         origin: opts.origin,
         generateId: opts.generateId,

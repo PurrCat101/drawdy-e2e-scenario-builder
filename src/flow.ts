@@ -19,7 +19,7 @@ export type Cond = {
     need: string;
     /** "1" | "2" | "3" | "" (empty = P2) */
     pri: string;
-    /** does not multiply with other cases (collapsed by EP) */
+    /** does not multiply with other scenarios (collapsed by EP) */
     variant: boolean;
     /** test data, expected result, setup and requirement id (all optional) */
     data?: string;

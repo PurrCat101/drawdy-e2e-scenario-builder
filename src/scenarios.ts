@@ -144,7 +144,7 @@ export function generate(flow: Flow, limit = 1000): Generated {
 
 /**
  * Equivalence partitioning: a condition marked `variant` (and not used as a
- * tag by anyone) does not make a case different, so cases that differ only in
+ * tag by anyone) does not make a case different, so scenarios that differ only in
  * those choices keep a single representative. Every condition stays covered.
  */
 export function dedupe(list: Scenario[]): Scenario[] {
@@ -225,7 +225,7 @@ export function dedupe(list: Scenario[]): Scenario[] {
     return Array.from(new Set(keep)).sort((a, b) => a.n - b.n);
 }
 
-/** Each-choice (1-wise): fewest cases that touch every condition once. */
+/** Each-choice (1-wise): fewest scenarios that touch every condition once. */
 export function minimal(list: Scenario[]): Scenario[] {
     const all = new Set<string>();
     list.forEach((sc) => sc.path.forEach((v) => v.c && all.add(v.c.id)));

@@ -3,7 +3,7 @@
 import type { Cond, Flow } from "./flow";
 
 /** The flow reduced to the steps and conditions one scenario passes through. */
-export function caseFlow(flow: Flow, path: [number, string | null][]): Flow {
+export function scenarioFlow(flow: Flow, path: [number, string | null][]): Flow {
     const usedConds: Record<number, Set<string>> = {};
     path.forEach(([i, cid]) => {
         (usedConds[i] = usedConds[i] || new Set()).add(cid ?? "");
@@ -36,7 +36,7 @@ export function pathFails(flow: Flow, path: [number, string | null][]): boolean 
 }
 
 /**
- * Rebuild a case's flow from the text of a scenario note, so a note works even
+ * Rebuild a scenario's flow from the text of a scenario note, so a note works even
  * without the data stored on it (notes from older versions, copied notes):
  *
  *   TSS-001 · Happy · P2
@@ -47,7 +47,7 @@ export function pathFails(flow: Flow, path: [number, string | null][]): boolean 
  * `→` continues, `↻` loops back to the step on the next line, `✖` ends the
  * flow as a failure. Step names that were shortened with "…" stay shortened.
  */
-export function caseFromText(
+export function scenarioFromText(
     text: string
 ): { flow: Flow; fails: boolean; id: string } | null {
     const lines = text
