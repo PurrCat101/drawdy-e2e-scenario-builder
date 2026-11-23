@@ -8,12 +8,12 @@
   :root { --ink:var(--dd-text-primary,#111827); --mut:var(--dd-text-secondary,#6b7280); --line:var(--dd-border-medium,#e5e7eb); --bg:var(--dd-surface-panel,#ffffff); --soft:var(--dd-control-surface,#f3f4f6); --hover:var(--dd-interaction-hover,#e5e7eb); --lime:var(--dd-accent,#c8f500); --lime2:var(--dd-accent-hover,#b5de00); --onlime:var(--dd-on-accent,#111827); --bad:var(--dd-status-danger,#b42318); --badbg:var(--dd-status-danger-subtle,#fdecea); }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--dd-font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif); }
-  body { padding: 16px; }
-  h1 { font-size: 16px; margin: 0 0 2px; }
+  body { padding: 10px 12px; }
+  h1 { font-size: 14px; margin: 0 0 6px; }
   .sub { color: var(--mut); font-size: 12px; margin: 0 0 12px; }
-  textarea { width: 100%; min-height: 110px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
+  textarea { width: 100%; min-height: 90px; margin-top: 6px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
   textarea:focus { outline: 2px solid var(--lime); background: var(--bg); }
-  .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 0 14px; height: 36px; }
   button:hover { background: var(--hover); }
   .ghost { height: 30px; font-size: 12px; background: var(--bg); }
@@ -21,18 +21,20 @@
   .seg button { border: 0; border-radius: 0; height: 30px; font-size: 12px; background: var(--bg); padding: 0 12px; }
   .seg button.on { background: var(--lime); color: var(--onlime); font-weight: 600; }
   .lbl { font-size: 12px; color: var(--mut); margin-right: 4px; }
-  .counts { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; min-height: 28px; }
+  .counts { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 2px; }
   .chip { background: var(--soft); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
   .chip b { font-weight: 700; }
   .hint { color: var(--mut); font-size: 12px; }
   .issues { font-size: 12px; color: var(--bad); margin: 2px 0 6px; }
   .grp { font-size: 11px; color: var(--mut); margin: 12px 0 4px; letter-spacing: .02em; }
-  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .tpl { display: flex; gap: 6px; }
+  .tpl button { flex: 1; font-weight: 600; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
   .acts button { height: 32px; font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: 16px; }
   .acts .wide { grid-column: 1 / -1; }
   .plan { font-size: 12px; margin: 2px 0 0; color: var(--ink); }
   .plan.warn { color: var(--bad); }
-  .target { font-size: 13px; font-weight: 600; color: var(--ink); margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--soft); border-left: 4px solid var(--line); }
+  .target { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0; padding: 8px 12px; border-radius: 10px; background: var(--soft); border-left: 4px solid var(--line); }
   .target::before { content: "The buttons below will use"; display: block; font-size: 10px; font-weight: 500; letter-spacing: .04em; color: var(--mut); margin-bottom: 2px; }
   .target.sel { border-left-color: var(--lime); background: var(--dd-accent-subtle, #f6fbd6); }
   .acts button.scoped { border-color: var(--lime); box-shadow: 0 0 0 2px var(--lime); }
@@ -49,21 +51,13 @@
 </head>
 <body>
   <h1>E2E Scenario Builder</h1>
-  <p class="sub">Write a flow as text, or pull it from a sticky note that starts with @builder</p>
 
-  <textarea id="t" spellcheck="false" placeholder="@builder
-1. Login
-- ok
-- failed -> end
-2. Pick item
-- shirt
-- shoes
-3. Checkout
-- paid
-- card declined -> end"></textarea>
+  <div class="target" id="target"></div>
+  <div class="counts" id="counts"><span class="hint">Case counts show here for text in the paste box</span></div>
+  <div class="issues" id="issues"></div>
+  <div class="plan" id="plan"></div>
 
   <div class="row">
-    <button id="pull" class="ghost">Pull from selected note</button>
     <span class="lbl">Mode</span>
     <span class="seg" id="mode">
       <button data-m="all" title="Every path">All</button>
@@ -73,30 +67,44 @@
     </span>
   </div>
 
-  <div class="counts" id="counts"><span class="hint">Type a flow to see the number of test cases</span></div>
-  <div class="issues" id="issues"></div>
-
-  <div class="plan" id="plan"></div>
-  <div class="target" id="target"></div>
-
-  <div class="grp">Draw on the board</div>
   <div class="acts">
     <button id="flow" title="Draw only the flow diagram">Flow</button>
     <button id="cases" title="Draw only the scenario notes of the chosen mode">Cases</button>
     <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Cases</button>
     <button id="table" class="wide" title="Test sequence tables (step, condition, setup, test data, expected)">Table</button>
-  </div>
-
-  <div class="grp">Copy</div>
-  <div class="acts">
     <button id="copy" class="wide" title="Copy the table to the clipboard">Copy table</button>
   </div>
-  <textarea id="clip" readonly tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0"></textarea>
   <div class="status" id="status"></div>
+
+  <div class="grp">Start a flow on the board</div>
+  <div class="tpl">
+    <button id="tpl-basic" class="ghost" title="3 steps, with the syntax explained in comments">Basic</button>
+    <button id="tpl-loop" class="ghost" title="a retry loop, a negative choice and variants">Loop</button>
+    <button id="tpl-levels" class="ghost" title="choices that set and need tags (sets / needs)">Levels</button>
+  </div>
+  <div class="hint">Drops a note on the board. Edit it there, select it, press Flow + Cases.</div>
+
+  <details id="paste">
+    <summary>Paste or type text here</summary>
+    <textarea id="t" spellcheck="false" placeholder="@builder
+1. Login
+- ok
+- failed -> end
+2. Pick item
+- shirt
+- shoes
+3. Checkout
+- paid
+- card declined -> end"></textarea>
+    <div class="row">
+      <button id="pull" class="ghost">Pull from selected note</button>
+    </div>
+  </details>
+  <textarea id="clip" readonly tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0"></textarea>
 
   <details>
     <summary>syntax</summary>
-    <p>The first line of a sticky note must be <code>@builder</code> (not needed in this box)</p>
+    <p>The first line of a sticky note must be <code>@builder</code> (not needed in the paste box)</p>
     <p><code>1. Step name</code> · <code>- choice</code> · fields <code>given:</code> <code>data:</code> <code>then:</code> <code>req:</code></p>
     <p>After a choice: <code>-&gt; end</code> (ends the flow) · <code>-&gt; loop</code> (same step again) · <code>-&gt; loop to step 3</code> (back to step 3) · <code>max 2</code> (most rounds)</p>
     <p>In <code>[ ]</code>: <code>P1</code> <code>variant</code> <code>negative</code> <code>sets lv1</code> <code>needs !a or b</code></p>
@@ -203,6 +211,13 @@
     };
   });
 
+  ['basic', 'loop', 'levels'].forEach(function (id) {
+    $('tpl-' + id).onclick = function () {
+      setStatus('Working...');
+      send({ type: 'template', id: id });
+    };
+  });
+
   function chip(label, n) {
     var c = document.createElement('span');
     c.className = 'chip';
@@ -216,6 +231,7 @@
   api.onMessage(function (m) {
     if (!m) return;
     if (m.type === 'fill') {
+      $('paste').open = true;
       $('t').value = m.text;
       preview();
     } else if (m.type === 'counts') {

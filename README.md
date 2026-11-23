@@ -6,8 +6,10 @@ Write an end-to-end flow as plain text, and get the flow diagram and its test
 scenarios (happy, negative and loop cases) drawn on the board, with a table of the
 test sequence for each case.
 
-Install the extension, click its button on the right edge of the board, write a flow
-(or select a sticky note that starts with `@builder`) and press **Flow + Cases**.
+Install the extension, click its button on the right edge of the board, press a
+**Starter note** button (Basic, Loop or Levels) to drop a ready-made flow note on the
+board, edit it there, select it and press **Flow + Cases**. (Or write a flow in the
+panel's paste box, or in any sticky note that starts with `@builder`.)
 
 ![E2E Scenario Builder: a flow diagram, its scenario notes and test sequence tables drawn on a Drawdy board](assets/demo.jpg)
 
@@ -33,9 +35,12 @@ Install the extension, click its button on the right edge of the board, write a 
 
 1. **Open the panel.** Click the extension's button on the right edge of the
    board.
-2. **Write a flow** in the text box (syntax below), or write it in a sticky note
-   whose first line is `@builder`, select the note and press
-   **Pull from selected note** to fill the box.
+2. **Write a flow.** The panel is small, so write on the board: press a **Starter
+   note** button (Basic, Loop, Levels) to drop a note with a ready-made flow and the
+   syntax explained in `#` comment lines (they are ignored; delete them when done),
+   and edit it there. Any sticky note whose first line is `@builder` works the same.
+   You can also type in the panel's **Paste or type text here** box, or press
+   **Pull from selected note** in it to fill the box from a note.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
    and of test cases in every mode (All, EP, Pairwise, Each-Choice), the problems
    found in the text (with their line) and in the flow.
@@ -298,6 +303,10 @@ release, check by hand in Drawdy (about five minutes):
 5. Select the scenario frame and press **Copy table**, then paste into a
    spreadsheet: one row per step, a **Case** column first.
 6. Select a table and press **Copy table**: it copies that table.
+7. Press each **Starter note** button (Basic, Loop, Levels): a yellow note that starts
+   with `@builder` appears in view and the camera flies to it; a second press puts the
+   next note below the first, not on top. Select a note and press **Flow + Cases**: a
+   flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
 
 `src/syntax.ts` is the only place that reads the text syntax, so the panel and
 the board actions always agree. `gen:editor` only embeds `editor/panel.html`

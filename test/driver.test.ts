@@ -255,6 +255,39 @@ test("no limit on the number of scenario notes", async () => {
     assert.ok(caseNotes(h).length >= 200);
 });
 
+test("a starter note lands on the board as an @builder note that Flow + Cases can read", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "loop" });
+    const notes = h.find((e) => e.componentType === "sticky-note");
+    assert.equal(notes.length, 1);
+    assert.match(notes[0].text, /^@builder\n/);
+    assert.ok(notes[0].width >= 400 && notes[0].height >= 170);
+    const status = [...h.toPanel].reverse().find((m) => m.type === "status");
+    assert.match(status.text, /Loop note added/);
+    assert.ok(!status.bad);
+    // select it and press Flow + Cases: no text in the box, the note is used
+    h.select(h.idOf(notes[0]));
+    await h.action("board", "");
+    assert.ok(h.frames().some((f) => /^Scenarios/.test(f.name)));
+    assert.ok(caseNotes(h).length >= 2);
+});
+
+test("a second starter note goes into free space, not on top of the first", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "basic" });
+    await h.panel({ type: "template", id: "basic" });
+    const [a, b] = h.find((e) => e.componentType === "sticky-note");
+    const overlap =
+        a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    assert.ok(!overlap);
+});
+
+test("an unknown starter id adds nothing", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "nope" });
+    assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
+});
+
 /* ------------------------------ the panel page ----------------------------- */
 
 function loadPanel() {
@@ -366,6 +399,22 @@ test("panel: a lot of cases gets a warning, and the mode count follows the switc
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
         assert.equal(p.els.plan.textContent, "Mode EP: 28 cases");
         assert.equal(p.els.plan.className, "plan");
+    } finally {
+        p.restore();
+    }
+});
+
+test("panel: the starter buttons ask the driver for a template; a pulled note opens the paste box", () => {
+    const p = loadPanel();
+    try {
+        for (const id of ["basic", "loop", "levels"]) p.els["tpl-" + id].onclick();
+        assert.deepEqual(
+            p.sent.filter((m) => m.type === "template").map((m) => m.id),
+            ["basic", "loop", "levels"]
+        );
+        p.send({ type: "fill", text: "@builder\n1. a\n- b" });
+        assert.equal(p.els.paste.open, true);
+        assert.equal(p.els.t.value, "@builder\n1. a\n- b");
     } finally {
         p.restore();
     }

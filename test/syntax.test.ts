@@ -11,6 +11,8 @@ import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from
 import { generate, pick } from "../src/scenarios.ts";
 import type { Flow } from "../src/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
+import { TEMPLATES, templateById } from "../src/templates.ts";
+import { validate } from "../src/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
@@ -391,4 +393,37 @@ test("cases as tab-separated text for a spreadsheet", async () => {
     // a cell with two lines is quoted, so a spreadsheet keeps it in one cell
     assert.equal(lines[1], 'TSS-001 · Happy · P1\t1\t1. Login\tok\tg\t"line one\nline two"'.split("\n")[0]);
     assert.ok(tsv.includes('"line one\nline two"\tt'));
+});
+
+test("starter templates: marked, read without warnings, make cases, no flow errors", () => {
+    assert.deepEqual(TEMPLATES.map((t) => t.id), ["basic", "loop", "levels"]);
+    for (const t of TEMPLATES) {
+        assert.ok(hasMarker(t.text), t.id + ": starts with @builder");
+        const r = parseFlowText(t.text);
+        assert.deepEqual(r.warnings, [], t.id + ": no reading warnings");
+        assert.ok(r.flow.steps.length >= 2, t.id + ": has steps");
+        const gen = generate(r.flow);
+        assert.ok(gen.list.length >= 2, t.id + ": makes cases");
+        assert.deepEqual(
+            validate(r.flow, gen).filter((i) => i.lv === "err"),
+            [],
+            t.id + ": no flow errors"
+        );
+        assert.ok(/^#/m.test(t.text), t.id + ": explains the syntax in comments");
+    }
+    assert.equal(templateById("nope"), undefined);
+});
+
+test("starter templates: the comments do not change the flow", () => {
+    for (const t of TEMPLATES) {
+        const bare = t.text
+            .split("\n")
+            .filter((l) => !/^\s*#/.test(l))
+            .join("\n");
+        assert.deepEqual(
+            generate(parseFlowText(bare).flow).list.length,
+            generate(parseFlowText(t.text).flow).list.length,
+            t.id
+        );
+    }
 });

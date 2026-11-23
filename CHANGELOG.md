@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
+  note on the board, with the syntax explained in `#` comments, so a flow is
+  written on the board instead of in the small panel.
+- The panel is more compact: the paste box is folded away, and the status line sits
+  right under the buttons.
+
 ## 0.1.0
 
 - New readable text syntax: a note that starts with `@builder`, numbered steps,

@@ -12,6 +12,7 @@ import { orderCases, renderScenarios } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
 import { caseFlow, caseFromText, pathFails } from "./caseFlow";
+import { templateById, type Template } from "./templates";
 
 /**
  * E2E Scenario Builder.
@@ -205,6 +206,48 @@ async function currentSelectionIds(): Promise<string[]> {
     return cur.value?.drawdyElementIds ?? [];
 }
 
+/** Width of a starter note: wide enough that the comment lines do not wrap much. */
+const TEMPLATE_W = 520;
+
+/**
+ * Drop a starter note (a ready-made `@builder` text) on the board, in free space
+ * inside the view, and fly to it. The writer edits it on the board, where there is
+ * room, then selects it and presses Flow + Cases.
+ */
+async function addTemplateNote(t: Template): Promise<string> {
+    const vp = await run("command:camera:get-viewport-rect", undefined);
+    const r = vp.value?.rect ?? { x: 0, y: 0, width: 1400, height: 900 };
+    // about 61 characters per line at 14px in a note this wide
+    const rows = t.text
+        .split("\n")
+        .reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 61)), 0);
+    const height = Math.max(170, 50 + rows * 24);
+    const [x, y] = findFree(await occupiedRects(), r.x + 60, r.y + 60, TEMPLATE_W, height);
+    const id = generateId();
+    await run("command:scene:add-drawdy-elements", {
+        elements: [
+            {
+                type: "shape",
+                componentType: "sticky-note",
+                drawdyElementId: id,
+                x,
+                y,
+                width: TEMPLATE_W,
+                height,
+                text: t.text,
+                fontSize: 14,
+                fillColor: "#fef9c3",
+            },
+        ],
+    });
+    await run("command:camera:fly-to-elements", {
+        drawdyElementIds: [id],
+        flyDurationMs: 400,
+        zoom: 0.5,
+    });
+    return `${t.label} note added. Edit it on the board, then select it and press Flow + Cases`;
+}
+
 /** Messages from the panel's page. */
 async function onPanelMessage(m: any) {
     if (!m || typeof m !== "object") return;
@@ -225,6 +268,23 @@ async function onPanelMessage(m: any) {
                 text: "No selected sticky note starts with @builder",
                 bad: true,
             });
+        return;
+    }
+    if (m.type === "template") {
+        const t = templateById(m.id);
+        if (!t) return;
+        if (isBusy()) {
+            await toPanel({ type: "status", text: "Busy, please wait" });
+            return;
+        }
+        setBusy(true);
+        try {
+            await toPanel({ type: "status", text: await addTemplateNote(t) });
+        } catch (e) {
+            await toPanel({ type: "status", text: "Error: " + String(e), bad: true });
+        } finally {
+            setBusy(false);
+        }
         return;
     }
     if (m.type === "target") {
