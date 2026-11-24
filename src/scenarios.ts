@@ -330,7 +330,11 @@ export function dedupe(list: Scenario[]): Scenario[] {
     return Array.from(new Set(keep)).sort((a, b) => a.n - b.n);
 }
 
-/** Each-choice (1-wise): fewest scenarios that touch every condition once. */
+/**
+ * Each-choice (1-wise): a small set of scenarios that touch every condition. A greedy
+ * cover that prefers readable scenarios (Happy paths first, then paths with at most one
+ * failing choice, then any), so it is complete but not always the smallest possible.
+ */
 export function minimal(list: Scenario[]): Scenario[] {
     const all = new Set<string>();
     list.forEach((sc) => sc.path.forEach((v) => v.c && all.add(v.c.id)));
@@ -377,7 +381,11 @@ export function minimal(list: Scenario[]): Scenario[] {
     return chosen.sort((a, b) => a.n - b.n);
 }
 
-/** Pairwise (2-wise): every pair of conditions that can co-occur is covered. */
+/**
+ * Pairwise (2-wise): every condition, and every pair of conditions that can share a
+ * path, is covered. A plain greedy set cover (most uncovered first, ties: higher
+ * priority, then shorter), so it is complete but not always the smallest possible.
+ */
 export function pairwise(list: Scenario[]): Scenario[] {
     const items = (sc: Scenario) => {
         const ids = Array.from(

@@ -13,6 +13,10 @@
   diagram, a backwards check anyone can repeat, and what each part of the syntax
   does to the count. A test keeps the examples and every number on the diagram in
   step with the generator.
+- README: "What each mode guarantees" and the math behind it: what Each, Pairwise
+  and EP cover and do not (never every path, and not the last round of a loop), why
+  greedy is complete but not minimal, the `distinct` formula, and two lower bounds to
+  check a size by hand. The Each mode is no longer described as "the fewest".
 - Tests: the path generator is checked against a second, independent enumerator on
   1,500 random flows (same paths, none twice, same Happy/Negative split), EP / Pair
   / Each are checked to keep every choice and pair, and `distinct` against its

@@ -334,12 +334,72 @@ Choose the mode with the panel's switch.
 | Mode | What you get |
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked |
-| Pairwise (2-wise) | every pair of conditions that can meet is in at least one scenario |
-| Each (each-choice, 1-wise) | the fewest scenarios that touch every condition once |
+| All | every path that can actually be walked (it stops at 1,000 paths and says so) |
+| Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
+| Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all four modes, so
 you can compare them.
+
+### What each mode guarantees
+
+"Coverage" means something different in each mode, and only All covers every path.
+The header of a scenario frame prints the coverage it measured (choices and pairs,
+as `x/y`), so you do not have to take it on trust.
+
+| Mode | How it picks | Always covers | Does not promise |
+| --- | --- | --- | --- |
+| All | every path, up to 1,000 | every path (not when it stopped at 1,000: the flow check says so) | |
+| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice still uncovered | every choice, and every group your `variant` marks define | every pair of choices |
+| Pairwise | greedy: take the scenario that covers the most choices and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, and every pair of choices that can share a path | three choices together, order, a second pass through a loop, the last round a loop allows |
+| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice is covered | every choice | any two choices together, loop depth |
+
+So Each and Pairwise reach 100% of the choices they promise, but never 100% of the
+paths, and they stop short of the last round of a loop (`max`) unless covering a
+choice needs it. If the end of a loop matters, use All or EP, or write that round as
+a choice of its own.
+
+#### The math
+
+**Counting paths (All).** Work backwards from the last step, as in "How the scenarios
+are counted". With no `end`, `loop` or `needs`, the number of paths is the product of
+the number of choices at each step (a step with none counts as 1).
+
+**Loops.** A loop choice with `max m` can be taken at most m times on a path, so a
+step is passed at most m + 1 times. Going round a step with k choices, whose
+steps in between can be passed in q ways, gives (k·q)^r paths for r passes, added
+up for r from 1 to m + 1.
+
+**`distinct`.** The same loop with `distinct` allows each choice at the first step
+only once and counts a set of rounds once whatever the order, so r passes give
+C(k, r)·q^r paths (C is "k choose r", the number of ways to pick r different choices):
+
+> scenarios = Σ over r = 1 … min(k, m + 1) of C(k, r) · q^r
+
+For k = 3 choices, m = 2 and nothing in between (q = 1): 3 + 3 + 1 = 7, against
+3 + 9 + 27 = 39 without `distinct`.
+
+**EP.** The number of scenarios is the number of different sets of non-`variant`
+choices on the paths (a `variant` choice that sets a tag another choice on the path `needs` still counts),
+plus a few more where a choice would otherwise be left out.
+
+**Each and Pairwise (greedy set cover).** Each scenario "covers" some items: its
+choices (Each), or its choices and every pair of its choices (Pairwise). Greedy keeps
+picking the scenario that covers the most items not covered yet, and stops when
+all items are covered. It always stops with full coverage, because every item is on
+some scenario. Finding the smallest set is a hard problem (NP-hard), so greedy can
+pick more than the minimum. For Pairwise, which is plain greedy, the result is at most
+about 1 + ln d times the minimum, where d is the most items one scenario covers. Each
+prefers readable scenarios first, so it has no such bound.
+
+To check a size by hand (a flow without loops):
+
+- Each needs at least ⌈choices ÷ the most choices on one path⌉ scenarios.
+- Pairwise needs at least as many scenarios as there are pairs of choices that can
+  meet between the two steps with the most such pairs (a path takes one choice per
+  step, so it covers one pair of those two steps).
+
+These formulas are checked by the tests (`test/oracle.test.ts`).
 
 ### Flow check
 
