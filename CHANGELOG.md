@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- More property-based tests: each mode keeps the coverage it promises (CALC-30, 33,
+  34, 36), a loop is taken at most `max` times (CALC-17), and a distinct loop never
+  repeats a choice in its rounds (CALC-17). Checked by breaking the code on purpose: the
+  tests fail.
+
 - **`\[` in a choice's label** is a plain `[`, so a label can contain a `[` without it
   being read as the start of the options (SYN-13). Before, `- Pay [visa` lost its name.
   `formatFlow` writes `\[` where it is needed, and the property test now covers labels
