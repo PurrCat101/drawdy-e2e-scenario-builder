@@ -51,6 +51,7 @@ const LOOP = `@builder
 # -> loop                   go round the same step again
 # -> loop to step 2 max 2   go back to step 2, at most 2 rounds (default 1, up to 9)
 # [negative]                a failing choice where the flow still goes on
+# [distinct]                on a loop: the next round offers only choices not picked yet
 # [variant]                 choices marked variant do not multiply each other,
 #                           so EP keeps one scenario for them
 # Lines starting with # are ignored. Delete them when done.

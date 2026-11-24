@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `distinct` option for `loop to step N`: the next round offers only choices not
+  taken yet, and a set of picks counts once whatever the order. An "add another
+  item" loop over 3 items now gives 6 pick sets instead of 12 (3 + 3×3).
 - Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
   note on the board, with the syntax explained in `#` comments, so a flow is
   written on the board instead of in the small panel.
