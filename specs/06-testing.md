@@ -35,7 +35,8 @@ packages).
   that is what the specs are for.
 - **TEST-11** Random flows are seeded, so a failure can be reproduced from its seed.
 - **TEST-12** `test/property.test.ts` states rules that hold for every flow (reading
-  back what `formatFlow` wrote, IDs, what each mode may pick, the remembered analysis)
+  back what `formatFlow` wrote, IDs, what each mode may pick, the coverage each mode
+  promises, the loop limit `max` and the rounds of a `distinct` loop, the remembered analysis)
   and lets fast-check make the flows. A failing property is shrunk to the smallest
   flow that still fails and printed with its seed; that flow is then kept as a plain
   example in the same file. `PBT_RUNS` sets the runs per property (default 300; use

@@ -7,7 +7,7 @@ import { test } from "node:test";
 import fc from "fast-check";
 import type { Cond, Flow } from "../src/flow.ts";
 import { formatFlow, parseFlowText } from "../src/syntax.ts";
-import { generate, pick } from "../src/scenarios.ts";
+import { generate, pick, singles } from "../src/scenarios.ts";
 import { analyze, clearCache } from "../src/analysis.ts";
 
 const RUNS = Number(process.env.PBT_RUNS ?? 300);
@@ -253,4 +253,91 @@ test("SYN-40: a label with an unclosed [ is written with \\[ and read back whole
     const text = formatFlow(flow);
     assert.match(text, /- a \\\[b \[P1\]/);
     assert.equal(parseFlowText(text).flow.steps[0].conds[0].label, "a [b");
+});
+
+/* ----- coverage promises of the modes, and the rules of loops (more PBT) ----- */
+
+/** Ids of the taken choices of a scenario, in order (the loop's own step has `c`; a step with no choice has none). */
+const taken = (sc: { path: { i: number; c: Cond | null }[] }) => sc.path.filter((v) => v.c).map((v) => v);
+
+test("CALC-30, CALC-33, CALC-34, CALC-36 (property): each mode keeps every choice and every pair it promises, and every loop's last round", () => {
+    fc.assert(
+        fc.property(small, (flow) => {
+            const g = generate(flow, 1000, 1e9);
+            if (!g.list.length) return;
+            const all = new Set<string>();
+            const pairs = (list: typeof g.list) => {
+                const out = new Set<string>();
+                for (const sc of list) {
+                    const a = [...new Set(taken(sc).map((v) => v.c!.id))].sort();
+                    for (let p = 0; p < a.length; p++) for (let q = p + 1; q < a.length; q++) out.add(a[p] + "&" + a[q]);
+                }
+                return out;
+            };
+            const ids = (list: typeof g.list) => new Set(list.flatMap((sc) => taken(sc).map((v) => v.c!.id)));
+            for (const sc of g.list) taken(sc).forEach((v) => all.add(v.c!.id));
+            const everyPair = pairs(g.list);
+            const ends = new Set(g.list.flatMap((sc) => singles(sc).filter((x) => x.startsWith("end:"))));
+
+            const pairGot = pairs(pick(g, "pair"));
+            for (const p of everyPair) assert.ok(pairGot.has(p), `pair ${p} is covered by All but not by Pair`);
+
+            for (const mode of ["ep", "pair", "min"] as const) {
+                const sel = pick(g, mode);
+                const have = ids(sel);
+                for (const id of all) assert.ok(have.has(id), `${mode}: choice ${id} is covered by All but not by this mode`);
+                const haveSingles = new Set(sel.flatMap((sc) => singles(sc)));
+                for (const e of ends) assert.ok(haveSingles.has(e), `${mode}: ${e} is covered by All but not by this mode`);
+            }
+        }),
+        { numRuns: RUNS }
+    );
+});
+
+test("CALC-17 (property): a loop with max m is taken at most m times in one scenario", () => {
+    fc.assert(
+        fc.property(small, (flow) => {
+            const g = generate(flow, 1000, 1e9);
+            for (const sc of g.list) {
+                const count = new Map<string, number>();
+                for (const v of taken(sc)) count.set(v.c!.id, (count.get(v.c!.id) ?? 0) + 1);
+                for (const step of flow.steps) {
+                    for (const c of step.conds) {
+                        if (c.action !== "loop") continue;
+                        assert.ok((count.get(c.id) ?? 0) <= c.max, `${c.id} taken ${count.get(c.id)} times, max ${c.max}`);
+                    }
+                }
+            }
+        }),
+        { numRuns: RUNS }
+    );
+});
+
+test("CALC-17 (property): in the rounds of a distinct loop, its target step never repeats a choice", () => {
+    fc.assert(
+        fc.property(small, (flow) => {
+            const g = generate(flow, 1000, 1e9);
+            for (const sc of g.list) {
+                const path = sc.path;
+                for (const step of flow.steps) {
+                    for (const c of step.conds) {
+                        if (c.action !== "loop" || !c.distinct || !c.target) continue;
+                        const takes = path.flatMap((v, k) => (v.c?.id === c.id ? [k] : []));
+                        if (!takes.length) continue;
+                        const first = takes[0];
+                        const last = takes[takes.length - 1];
+                        const seg = path.slice(first, last + 1);
+                        // another loop in between ends the run: its rounds are not checked
+                        if (seg.some((v) => v.c?.action === "loop" && v.c.id !== c.id)) continue;
+                        const t = path.slice(0, first).filter((v) => v.c && flow.steps[v.i].id === c.target && v.c.action !== "loop");
+                        const seq = [...t.slice(-1), ...seg.filter((v) => v.c && flow.steps[v.i].id === c.target && v.c.action !== "loop")].map(
+                            (v) => v.c!.id
+                        );
+                        assert.equal(new Set(seq).size, seq.length, `distinct ${c.id} repeats a choice at ${c.target}: ${seq.join(",")}`);
+                    }
+                }
+            }
+        }),
+        { numRuns: RUNS }
+    );
 });
