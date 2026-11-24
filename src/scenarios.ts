@@ -484,6 +484,19 @@ export function validate(flow: Flow, g: Generated): Issue[] {
                 else if (idx[c.target] > i)
                     R.push({ lv: "warn", msg: `${cn}: loop points forward (acts as a skip)` });
             }
+            if (c.action === "loop" && c.distinct) {
+                const t = c.target !== null ? idx[c.target] : undefined;
+                const picks = t === undefined ? 0 : steps[t].conds.filter((x) => x.action === "next").length;
+                if (t === undefined || t >= i)
+                    R.push({ lv: "warn", msg: `${cn}: distinct only works on a loop back to an earlier step; it does nothing here` });
+                else if (!picks)
+                    R.push({ lv: "warn", msg: `${cn}: distinct does nothing: step ${t + 1} has no choices to hold back` });
+                else if ((c.max || 1) + 1 > picks)
+                    R.push({
+                        lv: "warn",
+                        msg: `${cn}: max ${c.max || 1} asks for ${(c.max || 1) + 1} different picks at step ${t + 1}, which has ${picks}; rounds past that are skipped`,
+                    });
+            }
             tokens(c.need).forEach((t) =>
                 t.split("|").forEach((l) => {
                     l = l.trim();

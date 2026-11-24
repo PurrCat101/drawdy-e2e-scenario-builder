@@ -513,3 +513,14 @@ test("distinct ends with the run: a later plain loop back to the same step picks
     const r = rounds(t, [0]);
     assert.ok(r.includes("A+B+A") && r.includes("A+B+B"), r.join(", "));
 });
+
+test("validate warns when distinct does nothing or asks for more rounds than choices", () => {
+    const issues = (t: string) => {
+        const f = parseFlowText(t).flow;
+        return validate(f, generate(f)).filter((i) => /distinct|different picks/.test(i.msg)).map((i) => i.msg);
+    };
+    assert.deepEqual(issues("1. a\n- A\n- B\n2. b\n- again -> loop to step 1 [distinct]\n- done"), []);
+    assert.match(issues("1. a\n- A\n- B\n2. b\n- again -> loop to step 1 max 2 [distinct]\n- done")[0], /3 different picks at step 1, which has 2/);
+    assert.match(issues("1. a\n2. b\n- again -> loop to step 1 [distinct]\n- done")[0], /step 1 has no choices/);
+    assert.match(issues("1. a\n- retry -> loop max 2 [distinct]\n- ok")[0], /earlier step/);
+});
