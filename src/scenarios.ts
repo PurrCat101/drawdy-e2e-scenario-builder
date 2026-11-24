@@ -50,6 +50,14 @@ function withTags(tags: Tags, c: Cond): Tags {
     return n;
 }
 
+/** A label for a happy scenario that passes a `[negative]` choice and still completes. */
+export const VIA_NEGATIVE = "via negative";
+
+/** Does the path take a failing choice that does not end the flow? */
+export function passesNegative(path: PathItem[]): boolean {
+    return path.some((v) => v.c && v.c.neg && v.c.action !== "end");
+}
+
 /** Happy = reaches the end (loops allowed); Negative = ends on an "end" cond. */
 function classify(path: PathItem[]): "happy" | "neg" {
     const last = path[path.length - 1];
@@ -66,6 +74,60 @@ function priOf(path: PathItem[]): number {
     return m || 2;
 }
 
+/**
+ * A path's identity with the rounds of every `distinct` loop put in a fixed order,
+ * so picking A then B and B then A give the same key. A round runs from the step
+ * the loop goes back to up to (not including) the loop's own step; the last round
+ * of a run ends at the choice that leaves the loop step. A round cut short by an
+ * end stays last.
+ */
+function orderFreeKey(path: PathItem[], idx: Record<string, number>): string {
+    const tok = (v: PathItem) => v.i + ":" + (v.c ? v.c.id : "-");
+    const out: string[] = [];
+    let j = 0;
+    while (j < path.length) {
+        let e = j;
+        while (e < path.length && !(path[e].c?.action === "loop" && path[e].c!.distinct)) e++;
+        if (e >= path.length) {
+            for (; j < path.length; j++) out.push(tok(path[j]));
+            break;
+        }
+        const L = path[e].c!;
+        const t = L.target ? idx[L.target] : -1;
+        const s = path[e].i;
+        if (!(t >= 0 && t < s)) {
+            for (; j <= e; j++) out.push(tok(path[j]));
+            continue;
+        }
+        let start = e;
+        while (start > j && path[start].i !== t) start--;
+        for (; j < start; j++) out.push(tok(path[j]));
+        const rounds: string[] = [path.slice(start, e).map(tok).join(",")];
+        let tail = "";
+        let k = e + 1;
+        for (;;) {
+            let m = k;
+            while (m < path.length && path[m].i !== s) m++;
+            if (m >= path.length) {
+                tail = path.slice(k).map(tok).join(",");
+                k = path.length;
+                break;
+            }
+            rounds.push(path.slice(k, m).map(tok).join(","));
+            if (path[m].c && path[m].c!.id === L.id) {
+                k = m + 1;
+                continue;
+            }
+            k = m; // the choice that leaves the loop step is read as usual
+            break;
+        }
+        rounds.sort();
+        out.push("{" + rounds.join("|" + L.id + "|") + "}" + (tail ? "+" + tail : ""));
+        j = k;
+    }
+    return out.join(" ");
+}
+
 export function generate(flow: Flow, limit = 1000): Generated {
     const steps = flow.steps;
     const out: PathItem[][] = [];
@@ -74,12 +136,35 @@ export function generate(flow: Flow, limit = 1000): Generated {
     steps.forEach((s, i) => {
         idx[s.id] = i;
     });
+    /** keep one path per set of distinct-loop rounds (the first one walked) */
+    const dropReordered = (paths: PathItem[][]) => {
+        if (!steps.some((s) => s.conds.some((c) => c.distinct))) return;
+        const seen = new Set<string>();
+        let w = 0;
+        for (const p of paths) {
+            const k = orderFreeKey(p, idx);
+            if (seen.has(k)) continue;
+            seen.add(k);
+            paths[w++] = p;
+        }
+        paths.length = w;
+    };
+
+    /**
+     * A `distinct` loop in progress: the step it goes back to (`t`), the choices
+     * taken there in the rounds so far, and whether the round being walked has not
+     * yet passed `t` (only then are those choices held back).
+     */
+    type Run = { loop: string; t: number; picks: number[]; armed: boolean };
 
     function walk(
         i: number,
         path: PathItem[],
         usage: Record<string, number>,
-        tags: Tags
+        tags: Tags,
+        /** per step: the index of the last "next" choice taken there on this path */
+        last: Record<number, number> = {},
+        run: Run | null = null
     ) {
         if (out.length >= limit) {
             capped = true;
@@ -90,12 +175,20 @@ export function generate(flow: Flow, limit = 1000): Generated {
             return;
         }
         const s = steps[i];
+        // past the step a distinct loop went back to: the next round may pick freely
+        // there again only after the loop is taken once more
+        const here = run && run.armed && run.t === i;
+        const after = here ? { ...run!, armed: false } : run;
         if (!s.conds.length) {
-            walk(i + 1, path.concat([{ i, c: null }]), usage, tags);
+            walk(i + 1, path.concat([{ i, c: null }]), usage, tags, last, after);
             return;
         }
-        for (const c of s.conds) {
+        for (let k = 0; k < s.conds.length; k++) {
+            const c = s.conds[k];
             if (!needOk(c, tags)) continue;
+            // a distinct round: a choice taken in an earlier round is not offered
+            // again (ends and loops are). The order of picks is dropped afterwards.
+            if (here && c.action === "next" && run!.picks.includes(k)) continue;
             const p = path.concat([{ i, c }]);
             const nt = withTags(tags, c);
             if (c.action === "end") {
@@ -110,13 +203,25 @@ export function generate(flow: Flow, limit = 1000): Generated {
                 const u = usage[c.id] || 0;
                 const t = c.target ? idx[c.target] : undefined;
                 if (u >= (c.max || 1) || t === undefined) continue;
-                walk(t, p, { ...usage, [c.id]: u + 1 }, nt);
+                let r: Run | null = null; // any other loop ends a distinct run
+                if (c.distinct && t < i) {
+                    const before = after && after.loop === c.id ? after.picks : [];
+                    const pick = last[t];
+                    r = {
+                        loop: c.id,
+                        t,
+                        picks: pick === undefined ? before : [...before, pick],
+                        armed: true,
+                    };
+                }
+                walk(t, p, { ...usage, [c.id]: u + 1 }, nt, last, r);
                 continue;
             }
-            walk(i + 1, p, usage, nt);
+            walk(i + 1, p, usage, nt, { ...last, [i]: k }, after);
         }
     }
     walk(0, [], {}, {});
+    dropReordered(out);
 
     const loopN = (p: PathItem[]) =>
         p.filter((v) => v.c && v.c.action === "loop").length;
@@ -144,7 +249,7 @@ export function generate(flow: Flow, limit = 1000): Generated {
 
 /**
  * Equivalence partitioning: a condition marked `variant` (and not used as a
- * tag by anyone) does not make a case different, so cases that differ only in
+ * tag by anyone) does not make a case different, so scenarios that differ only in
  * those choices keep a single representative. Every condition stays covered.
  */
 export function dedupe(list: Scenario[]): Scenario[] {
@@ -225,7 +330,7 @@ export function dedupe(list: Scenario[]): Scenario[] {
     return Array.from(new Set(keep)).sort((a, b) => a.n - b.n);
 }
 
-/** Each-choice (1-wise): fewest cases that touch every condition once. */
+/** Each-choice (1-wise): fewest scenarios that touch every condition once. */
 export function minimal(list: Scenario[]): Scenario[] {
     const all = new Set<string>();
     list.forEach((sc) => sc.path.forEach((v) => v.c && all.add(v.c.id)));
@@ -386,6 +491,19 @@ export function validate(flow: Flow, g: Generated): Issue[] {
                     R.push({ lv: "err", msg: `${cn}: loops to a missing step` });
                 else if (idx[c.target] > i)
                     R.push({ lv: "warn", msg: `${cn}: loop points forward (acts as a skip)` });
+            }
+            if (c.action === "loop" && c.distinct) {
+                const t = c.target !== null ? idx[c.target] : undefined;
+                const picks = t === undefined ? 0 : steps[t].conds.filter((x) => x.action === "next").length;
+                if (t === undefined || t >= i)
+                    R.push({ lv: "warn", msg: `${cn}: distinct only works on a loop back to an earlier step; it does nothing here` });
+                else if (!picks)
+                    R.push({ lv: "warn", msg: `${cn}: distinct does nothing: step ${t + 1} has no choices to hold back` });
+                else if ((c.max || 1) + 1 > picks)
+                    R.push({
+                        lv: "warn",
+                        msg: `${cn}: max ${c.max || 1} asks for ${(c.max || 1) + 1} different picks at step ${t + 1}, which has ${picks}; rounds past that are skipped`,
+                    });
             }
             tokens(c.need).forEach((t) =>
                 t.split("|").forEach((l) => {

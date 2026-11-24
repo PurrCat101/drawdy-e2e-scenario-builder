@@ -168,7 +168,7 @@ export function renderFlow(
                     { id, ax: 0.5, ay: 0 },
                     { id: stepId[c.target], ax: 0.5, ay: 0 },
                     COLORS.loop,
-                    `${c.label} ↻ ≤${c.max}`,
+                    `${c.label} ↻ ≤${c.max}${c.distinct ? " · distinct" : ""}`,
                     [(stepX(i) + stepX(t)) / 2 + W / 2, mainY - 30],
                     { dashed: true, elbow: true }
                 );

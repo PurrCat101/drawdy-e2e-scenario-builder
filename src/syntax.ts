@@ -221,7 +221,7 @@ const FIELD_KEYS: Record<string, FieldKey> = {
     expect: "exp",
 };
 
-const BRACKET_WORDS = ["variant", "negative", "sets", "needs", "P1", "P2", "P3"];
+const BRACKET_WORDS = ["variant", "negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
 
 /** `-> end`, `-> loop`, `-> loop to step 3 max 2`, `-> next` at the end of a condition line */
 const ARROW_RE = /\s*(?:->|→|=>)\s*(end|loop|back|next)((?:\s+\S+){0,6})\s*$/i;
@@ -435,10 +435,15 @@ function parseCondLine(
         if (/^p[123]$/i.test(it)) cond.pri = it.slice(1);
         else if (/^variant$/i.test(it)) cond.variant = true;
         else if (/^(negative|neg)$/i.test(it)) cond.neg = true;
+        else if (/^distinct$/i.test(it)) cond.distinct = true;
         else if ((m = it.match(/^sets?\s+(.+)$/i))) cond.tags = tagsFromWords(m[1]);
         else if ((m = it.match(/^needs?\s+(.+)$/i))) cond.need = needFromWords(m[1]);
         else
             warn(ln, `Unknown option "${clip(it, 24)}" in [ ]${didYouMean(it.split(/\s+/)[0], BRACKET_WORDS)}`);
+    }
+    if (cond.distinct && cond.action !== "loop") {
+        warn(ln, "distinct only works with loop to step N");
+        cond.distinct = false;
     }
     return cond;
 }
@@ -589,6 +594,7 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             if (c.pri) o.push("P" + c.pri);
             if (c.variant) o.push("variant");
             if (c.neg && c.action !== "end") o.push("negative");
+            if (c.distinct) o.push("distinct");
             if (c.tags) o.push("sets " + c.tags.split(",").filter(Boolean).join(" "));
             if (c.need) o.push("needs " + needToWords(c.need));
             if (o.length) line += " [" + o.join(", ") + "]";

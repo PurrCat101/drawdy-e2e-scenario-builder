@@ -99,13 +99,13 @@ async function makeHost() {
     return { scene, toPanel, panel, action, select, find, frames, tables, lastTarget, lastClip, idOf };
 }
 
-/** a host with the flow and its scenario notes already drawn (Flow + Cases) */
+/** a host with the flow and its scenario notes already drawn (Flow + Scenarios) */
 async function drawn(mode = "ep") {
     const h = await makeHost();
     await h.action("board", FLOW, mode);
     return h;
 }
-const caseNotes = (h: Awaited<ReturnType<typeof makeHost>>) =>
+const scenarioNotes = (h: Awaited<ReturnType<typeof makeHost>>) =>
     h.find((e) => e.meta?.kind === "scenario");
 
 test("the toolbar button and the panel messages are wired", async () => {
@@ -116,27 +116,27 @@ test("the toolbar button and the panel messages are wired", async () => {
     assert.equal(counts.counts.all, 2); // login ok > pay, and login bad
 });
 
-test("Flow + Cases draws a flow frame and a scenario frame", async () => {
+test("Flow + Scenarios draws a flow frame and a scenario frame", async () => {
     const h = await drawn();
     const names = h.frames().map((f) => f.name);
     assert.ok(names.some((n) => /^E2E Flow/.test(n)));
     assert.ok(names.some((n) => /^Scenarios/.test(n)));
-    assert.equal(caseNotes(h).length, 2);
+    assert.equal(scenarioNotes(h).length, 2);
 });
 
-test("Cases draws only the scenarios, Flow only the flow", async () => {
+test("Scenarios draws only the scenarios, Flow only the flow", async () => {
     const a = await makeHost();
-    await a.action("cases", FLOW);
+    await a.action("scenarios", FLOW);
     assert.deepEqual(a.frames().map((f) => f.name.split(" ")[0]), ["Scenarios"]);
     const b = await makeHost();
     await b.action("flow", FLOW);
     assert.deepEqual(b.frames().map((f) => f.name.split(" ")[0]), ["E2E"]);
-    assert.equal(caseNotes(b).length, 0);
+    assert.equal(scenarioNotes(b).length, 0);
 });
 
 test("scenario notes: happy first, then negative; each is a flow in the syntax", async () => {
     const h = await drawn();
-    const notes = caseNotes(h);
+    const notes = scenarioNotes(h);
     const kinds = notes.map((e) => e.meta.type);
     assert.equal(kinds.indexOf("neg"), kinds.lastIndexOf("happy") + 1);
     for (const e of notes) {
@@ -148,30 +148,30 @@ test("scenario notes: happy first, then negative; each is a flow in the syntax",
 test("the panel reports what is selected", async () => {
     const h = await drawn();
     assert.equal((await h.lastTarget()).kind, "none");
-    h.select(h.idOf(caseNotes(h)[0]));
-    assert.deepEqual(await h.lastTarget(), { type: "target", kind: "cases", n: 1 });
+    h.select(h.idOf(scenarioNotes(h)[0]));
+    assert.deepEqual(await h.lastTarget(), { type: "target", kind: "scenarios", n: 1 });
     h.select(h.idOf(h.frames().find((f) => /^Scenarios/.test(f.name))!));
     const t = await h.lastTarget();
     assert.equal(t.kind, "frame");
     assert.equal(t.n, 2);
 });
 
-test("Table: a selected case note gives one table, the text gives all of them", async () => {
+test("Table: a selected scenario note gives one table, the text gives all of them", async () => {
     const h = await drawn();
-    h.select(h.idOf(caseNotes(h)[0]));
+    h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("table", FLOW);
     const one = h.tables().at(-1)!;
-    assert.equal(one.meta.cases, 1);
+    assert.equal(one.meta.scenarios, 1);
 
     const g = await drawn();
     await g.action("table", FLOW); // nothing selected: the whole mode
-    assert.equal(g.tables().at(-1)!.meta.cases, 2);
+    assert.equal(g.tables().at(-1)!.meta.scenarios, 2);
 });
 
 test("a table is placed in board coordinates and its columns include their padding", async () => {
     const h = await drawn();
     await h.action("table", FLOW);
-    const frame = h.frames().find((f) => f.meta?.e2eCaseTable)!;
+    const frame = h.frames().find((f) => f.meta?.e2eScenarioTable)!;
     const comp = h.tables().at(-1)!;
     // a component is positioned on the board, not inside its frame
     assert.equal(comp.x, frame.position[0] + 40);
@@ -184,18 +184,18 @@ test("a table is placed in board coordinates and its columns include their paddi
 
 test("a selection wins over the text left in the panel", async () => {
     const h = await drawn();
-    h.select(h.idOf(caseNotes(h)[0]));
+    h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("copy", "s1 > s2 > s3 > s4");
     const clip = h.lastClip();
-    assert.equal(clip.cases, 1);
-    assert.match(clip.text, /^Case\t#\tStep\tCondition\tSetup\tTest data\tExpected result\n/);
+    assert.equal(clip.scenarios, 1);
+    assert.match(clip.text, /^Scenario\t#\tStep\tCondition\tSetup\tTest data\tExpected result\n/);
     assert.ok(!clip.text.includes("s4"));
 });
 
-test("Copy table: nothing selected copies every case of the mode; a table copies itself", async () => {
+test("Copy table: nothing selected copies every scenario of the mode; a table copies itself", async () => {
     const h = await drawn();
     await h.action("copy", FLOW);
-    assert.equal(h.lastClip().cases, 2);
+    assert.equal(h.lastClip().scenarios, 2);
     // the cell with two lines is quoted for a spreadsheet
     assert.match(h.lastClip().text, /"user a\ngood password"/);
 
@@ -215,35 +215,35 @@ test("Copy table: without a flow or a selection it says so and copies nothing", 
     assert.ok(status.bad);
 });
 
-test("Flow on a case note draws that case's flow and its table, and not the other cases", async () => {
+test("Flow on a scenario note draws that scenario's flow and its table, and not the other scenarios", async () => {
     const h = await drawn();
     const before = h.frames().length;
-    h.select(h.idOf(caseNotes(h)[0]));
+    h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("flow", "");
     const added = h.frames().slice(before);
     assert.equal(added.length, 2);
     assert.ok(added.some((f) => /^E2E Flow · TS[SN]-/.test(f.name)));
-    assert.ok(added.some((f) => f.meta?.e2eCaseTable));
+    assert.ok(added.some((f) => f.meta?.e2eScenarioTable));
 });
 
-test("Cases and Flow + Cases on a case note do not draw anything (the panel disables them)", async () => {
+test("Scenarios and Flow + Scenarios on a scenario note do not draw anything (the panel disables them)", async () => {
     const h = await drawn();
-    h.select(h.idOf(caseNotes(h)[0]));
+    h.select(h.idOf(scenarioNotes(h)[0]));
     const before = h.scene.size;
-    await h.action("cases", "");
+    await h.action("scenarios", "");
     // only a hint note, no scenarios or flow
     assert.ok(h.frames().every((f) => !(f.meta?.e2eScenarios && f.name.includes("(2)"))));
     assert.ok(h.scene.size - before <= 1);
 });
 
-test("mode: the same flow in All gives more cases than in EP", async () => {
+test("mode: the same flow in All gives more scenarios than in EP", async () => {
     const flow = "@builder\n1. a\n   - x [variant]\n   - y [variant]\n2. b\n   - p [variant]\n   - q [variant]\n";
     const ep = await makeHost();
-    await ep.action("cases", flow, "ep");
+    await ep.action("scenarios", flow, "ep");
     const all = await makeHost();
-    await all.action("cases", flow, "all");
-    assert.ok(caseNotes(all).length > caseNotes(ep).length);
-    assert.equal(caseNotes(all).length, 4);
+    await all.action("scenarios", flow, "all");
+    assert.ok(scenarioNotes(all).length > scenarioNotes(ep).length);
+    assert.equal(scenarioNotes(all).length, 4);
 });
 
 test("no limit on the number of scenario notes", async () => {
@@ -251,8 +251,41 @@ test("no limit on the number of scenario notes", async () => {
     let flow = "@builder\n";
     for (let i = 1; i <= 8; i++) flow += `${i}. s${i}\n   - a${i}\n   - b${i}\n`;
     const h = await makeHost();
-    await h.action("cases", flow, "all");
-    assert.ok(caseNotes(h).length >= 200);
+    await h.action("scenarios", flow, "all");
+    assert.ok(scenarioNotes(h).length >= 200);
+});
+
+test("a starter note lands on the board as an @builder note that Flow + Scenarios can read", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "loop" });
+    const notes = h.find((e) => e.componentType === "sticky-note");
+    assert.equal(notes.length, 1);
+    assert.match(notes[0].text, /^@builder\n/);
+    assert.ok(notes[0].width >= 400 && notes[0].height >= 170);
+    const status = [...h.toPanel].reverse().find((m) => m.type === "status");
+    assert.match(status.text, /Loop note added/);
+    assert.ok(!status.bad);
+    // select it and press Flow + Scenarios: no text in the box, the note is used
+    h.select(h.idOf(notes[0]));
+    await h.action("board", "");
+    assert.ok(h.frames().some((f) => /^Scenarios/.test(f.name)));
+    assert.ok(scenarioNotes(h).length >= 2);
+});
+
+test("a second starter note goes into free space, not on top of the first", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "basic" });
+    await h.panel({ type: "template", id: "basic" });
+    const [a, b] = h.find((e) => e.componentType === "sticky-note");
+    const overlap =
+        a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    assert.ok(!overlap);
+});
+
+test("an unknown starter id adds nothing", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "nope" });
+    assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
 });
 
 /* ------------------------------ the panel page ----------------------------- */
@@ -319,21 +352,21 @@ test("panel: which buttons are on for each selection", () => {
     try {
         const row = (kind: string) => {
             p.send({ type: "target", kind, n: 1 });
-            return ["flow", "cases", "board", "table", "copy"]
+            return ["flow", "scenarios", "board", "table", "copy"]
                 .map((id) => (p.els[id].disabled ? "-" : id))
                 .filter((x) => x !== "-")
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("cases"), "flow,table,copy");
-        assert.equal(row("frame"), "cases,table,copy");
-        assert.equal(row("flows"), "flow,cases,board,table,copy");
-        assert.equal(row("flowframe"), "cases,board,table,copy");
+        assert.equal(row("scenarios"), "flow,table,copy");
+        assert.equal(row("frame"), "scenarios,table,copy");
+        assert.equal(row("flows"), "flow,scenarios,board,table,copy");
+        assert.equal(row("flowframe"), "scenarios,board,table,copy");
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
-        assert.equal(row("none"), "flow,cases,board,table,copy");
+        assert.equal(row("none"), "flow,scenarios,board,table,copy");
     } finally {
         p.restore();
     }
@@ -345,14 +378,14 @@ test("panel: labels follow the selection and say what will be used", () => {
         p.els.t.value = "x";
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
         p.send({ type: "target", kind: "none", n: 0 });
-        assert.equal(p.els.table.textContent, "Table · all cases of mode EP (28)");
-        assert.equal(p.els.copy.textContent, "Copy table · all cases of mode EP (28)");
+        assert.equal(p.els.table.textContent, "Table · all scenarios of mode EP (28)");
+        assert.equal(p.els.copy.textContent, "Copy table · all scenarios of mode EP (28)");
         assert.equal(p.els.flow.textContent, "Flow");
-        p.send({ type: "target", kind: "cases", n: 2 });
-        assert.equal(p.els.table.textContent, "Table · selected cases (2)");
+        p.send({ type: "target", kind: "scenarios", n: 2 });
+        assert.equal(p.els.table.textContent, "Table · selected scenarios (2)");
         assert.equal(p.els.flow.textContent, "Flow + Table");
         p.send({ type: "target", kind: "frame", n: 28 });
-        assert.equal(p.els.copy.textContent, "Copy table · all cases in the frame (28)");
+        assert.equal(p.els.copy.textContent, "Copy table · all scenarios in the frame (28)");
         p.send({ type: "target", kind: "table", n: 1 });
         assert.equal(p.els.copy.textContent, "Copy table · selected table");
     } finally {
@@ -360,12 +393,28 @@ test("panel: labels follow the selection and say what will be used", () => {
     }
 });
 
-test("panel: a lot of cases gets a warning, and the mode count follows the switch", () => {
+test("panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
     const p = loadPanel();
     try {
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode EP: 28 cases");
+        assert.equal(p.els.plan.textContent, "Mode EP: 28 scenarios");
         assert.equal(p.els.plan.className, "plan");
+    } finally {
+        p.restore();
+    }
+});
+
+test("panel: the starter buttons ask the driver for a template; a pulled note opens the paste box", () => {
+    const p = loadPanel();
+    try {
+        for (const id of ["basic", "loop", "levels"]) p.els["tpl-" + id].onclick();
+        assert.deepEqual(
+            p.sent.filter((m) => m.type === "template").map((m) => m.id),
+            ["basic", "loop", "levels"]
+        );
+        p.send({ type: "fill", text: "@builder\n1. a\n- b" });
+        assert.equal(p.els.paste.open, true);
+        assert.equal(p.els.t.value, "@builder\n1. a\n- b");
     } finally {
         p.restore();
     }
@@ -374,12 +423,42 @@ test("panel: a lot of cases gets a warning, and the mode count follows the switc
 test("panel: the clipboard message copies and reports", () => {
     const p = loadPanel();
     try {
-        p.send({ type: "clip", text: "a\tb", cases: 2 });
+        p.send({ type: "clip", text: "a\tb", scenarios: 2 });
         assert.equal(p.els.clip.value, "a\tb");
-        assert.match(p.els.status.textContent, /Copied 2 case\(s\)/);
+        assert.match(p.els.status.textContent, /Copied 2 scenario\(s\)/);
     } finally {
         p.restore();
     }
+});
+
+test("one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
+    const word = /\b(test )?cases?\b/i;
+    // the files people read ("letter case" is something else; "test case" is defined in the README)
+    for (const f of ["../README.md", "../src/templates.ts"]) {
+        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "").replace(/test cases?/gi, ""); // "test case" is a defined term (README: Terms)
+        const hit = text.split("\n").find((l) => word.test(l) && !/^## /.test(l));
+        assert.ok(!hit, f + ": " + hit);
+    }
+    // what the driver writes on the board and says to the panel in a full run
+    const h = await makeHost();
+    await h.action("board", FLOW);
+    await h.action("table", FLOW);
+    await h.action("copy", FLOW);
+    await h.panel({ type: "template", id: "basic" });
+    const said = h.toPanel.filter((m) => m.type === "status").map((m) => m.text);
+    const names = h.frames().map((f) => f.name);
+    const texts = h.find((e) => typeof e.text === "string" && e.text).map((e) => e.text);
+    for (const t of [...said, ...names]) assert.ok(!word.test(t), t);
+    assert.ok(texts.length > 0);
+    // the first column of the copied table
+    assert.match(h.lastClip().text.split("\n")[0], /^Scenario\t/);
+    // the panel page itself: labels, hints and messages (the identifiers are internal)
+    const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+    // labels, tooltips and placeholders always count; a quoted string in the script
+    // counts when it is a sentence (single words there are identifiers like 'scenarios')
+    const shown = [...html.matchAll(/>([^<>]+)<\/(?:button|span|div|summary|p)>|(?:title|placeholder)="([^"]*)"|'([^']*)'/g)]
+        .flatMap((m) => (m[3] !== undefined ? (/\s/.test(m[3]) && !/^\s*\+|\+\s*$/.test(m[3]) ? [m[3]] : []) : [m[1] ?? m[2] ?? ""]));
+    for (const t of shown) assert.ok(!word.test(t), t);
 });
 
 test("no Thai text is left in what the user sees", () => {

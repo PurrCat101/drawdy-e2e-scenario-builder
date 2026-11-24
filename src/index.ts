@@ -5,13 +5,14 @@ import type {
 import type { DrawdyElementSchema, ModuleStyling } from "@drawdy/driver-protocol";
 import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
-import { casesToTsv, renderCaseTables, type CaseItem } from "./caseTable";
+import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
-import { generate, pick, validate } from "./scenarios";
-import { orderCases, renderScenarios } from "./scenarioBoard";
+import { generate, pick, validate, VIA_NEGATIVE } from "./scenarios";
+import { orderScenarios, renderScenarios } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
-import { caseFlow, caseFromText, pathFails } from "./caseFlow";
+import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
+import { templateById, type Template } from "./templates";
 
 /**
  * E2E Scenario Builder.
@@ -161,15 +162,15 @@ async function anchorFor(sel: Picked[]): Promise<Box> {
 
 /** Draw a flow (and its scenarios) from a model. Returns a status line. */
 async function drawFromFlow(
-    kind: "board" | "flow" | "cases",
+    kind: "board" | "flow" | "scenarios",
     flow: Flow,
     mode: Mode,
     anchor: Box
 ): Promise<string> {
-    if (kind === "cases") {
+    if (kind === "scenarios") {
         // the scenarios only, no flow diagram
         await drawScenarios(flow, mode, anchor);
-        return "Cases drawn";
+        return "Scenarios drawn";
     }
     const box = await drawFlow(flow, anchor);
     if (!box) return "Could not draw the flow (see the note on the board)";
@@ -182,12 +183,12 @@ async function drawFromFlow(
         return `Flow drawn (${flow.steps.length} steps)`;
     }
     await drawScenarios(flow, mode, box);
-    return "Flow and cases drawn";
+    return "Flow and scenarios drawn";
 }
 
 /** Draw from text typed in the panel. Returns a status line for the panel. */
 async function drawFromText(
-    kind: "board" | "flow" | "cases",
+    kind: "board" | "flow" | "scenarios",
     text: string,
     uiMode: Mode
 ): Promise<string> {
@@ -204,6 +205,51 @@ async function currentSelectionIds(): Promise<string[]> {
     const cur = await run("command:scene:get-current-selected-drawdy-elements", undefined);
     return cur.value?.drawdyElementIds ?? [];
 }
+
+/** Width of a starter note: wide enough that the comment lines do not wrap much. */
+const TEMPLATE_W = 520;
+
+/**
+ * Drop a starter note (a ready-made `@builder` text) on the board, in free space
+ * inside the view, and fly to it. The writer edits it on the board, where there is
+ * room, then selects it and presses Flow + Scenarios.
+ */
+async function addTemplateNote(t: Template): Promise<string> {
+    const vp = await run("command:camera:get-viewport-rect", undefined);
+    const r = vp.value?.rect ?? { x: 0, y: 0, width: 1400, height: 900 };
+    // about 61 characters per line at 14px in a note this wide
+    const rows = t.text
+        .split("\n")
+        .reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 61)), 0);
+    const height = Math.max(170, 50 + rows * 24);
+    const [x, y] = findFree(await occupiedRects(), r.x + 60, r.y + 60, TEMPLATE_W, height);
+    const id = generateId();
+    await run("command:scene:add-drawdy-elements", {
+        elements: [
+            {
+                type: "shape",
+                componentType: "sticky-note",
+                drawdyElementId: id,
+                x,
+                y,
+                width: TEMPLATE_W,
+                height,
+                text: t.text,
+                fontSize: 14,
+                fillColor: "#fef9c3",
+            },
+        ],
+    });
+    await run("command:camera:fly-to-elements", {
+        drawdyElementIds: [id],
+        flyDurationMs: 400,
+        zoom: 0.5,
+    });
+    return `${t.label} note added. Edit it on the board, then select it and press Flow + Scenarios`;
+}
+
+/** How many scenarios a table holds: tables drawn by earlier versions stored it as `scenarios`. */
+const tableCount = (meta: Record<string, any>): number => Number(meta.scenarios ?? meta.cases ?? 1);
 
 /** Messages from the panel's page. */
 async function onPanelMessage(m: any) {
@@ -227,6 +273,23 @@ async function onPanelMessage(m: any) {
             });
         return;
     }
+    if (m.type === "template") {
+        const t = templateById(m.id);
+        if (!t) return;
+        if (isBusy()) {
+            await toPanel({ type: "status", text: "Busy, please wait" });
+            return;
+        }
+        setBusy(true);
+        try {
+            await toPanel({ type: "status", text: await addTemplateNote(t) });
+        } catch (e) {
+            await toPanel({ type: "status", text: "Error: " + String(e), bad: true });
+        } finally {
+            setBusy(false);
+        }
+        return;
+    }
     if (m.type === "target") {
         // what is selected on the board, so the panel can say what its buttons will use
         if (isBusy()) return;
@@ -238,9 +301,9 @@ async function onPanelMessage(m: any) {
         const flowFrame = sel.find((p) => p.meta?.e2eFlow);
         let kind = "none";
         let n = 0;
-        if (table) [kind, n] = ["table", Number(table.meta.cases ?? 1)];
+        if (table) [kind, n] = ["table", tableCount(table.meta)];
         else if (frame) [kind, n] = ["frame", Number(frame.meta.count ?? 0)];
-        else if (notes.length) [kind, n] = ["cases", notes.length];
+        else if (notes.length) [kind, n] = ["scenarios", notes.length];
         else if (flows.length) [kind, n] = ["flows", flows.length];
         else if (flowFrame) [kind, n] = ["flowframe", 1];
         await toPanel({ type: "target", kind, n });
@@ -272,7 +335,7 @@ async function onPanelMessage(m: any) {
             if (!status) return; // the panel reports the result itself
         } else if (text && !usable) {
             status = await drawFromText(
-                m.action === "flow" ? "flow" : m.action === "cases" ? "cases" : "board",
+                m.action === "flow" ? "flow" : m.action === "scenarios" ? "scenarios" : "board",
                 text,
                 uiMode
             );
@@ -283,7 +346,7 @@ async function onPanelMessage(m: any) {
                 status = "Write a flow in the box first, or select a sticky note on the board";
             } else {
                 if (m.action === "flow") await actionFlow(sel);
-                else await actionBoard(sel, uiMode, m.action !== "cases");
+                else await actionBoard(sel, uiMode, m.action !== "scenarios");
                 status = "Done";
             }
         }
@@ -465,38 +528,39 @@ async function addInBatches(elements: DrawdyElementSchema[], size = 30): Promise
     return "";
 }
 
-const casePath = (sc: { path: { i: number; c: { id: string } | null }[] }) =>
+const scenarioPath = (sc: { path: { i: number; c: { id: string } | null }[] }) =>
     sc.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null]);
 
-/** Title of a case in the tables: id, kind, priority and the choices it takes. */
-function caseTitle(id: string, type: string, pri: string | number | undefined, sub: Flow): string {
+/** Title of a scenario in the tables: id, kind, priority and the choices it takes. */
+function scenarioTitle(id: string, type: string, pri: string | number | undefined, sub: Flow): string {
     const picks = sub.steps.flatMap((s) => s.conds.map((c) => c.label)).join(" · ");
-    return `${id} · ${type === "happy" ? "Happy" : "Negative"}${pri ? " · P" + pri : ""}${picks ? "   " + picks : ""}`;
+    const via = type === "happy" && sub.steps.some((s) => s.conds.some((c) => c.neg && c.action !== "end"));
+    return `${id} · ${type === "happy" ? "Happy" : "Negative"}${pri ? " · P" + pri : ""}${via ? " · " + VIA_NEGATIVE : ""}${picks ? "   " + picks : ""}`;
 }
 
 /**
- * Button 3: the test sequence of many cases as tables (step, condition, setup,
+ * Button 3: the test sequence of many scenarios as tables (step, condition, setup,
  * test data, expected result), to check them against the flow. From the text in
- * the panel, from a selected scenario frame (all its cases) or from selected
+ * the panel, from a selected scenario frame (all its scenarios) or from selected
  * scenario notes.
  */
-type Collected = { cases: CaseItem[]; anchor: Box; label: string };
+type Collected = { scenarios: ScenarioItem[]; anchor: Box; label: string };
 
-/** The cases to show as tables: the selection on the board wins over the panel's text. */
-async function collectCases(text: string, uiMode: Mode): Promise<Collected | string> {
+/** The scenarios to show as tables: the selection on the board wins over the panel's text. */
+async function collectScenarios(text: string, uiMode: Mode): Promise<Collected | string> {
     const sel = await readElements(await currentSelectionIds());
-    const cases: CaseItem[] = [];
+    const scenarios: ScenarioItem[] = [];
     let anchor: Box | null = null;
     let label = "Test sequence";
     const fromList = (flow: Flow, mode: Mode) => {
         const gen = generate(flow);
-        for (const sc of orderCases(pick(gen, mode))) {
-            const sub = caseFlow(flow, casePath(sc));
-            cases.push({ title: caseTitle(sc.id, sc.type, sc.pri, sub), flow: sub });
+        for (const sc of orderScenarios(pick(gen, mode))) {
+            const sub = scenarioFlow(flow, scenarioPath(sc));
+            scenarios.push({ title: scenarioTitle(sc.id, sc.type, sc.pri, sub), flow: sub });
         }
     };
     const frame = sel.find((p) => p.meta?.e2eScenarios && p.meta?.flow);
-    const caseNotes = sel.filter((x) => x.meta?.kind === "scenario" && Array.isArray(x.meta.path));
+    const scenarioNotes = sel.filter((x) => x.meta?.kind === "scenario" && Array.isArray(x.meta.path));
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
     const flowFrame = sel.find((x) => x.meta?.e2eFlow);
     if (frame) {
@@ -504,14 +568,14 @@ async function collectCases(text: string, uiMode: Mode): Promise<Collected | str
         fromList(frame.meta.flow as Flow, mode);
         anchor = frame;
         label = `Test sequence · ${mode.toUpperCase()}`;
-    } else if (caseNotes.length) {
-        for (const p of caseNotes) {
+    } else if (scenarioNotes.length) {
+        for (const p of scenarioNotes) {
             const fr = p.frameId ? (await readElements([p.frameId]))[0] : undefined;
             const flow = fr?.meta?.flow as Flow | undefined;
             if (!flow?.steps?.length) continue;
-            const sub = caseFlow(flow, p.meta.path as [number, string | null][]);
+            const sub = scenarioFlow(flow, p.meta.path as [number, string | null][]);
             const pri = p.text.match(/·\s*P(\d)/)?.[1];
-            cases.push({ title: caseTitle(String(p.meta.id), String(p.meta.type), pri, sub), flow: sub });
+            scenarios.push({ title: scenarioTitle(String(p.meta.id), String(p.meta.type), pri, sub), flow: sub });
             anchor = anchor ?? p;
         }
     } else if (flowNotes.length) {
@@ -534,30 +598,30 @@ async function collectCases(text: string, uiMode: Mode): Promise<Collected | str
         anchor = await anchorFor(sel);
         label = `Test sequence · ${mode.toUpperCase()}`;
     }
-    if (!cases.length || !anchor)
-        return "Write a flow in the box first, or select a scenario frame / case note on the board";
-    return { cases, anchor, label };
+    if (!scenarios.length || !anchor)
+        return "Write a flow in the box first, or select a scenario frame / scenario note on the board";
+    return { scenarios, anchor, label };
 }
 
 /**
- * Button 3: the test sequence of many cases as tables (step, condition, setup,
+ * Button 3: the test sequence of many scenarios as tables (step, condition, setup,
  * test data, expected result), to check them against the flow.
  */
 async function tableAction(text: string, uiMode: Mode): Promise<string> {
-    const got = await collectCases(text, uiMode);
+    const got = await collectScenarios(text, uiMode);
     if (typeof got === "string") return got;
-    const { cases, anchor, label } = got;
-    const size = renderCaseTables({ cases, name: label, origin: [0, 0], generateId });
+    const { scenarios, anchor, label } = got;
+    const size = renderScenarioTables({ scenarios, name: label, origin: [0, 0], generateId });
     const origin = findFree(await occupiedRects(), anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
-    const out = renderCaseTables({ cases, name: `${label} · ${cases.length} cases`, origin, generateId });
+    const out = renderScenarioTables({ scenarios, name: `${label} · ${scenarios.length} scenarios`, origin, generateId });
     const failed = await addInBatches(out.elements);
     if (failed) return "Could not draw the table: " + failed;
     await run("command:camera:fly-to-elements", { drawdyElementIds: [out.frameId], flyDurationMs: 400, zoom: 0.3 });
-    return `Table drawn (${cases.length} cases)`;
+    return `Table drawn (${scenarios.length} scenarios)`;
 }
 
 /**
- * Button 4: the same cases as tab-separated text, sent to the panel, which puts it
+ * Button 4: the same scenarios as tab-separated text, sent to the panel, which puts it
  * on the clipboard (a click in the panel is a real user action; the board's embedded
  * pages cannot reliably write to the clipboard).
  */
@@ -566,23 +630,23 @@ async function copyAction(text: string, uiMode: Mode): Promise<string> {
     const sel = await readElements(await currentSelectionIds());
     const table = sel.find((p) => typeof p.meta?.tsv === "string");
     if (table) {
-        await toPanel({ type: "clip", text: table.meta.tsv, cases: table.meta.cases ?? 1 });
+        await toPanel({ type: "clip", text: table.meta.tsv, scenarios: tableCount(table.meta) });
         return "";
     }
-    const got = await collectCases(text, uiMode);
+    const got = await collectScenarios(text, uiMode);
     if (typeof got === "string") return got;
-    await toPanel({ type: "clip", text: casesToTsv(got.cases), cases: got.cases.length });
+    await toPanel({ type: "clip", text: scenariosToTsv(got.scenarios), scenarios: got.scenarios.length });
     return "";
 }
 
 /** The table of one case (step, condition, setup, test data, expected), below its flow drawing. */
-async function drawCaseTable(flow: Flow, name: string, below: Box) {
-    const one: CaseItem[] = [{ title: name, flow }];
-    const size = renderCaseTables({ cases: one, name, origin: [0, 0], generateId });
+async function drawScenarioTable(flow: Flow, name: string, below: Box) {
+    const one: ScenarioItem[] = [{ title: name, flow }];
+    const size = renderScenarioTables({ scenarios: one, name, origin: [0, 0], generateId });
     const origin = findFree(await occupiedRects(), below.x, below.y + below.height + 100, size.width, size.height);
-    const out = renderCaseTables({ cases: one, name: `${name} · table`, origin, generateId });
+    const out = renderScenarioTables({ scenarios: one, name: `${name} · table`, origin, generateId });
     const failed = await addInBatches(out.elements);
-    if (failed) await note(`Could not draw the case table
+    if (failed) await note(`Could not draw the scenario table
 ${failed}`, below.x, below.y - 200, "#fecaca");
 }
 
@@ -658,7 +722,7 @@ async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) 
             );
             continue;
         }
-        // "cases" only: the scenarios go under the note itself, with no flow drawing
+        // "scenarios" only: the scenarios go under the note itself, with no flow drawing
         const box = withFlow ? await drawFlow(r.flow, n) : n;
         if (box) await drawScenarios(r.flow, r.mode ?? uiMode, box);
     }
@@ -667,7 +731,7 @@ async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) 
 const HINT_FLOW =
     "Select a sticky note that starts with @builder, then press the button again\n\n" +
     "Example:\n@builder\n1. Login\n- ok\n- failed -> end\n2. Checkout\n- paid\n- card declined -> end\n\n" +
-    "Or select a case note (TSS-… / TSN-…) to see the flow of that case";
+    "Or select a scenario note (TSS-… / TSN-…) to see the flow of that scenario";
 
 /** What is selected, in a few words, for hint notes (helps when nothing happens). */
 function describeSel(sel: Picked[]): string {
@@ -679,9 +743,9 @@ function describeSel(sel: Picked[]): string {
 }
 
 /**
- * Button 2: draw a flow, without test cases.
+ * Button 2: draw a flow, without scenarios.
  *  - a note with the flow text   -> that flow, under the note
- *  - a scenario note (TSS-/TSN-) -> the flow of just that case, next to its frame
+ *  - a scenario note (TSS-/TSN-) -> the flow of just that scenario, next to its frame
  */
 async function actionFlow(sel: Picked[]) {
     const items = sel.filter(
@@ -703,33 +767,33 @@ async function actionFlow(sel: Picked[]) {
     for (const p of items) {
         // a case note: its own title (@title TSS-001 · ...) or the older TSS-001 header
         const parsed = p.meta?.kind === "scenario" || !hasMarker(p.text) ? null : parseFlowText(p.text);
-        const caseId = parsed?.title.match(/^(TS[SN]-\d+)/)?.[1];
-        const isCase = p.meta?.kind === "scenario" || !!caseId || /^\s*TS[SN]-\d+/.test(p.text);
+        const scenarioId = parsed?.title.match(/^(TS[SN]-\d+)/)?.[1];
+        const isScenario = p.meta?.kind === "scenario" || !!scenarioId || /^\s*TS[SN]-\d+/.test(p.text);
         let sub: Flow | null = null;
         let name: string | undefined;
         let success = true;
-        if (isCase) {
+        if (isScenario) {
             // exact: the path and flow stored on the note and its frame
             if (Array.isArray(p.meta?.path) && p.frameId) {
                 const fr = (await readElements([p.frameId]))[0];
                 const flow = fr?.meta?.flow as Flow | undefined;
                 if (flow?.steps?.length) {
                     const path = p.meta.path as [number, string | null][];
-                    sub = caseFlow(flow, path);
+                    sub = scenarioFlow(flow, path);
                     success = !pathFails(flow, path);
-                    name = `E2E Flow · ${p.meta.id ?? "case"}`;
+                    name = `E2E Flow · ${p.meta.id ?? "scenario"}`;
                 }
             }
             // otherwise read the note's own text in the flow syntax
-            if (!sub && parsed && caseId && parsed.flow.steps.length) {
+            if (!sub && parsed && scenarioId && parsed.flow.steps.length) {
                 sub = parsed.flow;
                 const lastConds = sub.steps[sub.steps.length - 1].conds;
                 success = !lastConds.some((c) => c.action === "end");
-                name = `E2E Flow · ${caseId}`;
+                name = `E2E Flow · ${scenarioId}`;
             }
             // or the older text ("1. Step → label")
             if (!sub) {
-                const t = caseFromText(p.text);
+                const t = scenarioFromText(p.text);
                 if (t) {
                     sub = t.flow;
                     success = !t.fails;
@@ -753,14 +817,14 @@ async function actionFlow(sel: Picked[]) {
         // a case goes next to its scenario frame (near the note, in view); a flow
         // goes under its note
         let at: [number, number] | undefined;
-        if (isCase) {
+        if (isScenario) {
             const fr = p.frameId ? (await readElements([p.frameId]))[0] : undefined;
             at = fr ? [fr.x + fr.width + 200, p.y] : [p.x + p.width + 200, p.y];
         }
         const box = await drawFlow(sub, p, { name, success, at });
         if (box) last = box.id;
         // a case note: the flow of that case, and under it the table of that case
-        if (box && isCase) await drawCaseTable(sub, name ?? "E2E Flow", box);
+        if (box && isScenario) await drawScenarioTable(sub, name ?? "E2E Flow", box);
     }
     if (last) {
         await run("command:camera:fly-to-elements", {
