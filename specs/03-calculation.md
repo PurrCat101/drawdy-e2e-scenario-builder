@@ -1,0 +1,165 @@
+# 03 · Calculation
+
+How a flow becomes scenarios. Code: `src/scenarios.ts` (paths, modes, IDs, flow
+check), `src/analysis.ts` (remembering results).
+
+## Paths (All)
+
+- **CALC-01** All lists every path the flow allows (TERM-04), each exactly once.
+- **CALC-02** A step without choices is passed through: it is on the path with no
+  choice and does not branch.
+- **CALC-03** At a step with choices, every choice that is offered (CALC-04, CALC-07,
+  CALC-11) starts its own branch. A `next` choice continues to the following step;
+  passing the last step completes the path.
+- **CALC-04** An `end` choice stops its branch there: one Negative scenario, however
+  many steps remain.
+- **CALC-05** Happy = the path passes the last step; Negative = the path's last item
+  is an `end` choice. Nothing else decides the type: a `[negative]` choice that
+  continues does not make a scenario Negative (see CALC-41).
+- **CALC-06** With no `end`, `loop` or `needs`, the number of paths is the product of
+  the number of choices of each step (a step with none counts 1).
+
+## Tags
+
+- **CALC-07** A choice with `needs` is offered only if the path, before reaching it,
+  already carries the tags its rule asks for. `,` = and, `|` = or, `!` = not; "or"
+  binds tighter than "and"; no brackets. Tags are compared in lower case.
+- **CALC-08** A choice with `sets` adds its tags to the path when it is taken. A tag
+  stays for the rest of the path; there is no way to remove one.
+- **CALC-09** A choice that is never offered on any path is unreachable (TERM-12),
+  and every scenario through it is gone with it.
+
+## Loops
+
+- **CALC-10** A `loop` choice goes to its target step (`loop` alone: the same step;
+  `loop to step N`: step N) and the walk continues from there.
+- **CALC-11** Each loop choice can be taken at most `max` times on one path (default
+  1, at most 9). Once used up it is simply not offered; it does not end the path.
+- **CALC-12** Counted alone, a loop back over a step with k choices, whose steps in
+  between can be passed in q ways, gives (k·q)^r paths for r passes, summed over
+  r = 1 … max + 1.
+- **CALC-13** A loop pointing forward acts as a skip (and the flow check warns,
+  CALC-62).
+
+## `distinct`
+
+- **CALC-14** On a loop back to an earlier step, `distinct` holds back, at that
+  target step only, the `next` choices already taken there in earlier rounds of the
+  same run. `end` and `loop` choices there stay offered; the steps after the target
+  are free.
+- **CALC-15** A run is the rounds joined by that loop choice; taking any other loop
+  ends the run, so a later plain loop back to the same step picks freely.
+- **CALC-16** Paths whose rounds differ only in order count once: rounds are compared
+  as a set (a round cut short by an `end` stays last). The first path walked is kept.
+- **CALC-17** Counted alone: Σ over r = 1 … min(k, max + 1) of C(k, r) · q^r.
+- **CALC-18** `distinct` does not depend on the order choices are listed in, so a set
+  needing a tag from a choice listed later is still found (C then A when A needs C).
+
+## The 1,000 limit
+
+- **CALC-20** The walk stops after 1,000 paths. All then lists those 1,000 first.
+- **CALC-21** Past the limit, a targeted search (same rules as the walk, dead ends
+  remembered) adds one path for each choice, each loop end and each pair the 1,000
+  missed, so every mode can still cover them (CALC-36).
+- **CALC-22** The search has a time budget: 3 s for a button press, 300 ms for the
+  panel's live counts. When it runs out, the result says so (`searchComplete`
+  false) and the flow check says what is uncertain (CALC-64).
+- **CALC-23** Every path the search adds is a path the walk could have produced.
+
+## Priority
+
+- **CALC-25** A scenario's priority is the most important `P` on its choices, that is
+  the **lowest** number: a path with a P1 choice is P1, even if it also has P3
+  choices. Choices without a `P` do not count; a path with no `P` at all is P2.
+
+## Modes
+
+- **CALC-30** Every mode except All picks a subset of All's scenarios; none twice; it
+  never invents a scenario.
+- **CALC-31** EP: scenarios are grouped by the set of their choices once `variant`
+  choices are left out (order ignored; a `variant` choice that sets a tag another
+  choice on the path needs still counts). One scenario per group (the first in All's
+  order). Then, for each coverage item (CALC-36) still missing, the best scenario
+  that has it is added (Happy first, then higher priority, fewer loops, shorter).
+- **CALC-32** EP marks, for each kept scenario, the scenarios it stands for. Those
+  marks belong to EP's own copies and never show in another mode.
+- **CALC-33** Pairwise: greedy set cover over every choice, every loop end and every
+  pair of choices on a path. Each round takes the scenario that covers the most items
+  not yet covered; ties go to the higher priority, then the shorter path.
+- **CALC-34** Each: greedy cover of every choice and loop end, starting with the first
+  Happy scenario, filling from Happy scenarios, then from scenarios with at most one
+  failing choice, then from any.
+- **CALC-35** Greedy is complete but not minimal: Pairwise and Each may pick more than
+  the smallest possible set. They must never be described as "the fewest".
+- **CALC-36** Coverage guarantees, against what All has:
+
+  | Mode | Always covers |
+  | --- | --- |
+  | All | every path (while under the limit) |
+  | EP | every choice, every loop end, every group of CALC-31 |
+  | Pairwise | every choice, every loop end, every pair |
+  | Each | every choice, every loop end |
+
+- **CALC-37** Not promised: EP does not cover every pair; Each does not cover pairs;
+  only All covers the rounds in between (for `max 3`: 1 and 2 rounds) and every
+  order.
+- **CALC-38** Lower bounds, for checking a size by hand (flows without loops): Each ≥
+  ⌈choices ÷ most choices on one path⌉; Pairwise ≥ the number of choice pairs that
+  can meet between the two steps with the most such pairs.
+
+## Scenario facts
+
+- **CALC-40** `loops` of a scenario = how many loop choices its path takes.
+- **CALC-41** A Happy scenario that takes a `[negative]` choice that continues is
+  "via negative" (TERM-13).
+- **CALC-42** All's order: fewer loops first, then longer paths first.
+
+## Scenario IDs
+
+- **CALC-50** An ID is `TSS-` (Happy) or `TSN-` (Negative) and five digits.
+- **CALC-51** The number is FNV-1a (32-bit) of the scenario's description, mod 100000:
+  for each item of the path, the step name and the choice label (lower case, trimmed),
+  joined in order.
+- **CALC-52** On a clash within the same prefix, the scenario whose description sorts
+  later takes the next free number (wrapping at 99999). Descriptions are resolved in
+  sorted order, so the result does not depend on walk order.
+- **CALC-53** So an ID changes only when its own path changes (a renamed step or
+  choice on it, a step added in its way), never because of a change elsewhere.
+- **CALC-54** Any `TSS-`/`TSN-` number is read back (older boards used `TSS-001`).
+
+## Flow check
+
+- **CALC-60** No steps → error.
+- **CALC-61** No scenario at all → error.
+- **CALC-62** Per step and choice: a step no scenario reaches (error); a step with
+  choices none of which continues, not the last step (warning); a choice without a
+  label (error); a duplicate label in a step (warning); a loop to a missing step
+  (error); a loop pointing forward (warning); a `needs` tag nobody `sets` (error).
+- **CALC-63** A choice in no scenario: "no path can take this choice" when it is
+  unreachable (CALC-09); "the flow is too big to finish the search for it" when the
+  search ran out of time (CALC-22).
+- **CALC-64** Past the limit: one warning saying how many paths All lists, how many
+  were added, whether every pair was found, that EP may miss groups beyond these,
+  and what to do (Pair or Each, or `sets`/`needs` to cut impossible paths).
+- **CALC-65** `distinct`: a warning when it does nothing (loop to itself or forward,
+  or a target step without choices) or when `max + 1` is more than the target step's
+  `next` choices (rounds past that are skipped).
+- **CALC-66** Errors are listed before warnings.
+
+## Mode tip
+
+- **CALC-70** All ≤ 30 → "run them all".
+- **CALC-71** No `variant` anywhere → EP stays close to All: suggest Pair, or Each for
+  a quick pass, or marking interchangeable choices `variant`.
+- **CALC-72** Otherwise: EP for regression by `variant` groups, Pair when choices at
+  different steps affect each other, Each for a smoke pass. Each suggestion shows the
+  mode's count.
+
+## Remembering results
+
+- **CALC-80** The analysis of a flow (paths, each mode once, counts, flow check, tip)
+  is kept in memory for the last 8 flows, keyed by the flow's content. Nothing is
+  written to disk or sent anywhere; it is lost when the board reloads.
+- **CALC-81** A remembered result is used when it is complete, or when it had at
+  least the requested search budget; otherwise it is worked out again.
+- **CALC-82** Cached results are shared: nothing may change them after they are made.

@@ -1,7 +1,7 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import type { Flow, Mode } from "./flow";
-import type { Generated, Issue, Scenario } from "./scenarios";
-import { caseFlow } from "./caseFlow";
+import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
+import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
 const W = 300;
@@ -26,8 +26,9 @@ const MODE_LABEL: Record<Mode, string> = {
 function lines(sc: Scenario, flow: Flow): string[] {
     const title =
         `${sc.id} · ${sc.type === "happy" ? "Happy" : "Negative"} · P${sc.pri}` +
+        (sc.type === "happy" && passesNegative(sc.path) ? ` · ${VIA_NEGATIVE}` : "") +
         (sc.loops ? ` · loop x${sc.loops}` : "");
-    const cf = caseFlow(
+    const cf = scenarioFlow(
         flow,
         sc.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null])
     );
@@ -47,9 +48,30 @@ const wrapped = (ls: string[]) =>
 const fillOf = (sc: Scenario) =>
     sc.type === "neg" ? "pink" : sc.loops ? "orange" : "lime";
 
-/** How much of the flow the shown cases touch: conditions and pairs of conditions. */
-function coverageLine(shown: Scenario[], gen: Generated): string {
+/**
+ * How much of the flow the shown scenarios touch: choices, loops at their full max
+ * and pairs of choices, against what All has. Says plainly whether the mode's own
+ * promise is kept, and names any choice or loop end left out.
+ */
+const coverageMemo = new WeakMap<Scenario[], Map<string, string[]>>();
+
+export function coverageLines(shown: Scenario[], gen: Generated, mode: Mode): string[] {
+    // the same selection is measured more than once (the panel, then the frame,
+    // which is rendered twice): remember the answer per selection and mode
+    let memo = coverageMemo.get(shown);
+    if (!memo) coverageMemo.set(shown, (memo = new Map()));
+    const hit = memo.get(mode);
+    if (hit) return hit;
+    const lines = measureCoverage(shown, gen, mode);
+    memo.set(mode, lines);
+    return lines;
+}
+
+function measureCoverage(shown: Scenario[], gen: Generated, mode: Mode): string[] {
+    const label = new Map<string, string>();
+    gen.list.forEach((sc) => sc.path.forEach((v) => v.c && label.set(v.c.id, v.c.label)));
     const conds = (sc: Scenario) => [...new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))].sort();
+    const ends = (sc: Scenario) => singles(sc).filter((x) => x.startsWith("end:"));
     const pairs = (sc: Scenario) => {
         const ids = conds(sc);
         const out: string[] = [];
@@ -57,28 +79,76 @@ function coverageLine(shown: Scenario[], gen: Generated): string {
             for (let b = a + 1; b < ids.length; b++) out.push(ids[a] + "&" + ids[b]);
         return out;
     };
-    const allC = new Set<string>();
-    const allP = new Set<string>();
-    gen.list.forEach((sc) => {
-        conds(sc).forEach((x) => allC.add(x));
-        pairs(sc).forEach((x) => allP.add(x));
-    });
-    const gotC = new Set<string>();
-    const gotP = new Set<string>();
-    shown.forEach((sc) => {
-        conds(sc).forEach((x) => gotC.add(x));
-        pairs(sc).forEach((x) => gotP.add(x));
-    });
+    const of = (list: Scenario[], f: (sc: Scenario) => string[]) => new Set(list.flatMap(f));
+    const [allC, allE, allP] = [of(gen.list, conds), of(gen.list, ends), of(gen.list, pairs)];
+    const [gotC, gotE, gotP] = [of(shown, conds), of(shown, ends), of(shown, pairs)];
     const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 100);
-    return (
-        `Coverage of ${shown.length} cases: ` +
-        `condition ${gotC.size}/${allC.size} (${pct(gotC.size, allC.size)}%) · ` +
-        `pair ${gotP.size}/${allP.size} (${pct(gotP.size, allP.size)}%)`
-    );
+    const part = (name: string, got: Set<string>, all: Set<string>) =>
+        `${name} ${got.size}/${all.size} (${pct(got.size, all.size)}%)`;
+    const missC = [...allC].filter((x) => !gotC.has(x));
+    const missE = [...allE].filter((x) => !gotE.has(x));
+    const pairsPromised = mode === "pair" || mode === "all";
+    const missP = pairsPromised ? [...allP].filter((x) => !gotP.has(x)) : [];
+    const out = [
+        `Coverage of ${shown.length} scenarios: ` +
+            [part("choice", gotC, allC), ...(allE.size ? [part("loop end", gotE, allE)] : []), part("pair", gotP, allP)].join(" · "),
+    ];
+    const names = (ids: string[]) =>
+        ids.slice(0, 6).map((x) => `"${label.get(x.replace(/^end:/, "")) ?? x}"`).join(", ") + (ids.length > 6 ? ` and ${ids.length - 6} more` : "");
+    if (!missC.length && !missE.length && !missP.length)
+        out.push(`OK: every choice${allE.size ? ", every loop end" : ""}${pairsPromised ? " and every pair" : ""} is covered`);
+    else {
+        if (missC.length) out.push(`MISSING choices: ${names(missC)}`);
+        if (missE.length) out.push(`MISSING loop ends: ${names(missE)}`);
+        if (missP.length) out.push(`MISSING pairs: ${missP.length}`);
+    }
+    if (gen.unreachable && gen.unreachable.length)
+        out.push(`Never reachable (see the flow check): ${names(gen.unreachable)}`);
+    return out;
 }
 
-/** Happy cases first, then negative; each group by priority (P1 first), then id. */
-export function orderCases(list: Scenario[]): Scenario[] {
+/**
+ * Traceability: for every `req:` in the flow (on a step or a choice), the shown
+ * scenarios that pass it. A step's req counts for every scenario through that step,
+ * a choice's req for every scenario that takes the choice.
+ */
+export function requirementLines(shown: Scenario[], flow: Flow): string[] {
+    const split = (r?: string) =>
+        String(r || "")
+            .split(/[,;]/)
+            .map((x) => x.trim())
+            .filter(Boolean);
+    const order: string[] = [];
+    const note = (r: string) => order.includes(r) || order.push(r);
+    flow.steps.forEach((st) => {
+        split(st.req).forEach(note);
+        st.conds.forEach((c) => split(c.req).forEach(note));
+    });
+    if (!order.length) return [];
+    const by = new Map<string, string[]>(order.map((r) => [r, []]));
+    for (const sc of orderScenarios(shown)) {
+        const reqs = new Set<string>();
+        sc.path.forEach((v) => {
+            split(flow.steps[v.i]?.req).forEach((r) => reqs.add(r));
+            if (v.c) split(v.c.req).forEach((r) => reqs.add(r));
+        });
+        reqs.forEach((r) => by.get(r)?.push(sc.id));
+    }
+    const missing = order.filter((r) => !by.get(r)!.length);
+    const out = [`Requirements: ${order.length - missing.length}/${order.length} covered`];
+    const LIST = 12;
+    order.slice(0, LIST).forEach((r) => {
+        const ids = by.get(r)!;
+        if (ids.length)
+            out.push(`  ${r} → ${ids.slice(0, 6).join(", ")}${ids.length > 6 ? ` … (${ids.length})` : ""}`);
+    });
+    if (order.length > LIST) out.push(`  … and ${order.length - LIST} more`);
+    if (missing.length) out.push(`MISSING requirements: ${missing.join(", ")}`);
+    return out;
+}
+
+/** Happy scenarios first, then negative; each group by priority (P1 first), then id. */
+export function orderScenarios(list: Scenario[]): Scenario[] {
     return [...list].sort(
         (a, b) =>
             (a.type === "happy" ? 0 : 1) - (b.type === "happy" ? 0 : 1) ||
@@ -101,9 +171,9 @@ export function renderScenarios(opts: {
     generateId: () => string;
 }): BoardOut {
     const { flow, mode, gen, counts, issues, origin, generateId } = opts;
-    // happy cases first, then negative; each group by priority (P1 first), then id
-    const shown = orderCases(opts.shown);
-    // a few cases sit in 4 columns; a lot of cases spread over more columns,
+    // happy scenarios first, then negative; each group by priority (P1 first), then id
+    const shown = orderScenarios(opts.shown);
+    // a few scenarios sit in 4 columns; a lot of scenarios spread over more columns,
     // so the frame stays about as wide as it is tall
     const COLS = shown.length <= 40 ? 4 : Math.min(12, Math.ceil(Math.sqrt(shown.length * 0.8)));
     const [ox, oy] = origin;
@@ -115,10 +185,9 @@ export function renderScenarios(opts: {
         `${MODE_LABEL[mode]}`,
         `${shown.length} of ${gen.list.length} paths · ${happy} happy · ${shown.length - happy} negative`,
         `All ${counts.all} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
-        coverageLine(shown, gen),
-        ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && counts.ep > 30
-            ? ["", "EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
-            : []),
+        ...coverageLines(shown, gen, mode),
+        ...requirementLines(shown, flow),
+        modeTip(flow, counts),
     ];
     if (issues.length) {
         head.push("");
@@ -142,7 +211,7 @@ export function renderScenarios(opts: {
     elements.push({
         type: "frame",
         drawdyElementId: frameId,
-        name: `Scenarios · ${MODE_LABEL[mode]} · ${shown.length} cases`,
+        name: `Scenarios · ${MODE_LABEL[mode]} · ${shown.length} scenarios`,
         position: [ox, oy],
         width: frameW,
         height: frameH,

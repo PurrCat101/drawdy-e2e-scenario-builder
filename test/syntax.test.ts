@@ -3,14 +3,17 @@
 // The sample flow is a shop checkout with the same structure as a real, large
 // flow (12 steps, loops, negative ends, tags and `need` rules). Written in both
 // forms it must give the same flow, and the scenario counts must stay
-// All 231 / EP 28 / Pairwise 17 / Each-Choice 11.
+// All 231 / EP 29 / Pairwise 17 / Each-Choice 11.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/syntax.ts";
 import { generate, pick } from "../src/scenarios.ts";
 import type { Flow } from "../src/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
+import { TEMPLATES, templateById } from "../src/templates.ts";
+import { validate } from "../src/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
@@ -92,8 +95,8 @@ const counts = (flow: Flow) => {
     };
 };
 
-test("the sample flow gives the same counts in both forms", () => {
-    const want = { all: 231, ep: 28, pair: 17, min: 11 };
+test("SYN-16 SYN-20: the sample flow gives the same counts in both forms", () => {
+    const want = { all: 231, ep: 29, pair: 17, min: 11 };
     const compact = parseFlowText(COMPACT);
     const blocks = parseFlowText(BLOCKS);
     assert.equal(compact.format, "compact");
@@ -104,17 +107,17 @@ test("the sample flow gives the same counts in both forms", () => {
     assert.deepEqual(counts(blocks.flow), want);
 });
 
-test("both forms describe the same flow", () => {
+test("SYN-20: both forms describe the same flow", () => {
     assert.deepEqual(shape(parseFlowText(BLOCKS).flow), shape(parseFlowText(COMPACT).flow));
 });
 
-test("without any option the counts are what the plain text gives", () => {
+test("CALC-06: without any option the counts are what the plain text gives", () => {
     const plain = COMPACT.replace(/ ?\[[^\]]*\]/g, "");
     const c = counts(parseFlowText(plain).flow);
     assert.deepEqual(c, { all: 243, ep: 183, pair: 17, min: 11 });
 });
 
-test("only a note that starts with @builder is marked", () => {
+test("SYN-01: only a note that starts with @builder is marked", () => {
     assert.equal(hasMarker("@builder\n1. a"), true);
     assert.equal(hasMarker("\n# a comment\n  @BUILDER\n1. a"), true);
     assert.equal(hasMarker("1. a\n- b"), false);
@@ -123,7 +126,7 @@ test("only a note that starts with @builder is marked", () => {
     assert.equal(parseFlowText("Login (ok | !fail) > Pay").marked, false);
 });
 
-test("compact form after the marker, and the title", () => {
+test("SYN-02 SYN-20: compact form after the marker, and the title", () => {
     const r = parseFlowText("@builder\n@title Quick\nLogin (ok | !fail) > Pay");
     assert.equal(r.format, "compact");
     assert.equal(r.title, "Quick");
@@ -131,7 +134,7 @@ test("compact form after the marker, and the title", () => {
     assert.equal(r.flow.steps[0].conds[1].action, "end");
 });
 
-test("keywords: end, loop, loop to step N, next (any case), max N; back and x2 still work", () => {
+test("SYN-12: keywords: end, loop, loop to step N, next (any case), max N; back and x2 still work", () => {
     const r = parseFlowText(`@builder
 1. a
    - one -> END
@@ -149,7 +152,7 @@ test("keywords: end, loop, loop to step N, next (any case), max N; back and x2 s
     assert.deepEqual([c[4].action, c[4].target], ["loop", r.flow.steps[0].id]);
 });
 
-test("fields belong to the step before its first condition, then to the last condition", () => {
+test("SYN-11: fields belong to the step before its first condition, then to the last condition", () => {
     const r = parseFlowText(`@builder
 1. Login
    data: user a
@@ -170,7 +173,7 @@ test("fields belong to the step before its first condition, then to the last con
     assert.equal(s.conds[1].exp, "error shown");
 });
 
-test("a value can continue on the next lines; \\ keeps a line that looks like structure", () => {
+test("SYN-10 SYN-11: a value can continue on the next lines; \\ keeps a line that looks like structure", () => {
     const r = parseFlowText(`@builder
 1. Pay
    expect: first line
@@ -184,13 +187,13 @@ test("a value can continue on the next lines; \\ keeps a line that looks like st
     assert.equal(r.flow.steps[0].exp, "first line\nsecond line\n- not a condition\n2. not a step");
 });
 
-test("comments and blank lines are ignored", () => {
+test("SYN-10: comments and blank lines are ignored", () => {
     const r = parseFlowText("@builder\n# note\n// another\n\n1. a\n\n   - b\n");
     assert.deepEqual(r.warnings, []);
     assert.equal(r.flow.steps[0].conds.length, 1);
 });
 
-test("mistakes are reported with their line", () => {
+test("SYN-30 SYN-31: mistakes are reported with their line", () => {
     const r = parseFlowText(`@builder
 @mod pair
 1. a
@@ -210,14 +213,14 @@ test("mistakes are reported with their line", () => {
     assert.match(w, /Line 9: Cannot read the end of the line/);
 });
 
-test("@mode is no longer a directive: the mode is chosen in the window", () => {
+test("SYN-02: @mode is no longer a directive: the mode is chosen in the window", () => {
     const r = parseFlowText("@builder\n@mode pair\n@ep\n1. a");
     assert.equal(r.warnings.length, 2);
     assert.match(r.warnings[0], /@mode is not used/);
     assert.match(r.warnings[1], /@ep is not used/);
 });
 
-test("step numbers: duplicates and gaps", () => {
+test("SYN-31: step numbers: duplicates and gaps", () => {
     const r = parseFlowText("@builder\n1. a\n1. b\n3. c\n2. d");
     const w = r.warnings.join("\n");
     assert.match(w, /Step number 1 is repeated/);
@@ -228,37 +231,37 @@ test("step numbers: duplicates and gaps", () => {
     assert.equal(g.flow.steps[1].conds[0].target, g.flow.steps[1].id);
 });
 
-test("compact form: unknown options are reported", () => {
+test("SYN-31: compact form: unknown options are reported", () => {
     const r = parseFlowText("a (ok [varient] | !bad)");
     assert.match(r.warnings.join("\n"), /unknown option "varient"/);
 });
 
-test("need in words and back", () => {
+test("CALC-07 SYN-13: need in words and back", () => {
     assert.equal(needFromWords("!master or lv2"), "!master|lv2");
     assert.equal(needFromWords("master and lv1"), "master,lv1");
     assert.equal(needFromWords("not a and b or not c"), "!a,b|!c");
     assert.equal(needToWords("!a,b|!c"), "!a and b or !c");
 });
 
-test("writing the flow back and reading it again gives the same flow", () => {
+test("SYN-40: writing the flow back and reading it again gives the same flow", () => {
     const first = parseFlowText(BLOCKS);
     const text = formatFlow(first.flow, { title: first.title });
     const again = parseFlowText(text);
     assert.deepEqual(again.warnings, []);
     assert.deepEqual(shape(again.flow), shape(first.flow));
     assert.equal(again.title, "Shop checkout");
-    assert.deepEqual(counts(again.flow), { all: 231, ep: 28, pair: 17, min: 11 });
+    assert.deepEqual(counts(again.flow), { all: 231, ep: 29, pair: 17, min: 11 });
     // and writing it twice changes nothing
     assert.equal(formatFlow(again.flow, { title: again.title }), text);
 });
 
-test("the compact form is written out in the blocks form", () => {
+test("SYN-40: the compact form is written out in the blocks form", () => {
     const flow = parseFlowText(COMPACT).flow;
     const back = parseFlowText(formatFlow(flow));
     assert.deepEqual(shape(back.flow), shape(flow));
 });
 
-test("fields survive writing, including lines that look like structure", () => {
+test("SYN-40: fields survive writing, including lines that look like structure", () => {
     const src = `@builder
 1. Pay
    data: card 4242
@@ -281,12 +284,12 @@ test("fields survive writing, including lines that look like structure", () => {
     assert.equal(a.conds[0].exp, f.conds[0].exp);
 });
 
-test("an empty or step-less text says so", () => {
+test("CALC-60: an empty or step-less text says so", () => {
     assert.match(parseFlowText("@builder\n- orphan").warnings.join("\n"), /must be under a step/);
     assert.equal(parseFlowText("").flow.steps.length, 0);
 });
 
-test("a scenario note is written in the flow syntax and reads back as that case", () => {
+test("OUT-23 DRV-55: a scenario note is written in the flow syntax and reads back as that scenario", () => {
     const flow = parseFlowText(BLOCKS).flow;
     const gen = generate(flow);
     const shown = pick(gen, "ep");
@@ -295,7 +298,7 @@ test("a scenario note is written in the flow syntax and reads back as that case"
         mode: "ep",
         shown,
         gen,
-        counts: { all: 231, ep: 28, pair: 17, min: 11 },
+        counts: { all: 231, ep: 29, pair: 17, min: 11 },
         issues: [],
         origin: [0, 0],
         generateId: (() => {
@@ -304,7 +307,7 @@ test("a scenario note is written in the flow syntax and reads back as that case"
         })(),
     });
     const notes = out.elements.filter((e: any) => e.meta?.kind === "scenario") as any[];
-    assert.equal(notes.length, 28);
+    assert.equal(notes.length, 29);
     // happy first, then negative; P1 before P2 inside each group
     const types = notes.map((n) => n.meta.type);
     assert.equal(types.indexOf("neg"), types.lastIndexOf("happy") + 1);
@@ -322,8 +325,8 @@ test("a scenario note is written in the flow syntax and reads back as that case"
     }
 });
 
-test("scenario notes carry setup, data and expected result, and the table rows match", async () => {
-    const { caseRows } = await import("../src/caseTable.ts");
+test("OUT-31: scenario notes carry setup, data and expected result, and the table rows match", async () => {
+    const { scenarioRows } = await import("../src/scenarioTable.ts");
     const flow = parseFlowText(`@builder
 1. Login
    setup: stack is up
@@ -360,13 +363,13 @@ test("scenario notes carry setup, data and expected result, and the table rows m
     // the note reads back, and its table has the same cells
     const back = parseFlowText(happy.text);
     assert.deepEqual(back.warnings, []);
-    const rows = caseRows(back.flow);
+    const rows = scenarioRows(back.flow);
     assert.equal(rows[0].data, "user a\ngood password");
     assert.equal(rows[0].exp, "dialog opens\ntoken stored");
     assert.equal(rows[0].pre, "stack is up");
 });
 
-test("given / then are the field names; setup / expect are still read", () => {
+test("SYN-10: given / then are the field names; setup / expect are still read", () => {
     const a = parseFlowText("@builder\n1. a\n   given: g\n   then: t\n   - ok\n");
     const b = parseFlowText("@builder\n1. a\n   setup: g\n   expect: t\n   - ok\n");
     assert.deepEqual(a.warnings, []);
@@ -382,13 +385,322 @@ test("given / then are the field names; setup / expect are still read", () => {
     assert.match(parseFlowText("@builder\n1. a\n   gven: x\n").warnings.join(""), /given:/);
 });
 
-test("cases as tab-separated text for a spreadsheet", async () => {
-    const { casesToTsv } = await import("../src/caseTable.ts");
+test("OUT-32: scenarios as tab-separated text for a spreadsheet", async () => {
+    const { scenariosToTsv } = await import("../src/scenarioTable.ts");
     const flow = parseFlowText("@builder\n1. Login\n   given: g\n   data: line one\n   line two\n   then: t\n   - ok\n").flow;
-    const tsv = casesToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
+    const tsv = scenariosToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
     const lines = tsv.split("\n");
-    assert.equal(lines[0], "Case\t#\tStep\tCondition\tSetup\tTest data\tExpected result");
+    assert.equal(lines[0], "Scenario\t#\tStep\tCondition\tSetup\tTest data\tExpected result");
     // a cell with two lines is quoted, so a spreadsheet keeps it in one cell
     assert.equal(lines[1], 'TSS-001 · Happy · P1\t1\t1. Login\tok\tg\t"line one\nline two"'.split("\n")[0]);
     assert.ok(tsv.includes('"line one\nline two"\tt'));
+});
+
+test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scenarios, no flow errors", () => {
+    assert.deepEqual(TEMPLATES.map((t) => t.id), ["basic", "loop", "levels"]);
+    for (const t of TEMPLATES) {
+        assert.ok(hasMarker(t.text), t.id + ": starts with @builder");
+        const r = parseFlowText(t.text);
+        assert.deepEqual(r.warnings, [], t.id + ": no reading warnings");
+        assert.ok(r.flow.steps.length >= 2, t.id + ": has steps");
+        const gen = generate(r.flow);
+        assert.ok(gen.list.length >= 2, t.id + ": makes scenarios");
+        assert.deepEqual(
+            validate(r.flow, gen).filter((i) => i.lv === "err"),
+            [],
+            t.id + ": no flow errors"
+        );
+        assert.ok(/^#/m.test(t.text), t.id + ": explains the syntax in comments");
+    }
+    assert.equal(templateById("nope"), undefined);
+});
+
+test("SYN-41: starter templates: the comments do not change the flow", () => {
+    for (const t of TEMPLATES) {
+        const bare = t.text
+            .split("\n")
+            .filter((l) => !/^\s*#/.test(l))
+            .join("\n");
+        assert.deepEqual(
+            generate(parseFlowText(bare).flow).list.length,
+            generate(parseFlowText(t.text).flow).list.length,
+            t.id
+        );
+    }
+});
+
+/* ------------------------------ distinct loops ----------------------------- */
+
+const SHOP = (opts: string) => `1. Sign in
+- ok
+2. Pick
+- A
+- B
+- C
+- sold out -> end
+3. More?
+- again -> loop to step 2 max 2${opts}
+- done
+4. Pay
+- paid`;
+
+const picks = (text: string) =>
+    generate(parseFlowText(text).flow)
+        .list.filter((s) => s.type === "happy")
+        .map((s) => s.path.filter((v) => v.i === 1 && v.c).map((v) => v.c!.label).join("+"));
+
+test("CALC-14 CALC-16: distinct loop: no choice twice, and a set of picks only once whatever the order", () => {
+    // plain loop: 3 + 3*3 + 3*3*3 ordered picks, repeats included
+    assert.equal(picks(SHOP("")).length, 3 + 9 + 27);
+    const d = picks(SHOP(" [distinct]"));
+    // distinct: subsets of {A,B,C} of size 1..3 = 3 + 3 + 1
+    assert.deepEqual([...d].sort(), ["A", "A+B", "A+B+C", "A+C", "B", "B+C", "C"]);
+});
+
+test("CALC-14: distinct loop: an end at the step it goes back to stays available every round", () => {
+    const flow = parseFlowText(SHOP(" [distinct]")).flow;
+    const ends = generate(flow).list.filter(
+        (s) => s.type === "neg" && s.path[s.path.length - 1].c!.label === "sold out"
+    );
+    // sold out on round 1, after 1 pick (3 ways), after 2 picks (3 ways)
+    assert.equal(ends.length, 1 + 3 + 3);
+});
+
+test("SYN-15: distinct: read, written back, and warned about when not on a loop", () => {
+    const r = parseFlowText(SHOP(" [P2, distinct]"));
+    assert.deepEqual(r.warnings, []);
+    const again = r.flow.steps[2].conds[0];
+    assert.equal(again.distinct, true);
+    assert.match(formatFlow(r.flow), /-> loop to step 2 max 2 \[P2, distinct\]/);
+    const bad = parseFlowText("1. a\n- x [distinct]\n- y -> end [distinct]");
+    assert.equal(bad.warnings.length, 2);
+    assert.ok(bad.warnings.every((w) => /distinct only works with loop/.test(w)));
+    assert.ok(bad.flow.steps[0].conds.every((c) => !c.distinct));
+});
+
+const rounds = (text: string, steps: number[]) =>
+    generate(parseFlowText(text).flow)
+        .list.filter((s) => s.type === "happy")
+        .map((s) =>
+            steps
+                .map((i) => s.path.filter((v) => v.i === i && v.c).map((v) => v.c!.label).join("+"))
+                .join(" | ")
+        )
+        .sort();
+
+test("CALC-14: distinct holds back only the step it goes back to, not the steps after it", () => {
+    const t = "1. pick\n- A\n- B\n2. qty\n- one\n- two\n3. more\n- again -> loop to step 1 [distinct]\n- done";
+    assert.deepEqual(rounds(t, [0, 1]), [
+        "A+B | one+one",
+        "A+B | one+two",
+        "A+B | two+one",
+        "A+B | two+two",
+        "A | one",
+        "A | two",
+        "B | one",
+        "B | two",
+    ].sort());
+});
+
+test("CALC-18: distinct with needs: a set is kept even when only one order is allowed", () => {
+    const t = "1. pick\n- A [needs c]\n- B\n- C [sets c]\n2. more\n- again -> loop to step 1 [distinct]\n- done";
+    // A needs C first, so {A, C} only exists as C then A; it must not be lost
+    assert.deepEqual(rounds(t, [0]), ["B", "B+C", "C", "C+A"]);
+});
+
+test("CALC-15: distinct ends with the run: a later plain loop back to the same step picks freely", () => {
+    const t =
+        "1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 [distinct]\n- done\n3. retry\n- redo -> loop to step 1\n- ok";
+    const r = rounds(t, [0]);
+    assert.ok(r.includes("A+B+A") && r.includes("A+B+B"), r.join(", "));
+});
+
+test("CALC-65: validate warns when distinct does nothing or asks for more rounds than choices", () => {
+    const issues = (t: string) => {
+        const f = parseFlowText(t).flow;
+        return validate(f, generate(f)).filter((i) => /distinct|different picks/.test(i.msg)).map((i) => i.msg);
+    };
+    assert.deepEqual(issues("1. a\n- A\n- B\n2. b\n- again -> loop to step 1 [distinct]\n- done"), []);
+    assert.match(issues("1. a\n- A\n- B\n2. b\n- again -> loop to step 1 max 2 [distinct]\n- done")[0], /3 different picks at step 1, which has 2/);
+    assert.match(issues("1. a\n2. b\n- again -> loop to step 1 [distinct]\n- done")[0], /step 1 has no choices/);
+    assert.match(issues("1. a\n- retry -> loop max 2 [distinct]\n- ok")[0], /earlier step/);
+});
+
+test("CALC-41: a happy scenario that passes a [negative] choice says so in its title", () => {
+    const t = "1. ship\n- ok\n- provider down -> loop max 1 [negative]\n2. done\n- delivered";
+    const gen = generate(parseFlowText(t).flow);
+    let n = 0;
+    const out = renderScenarios({
+        flow: parseFlowText(t).flow,
+        mode: "all",
+        shown: gen.list,
+        gen,
+        counts: { all: gen.list.length, ep: 0, pair: 0, min: 0 },
+        issues: [],
+        origin: [0, 0],
+        generateId: () => "e" + ++n,
+    });
+    const titles = (out.elements as any[]).filter((e: any) => typeof e.text === "string" && /TS[SN]-\d+/.test(e.text))
+        .map((e: any) => e.text.split("\n").find((l: string) => /TS[SN]-/.test(l)));
+    assert.equal(titles.filter((x: string) => /via negative/.test(x)).length, 1, titles.join(" / "));
+    assert.ok(titles.some((x: string) => /Happy/.test(x) && !/via negative/.test(x)));
+});
+
+/* ------------------- the worked examples in the README --------------------- */
+
+test("CALC-04 CALC-11: README: the worked counting examples are in the README and give the numbers it states", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    const A = `1. Sign in
+- ok
+- failed -> end
+2. Pick an item
+- shirt
+- shoes
+- sold out -> loop to step 2 [negative]
+3. Pay
+- paid
+- declined -> end`;
+    const B = `1. Account
+- level 1 [sets lv1]
+- level 2 [sets lv2]
+2. Buy a premium item
+- allowed [needs lv2]
+- blocked -> end [needs lv1]`;
+    assert.ok(readme.includes(A), "example A is in the README, word for word");
+    assert.ok(readme.includes(B), "example B is in the README, word for word");
+
+    const a = generate(parseFlowText(A).flow);
+    assert.equal(a.list.length, 9);
+    assert.equal(a.list.filter((s) => s.type === "happy").length, 4);
+    assert.equal(a.list.filter((s) => s.type === "neg").length, 5);
+    // the number on each arrow of the diagram: scenarios that use the choice
+    const used: Record<string, number> = {};
+    a.list.forEach((s) => s.path.forEach((v) => v.c && (used[v.c.label] = (used[v.c.label] || 0) + 1)));
+    assert.deepEqual(used, { ok: 8, failed: 1, shirt: 4, shoes: 4, "sold out": 4, paid: 4, declined: 4 });
+    for (const [label, n] of Object.entries(used))
+        assert.ok(
+            readme.includes(`${label} · ${n}`) || readme.includes(`${label} ↻ · ${n}`),
+            `the diagram says "${label} · ${n}"`
+        );
+
+    const b = generate(parseFlowText(B).flow);
+    assert.equal(b.list.length, 2);
+    assert.deepEqual(b.list.map((s) => s.type).sort(), ["happy", "neg"]);
+});
+
+test("CALC-21 CALC-64: past 1,000 paths: the late choices are found, and the message says what was done", () => {
+    const text =
+        Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i + 1}\n- a${i}\n- b${i}\n- c${i}`).join("\n") +
+        "\n8. Last\n- ok\n- late";
+    const flow = parseFlowText(text).flow;
+    const g = generate(flow);
+    assert.ok(g.capped);
+    assert.ok((g.extra ?? 0) > 0);
+    for (const mode of ["ep", "pair", "min"] as const) {
+        const got = new Set(pick(g, mode).flatMap((sc) => sc.path.filter((v) => v.c).map((v) => v.c!.label)));
+        for (const l of ["b0", "c0", "late"]) assert.ok(got.has(l), `${mode} has ${l}`);
+    }
+    const msgs = validate(flow, g).map((i) => i.msg);
+    assert.ok(msgs.some((m) => /All lists the first 1,000, plus \d+ found/.test(m)), msgs.join(" / "));
+    assert.ok(!msgs.some((m) => /no path can take/.test(m)));
+});
+
+test("CALC-36: every mode tests the last round a loop allows", () => {
+    const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 3\n- done\n3. pay\n- ok").flow;
+    const g = generate(flow);
+    for (const mode of ["ep", "pair", "min"] as const)
+        assert.equal(Math.max(...pick(g, mode).map((s) => s.loops)), 3, mode);
+});
+
+test("CALC-09 CALC-63: a choice that can never be taken says why, and is listed as unreachable", () => {
+    const flow = parseFlowText("1. a\n- x\n2. b\n- y [needs z]\n- ok").flow;
+    const g = generate(flow);
+    assert.equal(g.unreachable?.length, 1);
+    assert.ok(validate(flow, g).some((i) => /y: no path can take this choice/.test(i.msg)));
+});
+
+test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name what is missing when not", async () => {
+    const { coverageLines } = await import("../src/scenarioBoard.ts");
+    const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 2\n- done\n3. pay\n- ok\n- no -> end").flow;
+    const g = generate(flow);
+    for (const mode of ["all", "ep", "pair", "min"] as const) {
+        const lines = coverageLines(pick(g, mode), g, mode);
+        assert.match(lines[0], /^Coverage of \d+ scenarios: choice (\d+)\/\1 \(100%\) · loop end 1\/1 \(100%\) · pair/);
+        assert.match(lines[1], /^OK: every choice, every loop end/, mode);
+    }
+    // a hand-made selection that leaves things out
+    const one = [g.list.find((s) => s.type === "happy" && s.loops === 0)!];
+    const lines = coverageLines(one, g, "min");
+    assert.ok(lines.some((l) => /^MISSING choices: .*"no"/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^MISSING loop ends: "again"/.test(l)), lines.join(" / "));
+});
+
+test("OUT-25: requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
+    const { requirementLines } = await import("../src/scenarioBoard.ts");
+    const flow = parseFlowText("1. Sign in\n   req: R-1\n- ok\n- bad -> end\n  req: R-2\n2. Pay\n   req: R-3, R-4\n- paid").flow;
+    const g = generate(flow);
+    const lines = requirementLines(g.list, flow);
+    assert.equal(lines[0], "Requirements: 4/4 covered");
+    assert.ok(lines.some((l) => /^  R-1 → TS[SN]-\d+, TS[SN]-\d+$/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^  R-2 → TSN-\d+$/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^  R-4 → TSS-\d+$/.test(l)), lines.join(" / "));
+    // only the negative scenario: R-3 and R-4 are not covered
+    const neg = requirementLines(g.list.filter((s) => s.type === "neg"), flow);
+    assert.equal(neg[0], "Requirements: 2/4 covered");
+    assert.equal(neg[neg.length - 1], "MISSING requirements: R-3, R-4");
+    assert.deepEqual(requirementLines(g.list, parseFlowText("1. a\n- b").flow), []);
+});
+
+test("CALC-50 CALC-51 CALC-53: scenario IDs stay put when the flow changes elsewhere, and are unique", () => {
+    const base = "1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n3. Pay\n- paid\n- declined -> end";
+    const ids = (t: string) => {
+        const m = new Map<string, string>();
+        generate(parseFlowText(t).flow).list.forEach((s) =>
+            m.set(s.path.map((v) => (v.c ? v.c.label : "-")).join(">"), s.id)
+        );
+        return m;
+    };
+    const before = ids(base);
+    assert.equal(new Set(before.values()).size, before.size, "unique");
+    for (const id of before.values()) assert.match(id, /^TS[SN]-\d{5}$/);
+    // a new choice, lines in another order, a new step at the end with one choice... the
+    // scenarios that still exist keep their IDs
+    const changed = [
+        base.replace("- shoes", "- shoes\n- hat"),
+        base.replace("- shirt\n- shoes", "- shoes\n- shirt"),
+        base.replace("- ok\n- bad -> end", "- bad -> end\n- ok"),
+    ];
+    for (const t of changed) {
+        const after = ids(t);
+        for (const [path, id] of before) if (after.has(path)) assert.equal(after.get(path), id, path);
+    }
+    // a renamed choice is a different test: a new ID for the scenarios through it only
+    const renamed = ids(base.replace("- paid", "- paid by card"));
+    assert.equal(renamed.get("ok>shirt>declined"), before.get("ok>shirt>declined"));
+    assert.ok(![...before.values()].includes(renamed.get("ok>shirt>paid by card")!));
+});
+
+test("CALC-52: scenario IDs stay unique on a big flow (clashes move to the next number)", () => {
+    const text = Array.from({ length: 6 }, (_, i) => `${i + 1}. S${i}\n- a\n- b\n- c`).join("\n");
+    const g = generate(parseFlowText(text).flow);
+    assert.equal(new Set(g.list.map((s) => s.id)).size, g.list.length);
+});
+
+test("CALC-70 CALC-71 CALC-72: the mode tip fits the flow", async () => {
+    const { modeTip } = await import("../src/scenarios.ts");
+    const small = parseFlowText("1. a\n- x\n- y").flow;
+    assert.match(modeTip(small, { all: 2, ep: 2, pair: 1, min: 1 }), /All has only 2 scenarios/);
+    const plain = parseFlowText("1. a\n- x\n- y").flow;
+    assert.match(modeTip(plain, { all: 90, ep: 80, pair: 12, min: 5 }), /no choice is marked \[variant\].*Pair \(12\)/);
+    const marked = parseFlowText("1. a\n- x [variant]\n- y [variant]").flow;
+    assert.match(modeTip(marked, { all: 90, ep: 20, pair: 12, min: 5 }), /^TIP: EP \(20\) for regression/);
+});
+
+test("CALC-25: a scenario takes the most important P on its path (the lowest number)", () => {
+    const g = generate(parseFlowText("1. a\n- x [P1]\n- y\n2. b\n- p [P3]\n- q").flow);
+    const pri = (labels: string) => g.list.find((s) => s.path.map((v) => v.c?.label).join(">") === labels)!.pri;
+    assert.equal(pri("x>p"), 1, "P1 and P3 on the path: P1");
+    assert.equal(pri("x>q"), 1);
+    assert.equal(pri("y>p"), 3, "only P3 on the path: P3");
+    assert.equal(pri("y>q"), 2, "no P at all: P2");
 });

@@ -19,8 +19,15 @@ export type Cond = {
     need: string;
     /** "1" | "2" | "3" | "" (empty = P2) */
     pri: string;
-    /** does not multiply with other cases (collapsed by EP) */
+    /** does not multiply with other scenarios (collapsed by EP) */
     variant: boolean;
+    /**
+     * loop: on the next round, the step it goes back to offers only the choices not
+     * taken there yet, and rounds that differ only in order count once (pick A then
+     * B = pick B then A). Ends and loops at that step stay available; the steps
+     * after it are free.
+     */
+    distinct?: boolean;
     /** test data, expected result, setup and requirement id (all optional) */
     data?: string;
     exp?: string;
