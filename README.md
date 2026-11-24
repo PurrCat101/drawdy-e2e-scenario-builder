@@ -356,7 +356,13 @@ Choose the mode with the panel's switch.
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all four modes, so
-you can compare them.
+you can compare them, and the panel and the header give a `TIP:` for this flow:
+
+- All has 30 scenarios or fewer: run them all.
+- No choice is marked `variant`: EP stays close to All, so use Pair (every pair of
+  choices) or Each (a quick pass), or mark interchangeable choices `variant`.
+- Otherwise: EP for regression by your `variant` groups, Pair when choices at
+  different steps affect each other, Each for a smoke pass.
 
 ### What each mode guarantees
 

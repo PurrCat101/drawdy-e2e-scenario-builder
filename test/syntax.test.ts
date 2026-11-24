@@ -685,3 +685,13 @@ test("scenario IDs stay unique on a big flow (clashes move to the next number)",
     const g = generate(parseFlowText(text).flow);
     assert.equal(new Set(g.list.map((s) => s.id)).size, g.list.length);
 });
+
+test("the mode tip fits the flow", async () => {
+    const { modeTip } = await import("../src/scenarios.ts");
+    const small = parseFlowText("1. a\n- x\n- y").flow;
+    assert.match(modeTip(small, { all: 2, ep: 2, pair: 1, min: 1 }), /All has only 2 scenarios/);
+    const plain = parseFlowText("1. a\n- x\n- y").flow;
+    assert.match(modeTip(plain, { all: 90, ep: 80, pair: 12, min: 5 }), /no choice is marked \[variant\].*Pair \(12\)/);
+    const marked = parseFlowText("1. a\n- x [variant]\n- y [variant]").flow;
+    assert.match(modeTip(marked, { all: 90, ep: 20, pair: 12, min: 5 }), /^TIP: EP \(20\) for regression/);
+});

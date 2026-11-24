@@ -631,6 +631,18 @@ export function pick(g: Generated, mode: Mode): Scenario[] {
     }
 }
 
+/**
+ * One line that suggests a mode for this flow, from its counts. Every mode covers
+ * every choice and loop end; they differ in what else they promise and in size.
+ */
+export function modeTip(flow: Flow, counts: { all: number; ep: number; pair: number; min: number }): string {
+    const variant = flow.steps.some((st) => st.conds.some((c) => c.variant));
+    if (counts.all <= 30) return `TIP: All has only ${counts.all} scenarios: run them all.`;
+    if (!variant)
+        return `TIP: no choice is marked [variant], so EP (${counts.ep}) stays close to All. Use Pair (${counts.pair}) to cover every pair of choices, or Each (${counts.min}) for a quick pass; mark interchangeable choices [variant] to make EP useful.`;
+    return `TIP: EP (${counts.ep}) for regression by your [variant] groups; Pair (${counts.pair}) when choices at different steps affect each other; Each (${counts.min}) for a quick smoke pass.`;
+}
+
 /** Flow sanity checks (trimmed port: no expected-result / priority notes). */
 export function validate(flow: Flow, g: Generated): Issue[] {
     const R: Issue[] = [];

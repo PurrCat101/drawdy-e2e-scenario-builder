@@ -7,7 +7,7 @@ import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
-import { generate, pick, validate, VIA_NEGATIVE } from "./scenarios";
+import { generate, modeTip, pick, validate, VIA_NEGATIVE } from "./scenarios";
 import { orderScenarios, renderScenarios, coverageLines } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
@@ -149,9 +149,7 @@ function previewOf(text: string) {
         issues: [
             ...broken,
             ...reading,
-            ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && ep > 30
-                ? ["INFO: EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
-                : []),
+            modeTip(flow, { all: gen.list.length, ep, pair: pick(gen, "pair").length, min: pick(gen, "min").length }),
             ...validate(flow, gen)
                 .slice(0, 3)
                 .map((i) => (i.lv === "err" ? "ERROR: " : "WARN: ") + i.msg),

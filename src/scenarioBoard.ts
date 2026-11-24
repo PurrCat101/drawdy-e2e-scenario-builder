@@ -1,6 +1,6 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import type { Flow, Mode } from "./flow";
-import { passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
+import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
 import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
@@ -173,9 +173,7 @@ export function renderScenarios(opts: {
         `All ${counts.all} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
         ...coverageLines(shown, gen, mode),
         ...requirementLines(shown, flow),
-        ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && counts.ep > 30
-            ? ["", "EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
-            : []),
+        modeTip(flow, counts),
     ];
     if (issues.length) {
         head.push("");
