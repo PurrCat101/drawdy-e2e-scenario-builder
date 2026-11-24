@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Property-based tests (fast-check, `test/property.test.ts`). They found two small
+  bugs, both fixed:
+  - A choice named like options, such as `Pay [visa]`, lost its name when the flow was
+    written back with `formatFlow` and read again. `formatFlow` now adds an empty `[]`.
+  - Pairwise picked no scenario for a flow without choices (EP and Each picked one).
+    All modes now pick at least one scenario when the flow has a path (CALC-83).
+
 ## 0.2.0
 
 - The driver's `src/index.ts` (934 lines) is split into `host`, `webview`,
