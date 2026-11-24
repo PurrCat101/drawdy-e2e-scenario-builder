@@ -20,7 +20,7 @@ function rng(seed: number) {
 
 const TAGS = ["t1", "t2", "t3"];
 
-function randomFlow(r: ReturnType<typeof rng>): Flow {
+function randomFlow(r: ReturnType<typeof rng>, loops = true): Flow {
     const n = r.int(2, 5);
     const steps: Flow["steps"] = [];
     for (let i = 0; i < n; i++) {
@@ -28,7 +28,7 @@ function randomFlow(r: ReturnType<typeof rng>): Flow {
         const k = r.next() < 0.15 ? 0 : r.int(1, 3);
         for (let c = 0; c < k; c++) {
             const x = r.next();
-            const action = x < 0.2 ? "end" : x < 0.35 && i > 0 ? "loop" : "next";
+            const action = x < 0.2 ? "end" : loops && x < 0.35 && i > 0 ? "loop" : "next";
             const lit = () => (r.next() < 0.3 ? "!" : "") + TAGS[r.int(0, 2)];
             let need = "";
             if (r.next() < 0.25) {
@@ -179,4 +179,68 @@ test("distinct matches the closed form: picking k items over at most m+1 rounds 
             for (let r = 1; r <= Math.min(k, m + 1); r++) want += C(k, r);
             assert.equal(generate(flow).list.length, want, `k=${k} items, max ${m}`);
         }
+});
+
+test("distinct, in general: sum over r of C(k, r) * q^r (plain loop: sum over r of (k*q)^r)", () => {
+    // k choices at the step the loop goes back to, q ways through the steps between it
+    // and the loop, m = max. A scenario is r passes (r from 1 to m+1).
+    const C = (n: number, k: number) => {
+        let x = 1;
+        for (let i = 1; i <= k; i++) x = (x * (n - k + i)) / i;
+        return Math.round(x);
+    };
+    const c = (id: string, over: Partial<Cond> = {}): Cond => ({
+        id, label: id, neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", variant: false, ...over,
+    });
+    const build = (k: number, q: number, m: number, distinct: boolean): Flow => ({
+        steps: [
+            { id: "a", name: "pick", conds: Array.from({ length: k }, (_, j) => c("p" + j)) },
+            { id: "mid", name: "between", conds: Array.from({ length: q }, (_, j) => c("q" + j)) },
+            { id: "b", name: "more", conds: [c("again", { action: "loop", target: "a", max: m, distinct }), c("done")] },
+        ],
+    });
+    for (let k = 1; k <= 4; k++)
+        for (let q = 1; q <= 3; q++)
+            for (let m = 1; m <= 3; m++) {
+                let withDistinct = 0;
+                for (let r = 1; r <= Math.min(k, m + 1); r++) withDistinct += C(k, r) * q ** r;
+                let plain = 0;
+                for (let r = 1; r <= m + 1; r++) plain += (k * q) ** r;
+                assert.equal(generate(build(k, q, m, true), 1e6).list.length, withDistinct, `distinct k=${k} q=${q} m=${m}`);
+                assert.equal(generate(build(k, q, m, false), 1e6).list.length, plain, `plain k=${k} q=${q} m=${m}`);
+            }
+});
+
+test("lower bounds for the size of Each and Pair (flows without loops)", () => {
+    const r = rng(4242);
+    let checked = 0;
+    for (let n = 0; n < 1500; n++) {
+        const g = generate(randomFlow(r, false));
+        if (g.list.length < 2 || g.capped) continue;
+        checked++;
+        // Each: a scenario holds at most `widest` choices, so at least |choices| / widest scenarios
+        const all = new Set<string>();
+        let widest = 0;
+        g.list.forEach((sc) => {
+            const ids = new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id));
+            ids.forEach((id) => all.add(id));
+            widest = Math.max(widest, ids.size);
+        });
+        assert.ok(pick(g, "min").length >= Math.ceil(all.size / widest), "each: lower bound");
+        // Pair: a scenario takes one choice per step, so it meets one pair of choices for any
+        // two steps; every pair that can meet between two steps needs its own scenario
+        const meet = new Map<string, Set<string>>();
+        g.list.forEach((sc) => {
+            const at = sc.path.filter((v) => v.c);
+            for (let a = 0; a < at.length; a++)
+                for (let b = a + 1; b < at.length; b++) {
+                    const key = at[a].i + "/" + at[b].i;
+                    if (!meet.has(key)) meet.set(key, new Set());
+                    meet.get(key)!.add(at[a].c!.id + "&" + at[b].c!.id);
+                }
+        });
+        const most = Math.max(0, ...[...meet.values()].map((x) => x.size));
+        assert.ok(pick(g, "pair").length >= most, `pair: at least ${most}`);
+    }
+    assert.ok(checked > 600, "enough flows: " + checked);
 });
