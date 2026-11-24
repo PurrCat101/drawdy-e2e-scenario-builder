@@ -36,7 +36,7 @@ panel's paste box, or in any sticky note that starts with `@builder`.)
 | Word | Means |
 | --- | --- |
 | **Flow** | The whole business flow you write: steps, each with its choices |
-| **Scenario** | One path through the flow, from the first step to where it ends: several test cases in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-001…` (happy) and `TSN-001…` (negative) |
+| **Scenario** | One path through the flow, from the first step to where it ends: several test cases in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-04821` (happy) and `TSN-00317` (negative): see "Scenario IDs" below |
 | **Test case** | One step of a scenario with the choice taken there, and its setup (`given:`), test data (`data:`) and expected result (`then:`). It is one row of the table |
 
 So a scenario is a chain of test cases, and the number the panel shows is the number
@@ -93,9 +93,9 @@ in the panel does not need the marker.)
   nothing is selected. If something is already there, the result moves down.
 - Scenario notes are coloured: green = happy path, pink = negative, orange = loop.
   They are ordered happy scenarios first, then negative, each by priority. IDs are
-  `TSS-001…` (success) and `TSN-001…` (negative).
+  `TSS-…` (success) and `TSN-…` (negative), five digits.
 - Each scenario note is itself written in the flow syntax (`@builder`, a
-  `@title TSS-001 · Happy · P1`, the steps and choices of that scenario with their
+  `@title TSS-04821 · Happy · P1`, the steps and choices of that scenario with their
   `given:` / `data:` / `then:`), so it can be selected and read back.
 - A lot of scenarios is laid out in more columns, so the frame stays about as wide as
   it is tall. There is no limit on the number of notes, but the panel warns when a
@@ -254,6 +254,23 @@ A problem in the text is shown with its line (in the panel while you type), for 
 The extension points out unknown words with the closest known one, a `loop to step` pointing to a
 step that does not exist, repeated or out-of-order step numbers, a condition with
 no step, a field with a typo, and so on.
+
+## Scenario IDs
+
+A scenario's number comes from what it does: the names of the steps it passes and the
+choices it takes, in order (letter case and spaces around them do not count). So the ID
+does not move when you change the flow somewhere the scenario does not go: add a
+choice, add a step it never reaches, put lines in another order. That lets you keep the
+IDs in a test management tool and regenerate the board later.
+
+A scenario does get a new ID when it changes: renaming a step or a choice it passes,
+or adding a step in its way, makes it a different test. The numbers are not in order
+and have gaps; the board lists scenarios in their own order (Happy first, then by
+priority). If two scenarios would get the same number, the one whose description
+sorts later takes the next free number.
+
+Boards drawn by earlier versions show `TSS-001`-style IDs; they still work, as does
+any `TSS-`/`TSN-` number.
 
 ## How the scenarios are counted
 

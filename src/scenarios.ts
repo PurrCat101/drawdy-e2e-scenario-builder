@@ -8,7 +8,7 @@ export type PathItem = { i: number; c: Cond | null };
 export type Scenario = {
     /** 1-based order in the full (unfiltered) list */
     n: number;
-    /** TSS-001 (success) / TSN-001 (negative) */
+    /** TSS-04821 (success) / TSN-00317 (negative): stable, see stableIds */
     id: string;
     path: PathItem[];
     type: "happy" | "neg";
@@ -136,6 +136,39 @@ function orderFreeKey(path: PathItem[], idx: Record<string, number>): string {
         j = k;
     }
     return out.join(" ");
+}
+
+/**
+ * Scenario IDs that do not move when the flow changes elsewhere: the number comes
+ * from a hash of what the scenario does (step names and the choices taken, in
+ * order), so adding a choice, reordering lines or adding a step that a scenario does
+ * not pass leaves its ID alone. Renaming a step or a choice it passes gives it a new
+ * ID, as it is then a different test. Five digits; on a clash, the scenario whose
+ * description sorts later moves to the next free number.
+ */
+function stableIds(paths: PathItem[][], steps: Step[]): string[] {
+    const describe = (p: PathItem[]) =>
+        p.map((v) => `${steps[v.i].name.trim().toLowerCase()}=${v.c ? v.c.label.trim().toLowerCase() : ""}`).join("\u241e");
+    const hash = (str: string) => {
+        let h = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            h ^= str.charCodeAt(i);
+            h = Math.imul(h, 0x01000193) >>> 0;
+        }
+        return h % 100000;
+    };
+    const keys = paths.map((p) => ({ p, d: describe(p) }));
+    const order = keys.map((k, i) => i).sort((a, b) => (keys[a].d < keys[b].d ? -1 : keys[a].d > keys[b].d ? 1 : a - b));
+    const used = { happy: new Set<number>(), neg: new Set<number>() };
+    const out: string[] = new Array(paths.length);
+    for (const i of order) {
+        const type = classify(keys[i].p);
+        let n = hash(keys[i].d);
+        while (used[type].has(n)) n = (n + 1) % 100000;
+        used[type].add(n);
+        out[i] = (type === "happy" ? "TSS-" : "TSN-") + String(n).padStart(5, "0");
+    }
+    return out;
 }
 
 export function generate(flow: Flow, limit = 1000): Generated {
@@ -370,22 +403,15 @@ export function generate(flow: Flow, limit = 1000): Generated {
     // no loops first, then the longest path first (happy path is case 1)
     out.sort((a, b) => loopN(a) - loopN(b) || b.length - a.length);
 
-    let nS = 0;
-    let nN = 0;
-    const list: Scenario[] = out.map((path, k) => {
-        const type = classify(path);
-        const num = type === "happy" ? ++nS : ++nN;
-        return {
-            n: k + 1,
-            id:
-                (type === "happy" ? "TSS-" : "TSN-") +
-                String(num).padStart(3, "0"),
-            path,
-            type,
-            loops: loopN(path),
-            pri: priOf(path),
-        };
-    });
+    const ids = stableIds(out, steps);
+    const list: Scenario[] = out.map((path, k) => ({
+        n: k + 1,
+        id: ids[k],
+        path,
+        type: classify(path),
+        loops: loopN(path),
+        pri: priOf(path),
+    }));
     if (!capped) {
         const used = new Set<string>();
         out.forEach((p) => p.forEach((v) => v.c && used.add(v.c.id)));

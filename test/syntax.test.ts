@@ -650,3 +650,38 @@ test("requirements: each req lists the scenarios that pass it, and a missing one
     assert.equal(neg[neg.length - 1], "MISSING requirements: R-3, R-4");
     assert.deepEqual(requirementLines(g.list, parseFlowText("1. a\n- b").flow), []);
 });
+
+test("scenario IDs stay put when the flow changes elsewhere, and are unique", () => {
+    const base = "1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n3. Pay\n- paid\n- declined -> end";
+    const ids = (t: string) => {
+        const m = new Map<string, string>();
+        generate(parseFlowText(t).flow).list.forEach((s) =>
+            m.set(s.path.map((v) => (v.c ? v.c.label : "-")).join(">"), s.id)
+        );
+        return m;
+    };
+    const before = ids(base);
+    assert.equal(new Set(before.values()).size, before.size, "unique");
+    for (const id of before.values()) assert.match(id, /^TS[SN]-\d{5}$/);
+    // a new choice, lines in another order, a new step at the end with one choice... the
+    // scenarios that still exist keep their IDs
+    const changed = [
+        base.replace("- shoes", "- shoes\n- hat"),
+        base.replace("- shirt\n- shoes", "- shoes\n- shirt"),
+        base.replace("- ok\n- bad -> end", "- bad -> end\n- ok"),
+    ];
+    for (const t of changed) {
+        const after = ids(t);
+        for (const [path, id] of before) if (after.has(path)) assert.equal(after.get(path), id, path);
+    }
+    // a renamed choice is a different test: a new ID for the scenarios through it only
+    const renamed = ids(base.replace("- paid", "- paid by card"));
+    assert.equal(renamed.get("ok>shirt>declined"), before.get("ok>shirt>declined"));
+    assert.ok(![...before.values()].includes(renamed.get("ok>shirt>paid by card")!));
+});
+
+test("scenario IDs stay unique on a big flow (clashes move to the next number)", () => {
+    const text = Array.from({ length: 6 }, (_, i) => `${i + 1}. S${i}\n- a\n- b\n- c`).join("\n");
+    const g = generate(parseFlowText(text).flow);
+    assert.equal(new Set(g.list.map((s) => s.id)).size, g.list.length);
+});
