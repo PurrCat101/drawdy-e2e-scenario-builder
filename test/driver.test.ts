@@ -258,13 +258,13 @@ test("OUT-22: no limit on the number of scenario notes", async () => {
 
 test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that Flow + Scenarios can read", async () => {
     const h = await makeHost();
-    await h.panel({ type: "template", id: "loop" });
+    await h.panel({ type: "template", id: "shop" });
     const notes = h.find((e) => e.componentType === "sticky-note");
     assert.equal(notes.length, 1);
     assert.match(notes[0].text, /^@builder\n/);
     assert.ok(notes[0].width >= 400 && notes[0].height >= 170);
     const status = [...h.toPanel].reverse().find((m) => m.type === "status");
-    assert.match(status.text, /Loop note added/);
+    assert.match(status.text, /Starter note added/);
     assert.ok(!status.bad);
     // select it and press Flow + Scenarios: no text in the box, the note is used
     h.select(h.idOf(notes[0]));
@@ -275,8 +275,8 @@ test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that 
 
 test("OUT-41: a second starter note goes into free space, not on top of the first", async () => {
     const h = await makeHost();
-    await h.panel({ type: "template", id: "basic" });
-    await h.panel({ type: "template", id: "basic" });
+    await h.panel({ type: "template", id: "shop" });
+    await h.panel({ type: "template", id: "shop" });
     const [a, b] = h.find((e) => e.componentType === "sticky-note");
     const overlap =
         a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -291,14 +291,14 @@ test("DRV-30: an unknown starter id adds nothing", async () => {
 
 test("UI-40 DRV-42 DRV-43: the panel counts the flow note selected on the board, and goes back to the paste box after", async () => {
     const h = await makeHost();
-    await h.panel({ type: "template", id: "basic" });
+    await h.panel({ type: "template", id: "shop" });
     const note = h.find((e) => e.componentType === "sticky-note")[0];
     h.select(h.idOf(note));
     h.toPanel.length = 0;
     await h.panel({ type: "target" });
     const counts = h.toPanel.find((m) => m.type === "counts");
     assert.equal(counts?.from, "note");
-    assert.ok(counts.counts.all >= 2 && counts.steps === 3);
+    assert.ok(counts.counts.all >= 2 && counts.steps === 10);
     // while the note is selected, the paste box's own preview does not replace it
     h.toPanel.length = 0;
     await h.panel({ type: "preview", text: "1. a\n- b" });
@@ -318,7 +318,7 @@ test("UI-40 DRV-42 DRV-43: the panel counts the flow note selected on the board,
 test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out again when a button is pressed", async () => {
     const { clearCache, cacheStats } = await import("../src/analysis.ts");
     const h = await makeHost();
-    await h.panel({ type: "template", id: "loop" });
+    await h.panel({ type: "template", id: "shop" });
     const note = h.find((e) => e.componentType === "sticky-note")[0];
     h.select(h.idOf(note));
     clearCache();
@@ -340,7 +340,7 @@ test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out 
     await h.panel({ type: "target" });
     assert.equal(cacheStats().misses, 2);
     const counts = [...h.toPanel].reverse().find((m) => m.type === "counts");
-    assert.equal(counts.steps, 4);
+    assert.equal(counts.steps, 11);
     assert.equal(typeof counts.ms, "number");
 });
 
@@ -538,10 +538,10 @@ test("UI-04: panel: a lot of scenarios gets a warning, and the mode count follow
 test("UI-12 UI-13: panel: the starter buttons ask the driver for a template; a pulled note opens the paste box", () => {
     const p = loadPanel();
     try {
-        for (const id of ["basic", "loop", "levels"]) p.els["tpl-" + id].onclick();
+        for (const id of ["shop"]) p.els["tpl-" + id].onclick();
         assert.deepEqual(
             p.sent.filter((m) => m.type === "template").map((m) => m.id),
-            ["basic", "loop", "levels"]
+            ["shop"]
         );
         p.send({ type: "fill", text: "@builder\n1. a\n- b" });
         assert.equal(p.els.paste.open, true);
@@ -602,7 +602,7 @@ test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\""
     await h.action("board", FLOW);
     await h.action("table", FLOW);
     await h.action("copy", FLOW);
-    await h.panel({ type: "template", id: "basic" });
+    await h.panel({ type: "template", id: "shop" });
     const said = h.toPanel.filter((m) => m.type === "status").map((m) => m.text);
     const names = h.frames().map((f) => f.name);
     const texts = h.find((e) => typeof e.text === "string" && e.text).map((e) => e.text);

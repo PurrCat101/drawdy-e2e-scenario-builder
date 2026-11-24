@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+- One starter note: "Start with a template" replaces the Basic, Loop and Levels buttons.
+  The note is an online-shop checkout (log in or guest, products in a loop, shipping,
+  payment) that uses every piece of the syntax.
+- More property-based tests: each mode keeps the coverage it promises (CALC-30, 33,
+  34, 36), a loop is taken at most `max` times (CALC-17), and a distinct loop never
+  repeats a choice in its rounds (CALC-17). Checked by breaking the code on purpose: the
+  tests fail.
+
+- **`\[` in a choice's label** is a plain `[`, so a label can contain a `[` without it
+  being read as the start of the options (SYN-13). Before, `- Pay [visa` lost its name.
+  `formatFlow` writes `\[` where it is needed, and the property test now covers labels
+  with `[`, `]` and `\` in them. Nothing changes for labels without a `[`.
+
+- Property-based tests (fast-check, `test/property.test.ts`). They found two small
+  bugs, both fixed:
+  - A choice named like options, such as `Pay [visa]`, lost its name when the flow was
+    written back with `formatFlow` and read again. `formatFlow` now adds an empty `[]`.
+  - Pairwise picked no scenario for a flow without choices (EP and Each picked one).
+    All modes now pick at least one scenario when the flow has a path (CALC-83).
+
 ## 0.2.0
 
 - The driver's `src/index.ts` (934 lines) is split into `host`, `webview`,

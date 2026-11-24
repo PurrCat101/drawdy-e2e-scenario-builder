@@ -35,7 +35,9 @@ The README's "Text syntax" is the user's guide to the same rules.
   `max` is clamped to 1 … 9 and only means something on a loop.
 - **SYN-13** Options in square brackets at the end, separated by `,` or `;`: `P1`
   `P2` `P3`, `variant`, `negative` (or `neg`), `distinct`, `sets a b`, `needs …` with
-  `and`, `or`, `not`/`!`.
+  `and`, `or`, `not`/`!`. To use a `[` in a label, write `\[`: it is read as a plain
+  `[`, never as the start of the options (a `\` before any other character is kept as
+  it is).
 - **SYN-14** `-> end` makes a choice negative by itself.
 - **SYN-15** `distinct` is kept only on a loop; elsewhere it gives the warning
   "distinct only works with loop to step N" and is dropped.
@@ -64,6 +66,10 @@ The README's "Text syntax" is the user's guide to the same rules.
 ## Writing back
 
 - **SYN-40** `formatFlow` writes a flow in the block form so that reading it back
-  gives the same flow and the same scenario counts.
-- **SYN-41** Starter notes (OUT-40) read without any warning and give scenarios; their
+  gives the same flow and the same scenario counts. A choice whose label ends in
+  `[...]` and has no options gets an empty `[]` after it, so the label is not read as
+  options. A `[` with no `]` after it, or after a backslash, is written `\[` (SYN-13).
+- **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
+  every kind of choice and field the syntax has (a distinct loop with max, an end, a
+  variant, sets, needs with or and not, a req); its
   `#` lines explain the syntax and do not change the flow.

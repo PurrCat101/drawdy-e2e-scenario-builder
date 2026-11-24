@@ -397,7 +397,17 @@ test("OUT-32: scenarios as tab-separated text for a spreadsheet", async () => {
 });
 
 test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scenarios, no flow errors", () => {
-    assert.deepEqual(TEMPLATES.map((t) => t.id), ["basic", "loop", "levels"]);
+    assert.deepEqual(TEMPLATES.map((t) => t.id), ["shop"]);
+    // the template uses every piece of the syntax: a check that it still does
+    const shop = parseFlowText(TEMPLATES[0].text).flow;
+    const all = shop.steps.flatMap((s) => s.conds);
+    const has = (f: (c: (typeof all)[number]) => boolean) => all.some(f);
+    assert.ok(has((c) => c.action === "loop" && c.distinct && c.max >= 2), "a distinct loop with max");
+    assert.ok(has((c) => c.action === "end" && c.neg), "an end (negative)");
+    assert.ok(has((c) => c.variant), "a variant");
+    assert.ok(has((c) => !!c.tags), "a sets");
+    assert.ok(has((c) => !!c.need && /[|,!]/.test(c.need)), "a needs with or / not");
+    assert.ok(shop.steps.some((s) => s.req), "a req on a step");
     for (const t of TEMPLATES) {
         assert.ok(hasMarker(t.text), t.id + ": starts with @builder");
         const r = parseFlowText(t.text);

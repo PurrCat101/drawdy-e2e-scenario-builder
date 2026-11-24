@@ -83,9 +83,7 @@
 
   <div class="grp">Start a flow on the board</div>
   <div class="tpl">
-    <button id="tpl-basic" class="ghost" title="3 steps, with the syntax explained in comments">Basic</button>
-    <button id="tpl-loop" class="ghost" title="a retry loop, a negative choice and variants">Loop</button>
-    <button id="tpl-levels" class="ghost" title="choices that set and need tags (sets / needs)">Levels</button>
+    <button id="tpl-shop" class="ghost" title="an online-shop checkout that uses every piece of the syntax">Start with a template</button>
   </div>
   <div class="hint">Drops a note on the board. Edit it there, select it, press Flow + Scenarios.</div>
 
@@ -252,12 +250,10 @@
     };
   });
 
-  ['basic', 'loop', 'levels'].forEach(function (id) {
-    $('tpl-' + id).onclick = function () {
-      setStatus('Working...');
-      send({ type: 'template', id: id });
-    };
-  });
+  $('tpl-shop').onclick = function () {
+    setStatus('Working...');
+    send({ type: 'template', id: 'shop' });
+  };
 
   function chip(label, n) {
     var c = document.createElement('span');

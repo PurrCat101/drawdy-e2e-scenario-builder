@@ -224,6 +224,14 @@ const FIELD_KEYS: Record<string, FieldKey> = {
 const BRACKET_WORDS = ["variant", "negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
 
 /** `-> end`, `-> loop`, `-> loop to step 3 max 2`, `-> next` at the end of a condition line */
+/**
+ * Options at the end of a line: `label [options]`. A `[` written `\[` is part of the
+ * label, not the start of the options (SYN-13).
+ */
+const OPTIONS_AT_END = /^([\s\S]*?)\s*(?<!\\)\[([^\]]*)\]\s*$/;
+/** `\[` in a label is a plain `[`. */
+const unescapeBracket = (label: string) => label.replace(/\\\[/g, "[");
+
 const ARROW_RE = /\s*(?:->|→|=>)\s*(end|loop|back|next)((?:\s+\S+){0,6})\s*$/i;
 
 type PendingLoop = { cond: Cond; step: Step; num: number | null; line: number };
@@ -366,7 +374,7 @@ function parseCondLine(
 ): Cond {
     let body = text.trim();
     let inner = "";
-    const br = body.match(/^([\s\S]*?)\s*\[([^\]]*)\]\s*$/);
+    const br = body.match(OPTIONS_AT_END);
     if (br) {
         body = br[1];
         inner = br[2];
@@ -425,6 +433,7 @@ function parseCondLine(
             warn(ln, `Cannot read the end of the line "${clip(am[0].trim(), 30)}"; it is kept as part of the name`);
         }
     }
+    cond.label = unescapeBracket(cond.label);
     if (!cond.label) warn(ln, "A condition has no name");
 
     // [P1, variant, negative, sets lv1, needs !master or lv2]
@@ -456,8 +465,8 @@ function takeCompactOptions(
     where: string,
     warnings: string[]
 ): { label: string; opts: Partial<Cond> } {
-    const m = raw.match(/^([\s\S]*?)\s*\[([^\]]*)\]\s*$/);
-    if (!m) return { label: raw, opts: {} };
+    const m = raw.match(OPTIONS_AT_END);
+    if (!m) return { label: unescapeBracket(raw), opts: {} };
     const opts: Partial<Cond> = {};
     m[2]
         .split(/\s+/)
@@ -475,7 +484,7 @@ function takeCompactOptions(
                     `${where}: unknown option "${clip(tok, 24)}" in [ ]${didYouMean(t.split("=")[0], ["variant", "max", "tag", "need", "P1", "P2", "P3"])}`
                 );
         });
-    return { label: m[1], opts };
+    return { label: unescapeBracket(m[1]), opts };
 }
 
 function parseCompact(
@@ -547,6 +556,13 @@ function parseCompact(
 
 const FIELD_START = new RegExp("^(" + Object.keys(FIELD_KEYS).join("|") + ")\\s*:", "i");
 
+/**
+ * A label for a choice line: a `[` that has no `]` after it would be read as the start
+ * of the options, and a `[` after a backslash would lose it; both are written `\[`.
+ */
+const escapeBracket = (label: string) =>
+    label.replace(/\[/g, (_m, at: number) => (label.indexOf("]", at) < 0 || label[at - 1] === "\\" ? "\\[" : "["));
+
 /** Would this line be read as structure if it started a line of its own? */
 const looksStructural = (t: string) =>
     /^(\d+[.)]\s*|[-*•–]\s|@|#|\/\/|\\)/.test(t) || FIELD_START.test(t);
@@ -583,7 +599,7 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
         field("   ", "then", s.exp);
         field("   ", "req", s.req);
         for (const c of s.conds) {
-            let line = "   - " + oneLine(c.label);
+            let line = "   - " + escapeBracket(oneLine(c.label));
             if (c.action === "end") line += " -> end";
             else if (c.action === "loop") {
                 const n = c.target ? numberOf[c.target] : undefined;
@@ -598,6 +614,8 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             if (c.tags) o.push("sets " + c.tags.split(",").filter(Boolean).join(" "));
             if (c.need) o.push("needs " + needToWords(c.need));
             if (o.length) line += " [" + o.join(", ") + "]";
+            // a label ending in [..] would be read as its options: an empty [] ends it
+            else if (/\]\s*$/.test(line)) line += " []";
             out.push(line);
             field("     ", "given", c.pre);
             field("     ", "data", c.data);

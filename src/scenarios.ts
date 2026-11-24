@@ -648,6 +648,8 @@ export function pairwise(list: Scenario[]): Scenario[] {
             left--;
         }
     }
+    // nothing to cover (a flow without choices): the one path it has, as Each does (CALC-83)
+    if (!chosen.length && list.length) chosen.push(Math.max(0, list.findIndex((sc) => sc.type === "happy")));
     return chosen.map((k) => list[k]).sort((a, b) => a.n - b.n);
 }
 
