@@ -399,6 +399,9 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
   scene), and the panel page against a stub DOM. It checks what each button does for
   each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
+- `test/oracle.test.ts`: the scenario generator against a second, independent
+  enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
+  pair, and `distinct` against its closed form.
 
 These tests do not see how things *look*, or what Drawdy itself does. Before a
 release, check by hand in Drawdy (about five minutes):
