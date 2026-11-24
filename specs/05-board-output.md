@@ -66,8 +66,10 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 ## Starter notes
 
-- **OUT-40** Three notes, Basic, Loop and Levels, 520 units wide, yellow, font 14,
-  each a complete `@builder` flow whose `#` lines explain the syntax it uses (SYN-41).
+- **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
+  shipping, payment), 520 units wide, yellow, font 14. It is a complete `@builder` flow
+  whose `#` lines explain the syntax it uses, and it uses every kind of choice and field
+  the syntax has (SYN-41).
   Height follows the number of lines.
 - **OUT-41** A starter note is placed in free space in the view (OUT-01), and a second
   press puts the next note below the first.

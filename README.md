@@ -7,7 +7,7 @@ scenarios (happy, negative and loop) drawn on the board, with a table of the
 test cases of each scenario.
 
 Install the extension, click its button on the right edge of the board, press a
-**Starter note** button (Basic, Loop or Levels) to drop a ready-made flow note on the
+**Start with a template** button to drop a ready-made flow note on the
 board, edit it there, select it and press **Flow + Scenarios**. (Or write a flow in the
 panel's paste box, or in any sticky note that starts with `@builder`.)
 
@@ -46,9 +46,9 @@ of scenarios.
 
 1. **Open the panel.** Click the extension's button on the right edge of the
    board.
-2. **Write a flow.** The panel is small, so write on the board: press a **Starter
-   note** button (Basic, Loop, Levels) to drop a note with a ready-made flow and the
-   syntax explained in `#` comment lines (they are ignored; delete them when done),
+2. **Write a flow.** The panel is small, so write on the board: press **Start with a
+   template** to drop a note with a ready-made online-shop checkout that uses every piece of
+   the syntax, explained in `#` comment lines (they are ignored; delete them when done),
    and edit it there. Any sticky note whose first line is `@builder` works the same.
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
@@ -516,9 +516,9 @@ release, check by hand in Drawdy (about five minutes):
 5. Select the scenario frame and press **Copy table**, then paste into a
    spreadsheet: one row per test case, a **Scenario** column first.
 6. Select a table and press **Copy table**: it copies that table.
-7. Press each **Starter note** button (Basic, Loop, Levels): a yellow note that starts
-   with `@builder` appears in view and the camera flies to it; a second press puts the
-   next note below the first, not on top. Select a note and press **Flow + Scenarios**: a
+7. Press **Start with a template**: a yellow note that starts with `@builder` appears in
+   view and the camera flies to it; a second press puts the next note below the first,
+   not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
 8. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
    paths), select the note and type in it:

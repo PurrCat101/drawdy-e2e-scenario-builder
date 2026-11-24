@@ -108,7 +108,7 @@ export async function addTemplateNote(t: Template): Promise<string> {
         flyDurationMs: 400,
         zoom: 0.5,
     });
-    return `${t.label} note added. Edit it on the board, then select it and press Flow + Scenarios`;
+    return `Starter note added. Edit it on the board, then select it and press Flow + Scenarios`;
 }
 
 /**

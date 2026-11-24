@@ -18,7 +18,7 @@ control: flows are written on the board, not in the panel.
 - **UI-06** The action buttons: Flow, Scenarios, Flow + Scenarios (primary, full
   width), Table (full width), Copy table (full width).
 - **UI-07** The status line, right under the buttons.
-- **UI-08** "Start a flow on the board": Starter note buttons Basic, Loop, Levels,
+- **UI-08** "Start a flow on the board": one Starter note button, "Start with a template",
   and one hint line.
 - **UI-09** "Paste or type text here", folded by default: the paste box and "Pull
   from selected note".
@@ -28,8 +28,7 @@ control: flows are written on the board, not in the panel.
 
 - **UI-11** Each action button sends `action` with the button id, the paste box text
   and the mode (DRV-20). The status line shows "Working..." until the driver answers.
-- **UI-12** A Starter note button sends `template` with its id (`basic`, `loop`,
-  `levels`).
+- **UI-12** The Starter note button sends `template` with its id (`shop`).
 - **UI-13** "Pull from selected note" sends `pull`; the answer (`fill`) puts the text
   in the paste box and unfolds it.
 - **UI-14** Copy table: the driver sends `clip` with the text; the panel copies it

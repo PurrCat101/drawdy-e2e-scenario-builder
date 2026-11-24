@@ -69,5 +69,7 @@ The README's "Text syntax" is the user's guide to the same rules.
   gives the same flow and the same scenario counts. A choice whose label ends in
   `[...]` and has no options gets an empty `[]` after it, so the label is not read as
   options. A `[` with no `]` after it, or after a backslash, is written `\[` (SYN-13).
-- **SYN-41** Starter notes (OUT-40) read without any warning and give scenarios; their
+- **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
+  every kind of choice and field the syntax has (a distinct loop with max, an end, a
+  variant, sets, needs with or and not, a req); its
   `#` lines explain the syntax and do not change the flow.

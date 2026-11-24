@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- One starter note: "Start with a template" replaces the Basic, Loop and Levels buttons.
+  The note is an online-shop checkout (log in or guest, products in a loop, shipping,
+  payment) that uses every piece of the syntax.
 - More property-based tests: each mode keeps the coverage it promises (CALC-30, 33,
   34, 36), a loop is taken at most `max` times (CALC-17), and a distinct loop never
   repeats a choice in its rounds (CALC-17). Checked by breaking the code on purpose: the
