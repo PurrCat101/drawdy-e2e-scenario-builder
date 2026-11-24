@@ -288,6 +288,32 @@ test("an unknown starter id adds nothing", async () => {
     assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
 });
 
+test("the panel counts the flow note selected on the board, and goes back to the paste box after", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "basic" });
+    const note = h.find((e) => e.componentType === "sticky-note")[0];
+    h.select(h.idOf(note));
+    h.toPanel.length = 0;
+    await h.panel({ type: "target" });
+    const counts = h.toPanel.find((m) => m.type === "counts");
+    assert.equal(counts?.from, "note");
+    assert.ok(counts.counts.all >= 2 && counts.steps === 3);
+    // while the note is selected, the paste box's own preview does not replace it
+    h.toPanel.length = 0;
+    await h.panel({ type: "preview", text: "1. a\n- b" });
+    assert.equal(h.toPanel.filter((m) => m.type === "counts").length, 0);
+    // the same note again: nothing new is sent
+    await h.panel({ type: "target" });
+    assert.equal(h.toPanel.filter((m) => m.type === "counts").length, 0);
+    // unselected: the panel is told to count its paste box again
+    h.select();
+    await h.panel({ type: "target" });
+    assert.ok(h.toPanel.some((m) => m.type === "recount"));
+    h.toPanel.length = 0;
+    await h.panel({ type: "preview", text: "1. a\n- b" });
+    assert.equal(h.toPanel.find((m) => m.type === "counts")?.from, undefined);
+});
+
 /* ------------------------------ the panel page ----------------------------- */
 
 function loadPanel() {
@@ -415,6 +441,21 @@ test("panel: the starter buttons ask the driver for a template; a pulled note op
         p.send({ type: "fill", text: "@builder\n1. a\n- b" });
         assert.equal(p.els.paste.open, true);
         assert.equal(p.els.t.value, "@builder\n1. a\n- b");
+    } finally {
+        p.restore();
+    }
+});
+
+test("panel: counts from a note are labelled, and a recount asks for the paste box's counts", () => {
+    const p = loadPanel();
+    try {
+        p.send({ type: "counts", from: "note", counts: { all: 9, ep: 5, pair: 4, min: 3 }, steps: 3, issues: [] });
+        assert.equal(p.els.counts.title, "Counts of the selected flow note");
+        p.els.t.value = "1. a\n- b";
+        p.send({ type: "recount" });
+        assert.deepEqual(p.sent[p.sent.length - 1], { type: "preview", text: "1. a\n- b" });
+        p.send({ type: "counts", counts: { all: 1, ep: 1, pair: 1, min: 1 }, steps: 1, issues: [] });
+        assert.equal(p.els.counts.title, "Counts of the text in the paste box");
     } finally {
         p.restore();
     }

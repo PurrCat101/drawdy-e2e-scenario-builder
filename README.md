@@ -52,6 +52,9 @@ of scenarios.
    and edit it there. Any sticky note whose first line is `@builder` works the same.
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
+   While one flow note is selected, the panel shows that note's scenario counts, the
+   flow check and a mode tip, updated as you edit it; with nothing selected it counts
+   the paste box.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
    and of test scenarios in every mode (All, EP, Pairwise, Each-Choice), the problems
    found in the text (with their line) and in the flow.

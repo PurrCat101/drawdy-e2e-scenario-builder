@@ -53,7 +53,7 @@
   <h1>E2E Scenario Builder</h1>
 
   <div class="target" id="target"></div>
-  <div class="counts" id="counts"><span class="hint">Scenario counts show here for text in the paste box</span></div>
+  <div class="counts" id="counts"><span class="hint">Scenario counts show here for the selected flow note, or the paste box</span></div>
   <div class="issues" id="issues"></div>
   <div class="plan" id="plan"></div>
 
@@ -243,16 +243,26 @@
         h.textContent = 'Cannot read the flow yet';
         box.appendChild(h);
       } else {
+        if (m.from === 'note') {
+          var src = document.createElement('span');
+          src.className = 'hint';
+          src.textContent = 'Selected note:';
+          box.appendChild(src);
+        }
         box.appendChild(chip('steps', m.steps));
         box.appendChild(chip('All', m.counts.all));
         box.appendChild(chip('EP', m.counts.ep));
         box.appendChild(chip('Pairwise', m.counts.pair));
         box.appendChild(chip('Each-Choice', m.counts.min));
       }
+      box.title = m.from === 'note' ? 'Counts of the selected flow note' : 'Counts of the text in the paste box';
       lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
       updatePlan();
       updateTarget();
       $('issues').textContent = (m.issues || []).join('  ·  ');
+    } else if (m.type === 'recount') {
+      // the flow note was unselected: show the paste box's counts again
+      send({ type: 'preview', text: $('t').value });
     } else if (m.type === 'status') {
       setStatus(m.text, m.bad);
     } else if (m.type === 'clip') {

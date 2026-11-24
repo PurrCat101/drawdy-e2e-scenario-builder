@@ -124,6 +124,12 @@ async function toPanel(message: unknown) {
     await run("command:webview:post-message", { webviewDomId: WV_ID, message });
 }
 
+/**
+ * The text of the single `@builder` note selected on the board, whose counts the
+ * panel is showing; null when the panel shows the counts of its own paste box.
+ */
+let noteShown: string | null = null;
+
 /** Scenario counts and flow problems for a text, for the live preview. */
 function previewOf(text: string) {
     const r = parseFlowText(text);
@@ -260,6 +266,8 @@ const tableCount = (meta: Record<string, any>): number => Number(meta.scenarios 
 async function onPanelMessage(m: any) {
     if (!m || typeof m !== "object") return;
     if (m.type === "preview") {
+        // a selected flow note wins over the paste box, as it does for the buttons
+        if (noteShown !== null) return;
         const p = previewOf(String(m.text ?? ""));
         await toPanel({ type: "counts", ...p });
         return;
@@ -312,6 +320,16 @@ async function onPanelMessage(m: any) {
         else if (flows.length) [kind, n] = ["flows", flows.length];
         else if (flowFrame) [kind, n] = ["flowframe", 1];
         await toPanel({ type: "target", kind, n });
+        // counts and flow problems for the note being written on the board
+        if (kind === "flows" && flows.length === 1) {
+            if (flows[0].text !== noteShown) {
+                noteShown = flows[0].text;
+                await toPanel({ type: "counts", from: "note", ...previewOf(noteShown) });
+            }
+        } else if (noteShown !== null) {
+            noteShown = null;
+            await toPanel({ type: "recount" });
+        }
         return;
     }
     if (m.type !== "action") return;
@@ -843,6 +861,7 @@ async function actionFlow(sel: Picked[]) {
 /* ---------------------------------- module --------------------------------- */
 
 export const activate: DriverModule["activate"] = async (ctx) => {
+    noteShown = null;
     issue = ctx.issueCommand;
     generateId = ctx.generateId;
     driverId = ctx.manifest.driverId;
