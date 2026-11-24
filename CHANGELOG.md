@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The text in the text boxes the extension draws (the starter note, scenario notes and
+  hints) is always black, not the colour of the border (OUT-50). The flow diagram is
+  unchanged.
+
 - MIT license (`LICENSE`, `package.json`, README): free to use and share, with the copyright line kept.
 
 - README: a table of contents with links to every section, and the starter template as

@@ -292,6 +292,7 @@ test("OUT-50: every note is a filled text box sized to its text, never a sticky 
     assert.ok(boxes.length >= 4, "text boxes: " + boxes.length);
     for (const b of boxes) {
         assert.ok(b.fillColor && b.strokeColor && b.fillColor !== b.strokeColor, "has a fill and a darker border");
+        assert.equal(b.textColor, "#000000", "the text is black, not the colour of the fill or border");
         assert.ok(b.height >= fitHeight(b.text, b.width, b.fontSize), "the text fits: " + b.text.slice(0, 30));
     }
     const starter = boxes.find(isStarter);

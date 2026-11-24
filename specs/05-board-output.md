@@ -86,7 +86,7 @@ the board, `src/actions.ts` decides what to draw for each button.
 - **OUT-50** Every note the extension puts on the board (the starter note, the header and
   scenario notes of a scenario frame, hints and errors) is a text box: a rectangle with a
   coloured fill, a border in a darker shade of the same colour, rounded corners, and the
-  text left-aligned from the top, never a sticky note, because a rectangle can be given
-  any width and height. Its height is the height the text needs at its width and font
+  text left-aligned from the top and always black (`#000000`) whatever the fill, never a
+  sticky note, because a rectangle can be given any width and height. Its height is the height the text needs at its width and font
   size (about 0.6 x the font size a character, 1.4 x a line, 12 units of space inside the
   border), so no text is cut off and no box is much taller than its text.

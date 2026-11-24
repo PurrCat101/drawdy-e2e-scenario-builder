@@ -8,7 +8,10 @@ import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 
 export type Tone = "blue" | "pink" | "green" | "orange" | "yellow" | "amber" | "red";
 
-/** Light fill, dark ink (the ink is also the border colour and the text colour). */
+/** The colour of the text in every text box. */
+export const TEXT_COLOR = "#000000";
+
+/** Light fill, and a darker shade of it for the border (the text is TEXT_COLOR). */
 export const TONES: Record<Tone, { fill: string; ink: string }> = {
     blue: { fill: "#dbeafe", ink: "#1e3a8a" },
     pink: { fill: "#fce7f3", ink: "#9d174d" },
@@ -64,6 +67,8 @@ export function textBox(o: TextBoxOptions): DrawdyElementSchema {
         height: o.height ?? fitHeight(o.text, o.width, o.fontSize),
         strokeColor: ink,
         fillColor: fill,
+        // the text is always black, whatever the fill (OUT-50)
+        textColor: TEXT_COLOR,
         strokeWidth: 1.5,
         cornerRadius: 8,
         roughness: 0,
