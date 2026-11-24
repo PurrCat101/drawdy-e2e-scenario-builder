@@ -167,7 +167,7 @@ written `→` or `=>`.
 
 | Write | Meaning |
 | --- | --- |
-| `P1` `P2` `P3` | priority of the scenario (no option = P2; a scenario takes the highest number on its path) |
+| `P1` `P2` `P3` | priority of the scenario: a scenario takes the most important (lowest) number on its path, so a path with a P1 choice is P1. Choices without a `P` do not count; no `P` on the whole path = P2 |
 | `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |

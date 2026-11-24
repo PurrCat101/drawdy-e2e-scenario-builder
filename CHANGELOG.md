@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A scenario's priority is now the most important `P` on its path (the lowest
+  number): a path with a P1 choice is P1. It used to take the largest number, so one
+  P3 choice made a whole P1 path P3. This changes the `P` in scenario titles and the
+  order of notes and tables (P1 first).
 - Fix: Scenarios on a selected scenario frame drew nothing (a hint note appeared and
   the status said "Done"). It now draws a new scenario frame in the chosen mode from
   the flow stored on the frame, as the panel promised.

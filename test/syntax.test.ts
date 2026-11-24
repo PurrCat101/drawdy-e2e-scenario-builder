@@ -695,3 +695,12 @@ test("the mode tip fits the flow", async () => {
     const marked = parseFlowText("1. a\n- x [variant]\n- y [variant]").flow;
     assert.match(modeTip(marked, { all: 90, ep: 20, pair: 12, min: 5 }), /^TIP: EP \(20\) for regression/);
 });
+
+test("CALC-25: a scenario takes the most important P on its path (the lowest number)", () => {
+    const g = generate(parseFlowText("1. a\n- x [P1]\n- y\n2. b\n- p [P3]\n- q").flow);
+    const pri = (labels: string) => g.list.find((s) => s.path.map((v) => v.c?.label).join(">") === labels)!.pri;
+    assert.equal(pri("x>p"), 1, "P1 and P3 on the path: P1");
+    assert.equal(pri("x>q"), 1);
+    assert.equal(pri("y>p"), 3, "only P3 on the path: P3");
+    assert.equal(pri("y>q"), 2, "no P at all: P2");
+});

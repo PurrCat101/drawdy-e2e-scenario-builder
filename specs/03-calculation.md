@@ -68,13 +68,9 @@ check), `src/analysis.ts` (remembering results).
 
 ## Priority
 
-- **CALC-25** A scenario's priority is the highest number among `P1`/`P2`/`P3` on its
-  choices (P3 beats P1: "highest number" is the least urgent written); no `P` at all
-  means P2.
-
-> Note: CALC-25 describes the current code (`priOf` takes the largest number). If
-> that is not what you mean (most people read P1 as the most important), change this
-> rule first, then the code.
+- **CALC-25** A scenario's priority is the most important `P` on its choices, that is
+  the **lowest** number: a path with a P1 choice is P1, even if it also has P3
+  choices. Choices without a `P` do not count; a path with no `P` at all is P2.
 
 ## Modes
 
