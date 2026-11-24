@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix: Scenarios on a selected scenario frame drew nothing (a hint note appeared and
+  the status said "Done"). It now draws a new scenario frame in the chosen mode from
+  the flow stored on the frame, as the panel promised.
 - `specs/`: the source of truth for what the extension does, one file per area
   (glossary, panel, driver, calculation, syntax, board output, testing), with rule IDs
   that tests name. `test/specs.test.ts` keeps the IDs unique and every named rule

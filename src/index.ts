@@ -741,10 +741,11 @@ async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) 
         await note(HINT_BOARD, 0, 0, "#fecaca");
         return;
     }
-    const frame = sel.find((p) => p.meta?.e2eFlow);
+    // a flow frame or a scenario frame: new scenarios, in the chosen mode, from the
+    // flow stored on it (DRV-21, DRV-22)
+    const frame = sel.find((p) => p.meta?.e2eFlow || (p.meta?.e2eScenarios && p.meta?.flow));
     if (frame) {
-        // regenerate scenarios from the flow stored on the frame
-        const flow = frame.meta.e2eFlow as Flow;
+        const flow = (frame.meta.e2eFlow ?? frame.meta.flow) as Flow;
         if (!flow?.steps?.length) return;
         await drawScenarios(flow, uiMode, frame);
         return;

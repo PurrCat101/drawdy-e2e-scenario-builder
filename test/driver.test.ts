@@ -366,6 +366,20 @@ test("CALC-81: a quick preview of a huge flow is worked out again in full for a 
     assert.ok(full.counts().all > quick.counts().all);
 });
 
+test("DRV-22: Scenarios on a selected scenario frame draws a new frame in the chosen mode", async () => {
+    const h = await makeHost();
+    await h.action("board", FLOW);
+    const fr = h.frames().find((f) => f.meta?.e2eScenarios)!;
+    const before = h.frames().length;
+    h.select(h.idOf(fr));
+    h.toPanel.length = 0;
+    await h.action("scenarios", "", "all");
+    const made = h.frames().filter((f) => f.meta?.e2eScenarios);
+    assert.equal(h.frames().length, before + 1);
+    assert.equal(made[made.length - 1].meta.mode, "all");
+    assert.ok(!h.find((e) => typeof e.text === "string" && /^Select a sticky note/.test(e.text)).length, "no hint note");
+});
+
 /* ------------------------------ the panel page ----------------------------- */
 
 function loadPanel() {
