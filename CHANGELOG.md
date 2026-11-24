@@ -36,6 +36,8 @@
 
 ### Fixed
 
+- The README logo is a plain Markdown image, not an HTML `<p><img>` block: the extension
+  page in Drawdy showed the HTML as text, while GitHub drew it.
 - **`\[` in a choice's label** is a plain `[`, so a label can contain a `[` without it
   being read as the start of the options (SYN-13). Before, `- Pay [visa` lost its name.
   Nothing changes for labels without a `[`.

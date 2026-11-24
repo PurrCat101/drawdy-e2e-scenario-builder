@@ -1,4 +1,4 @@
-<p align="center"><img src="logo.png" alt="E2E Scenario Builder logo" width="120"></p>
+![E2E Scenario Builder logo](icon.png)
 
 # E2E Scenario Builder — Drawdy extension
 
