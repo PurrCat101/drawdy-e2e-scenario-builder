@@ -9,27 +9,65 @@ test cases of each scenario.
 Install the extension, click its button on the right edge of the board, press a
 **Start with a template** button to drop a ready-made flow note on the
 board, edit it there, select it and press **Flow + Scenarios**. (Or write a flow in the
-panel's paste box, or in any sticky note that starts with `@builder`.)
+panel's paste box, or in any note, sticky note or text box, that starts with `@builder`.)
 
 ![E2E Scenario Builder: a flow diagram, its scenario notes and test sequence tables drawn on a Drawdy board](assets/demo.jpg)
 
+## Contents
+
+- [Terms](#terms)
+- [How to use](#how-to-use)
+  - [What the buttons use](#what-the-buttons-use)
+  - [What is drawn](#what-is-drawn)
+- [Text syntax](#text-syntax)
+  - [Lines](#lines)
+  - [What a condition does](#what-a-condition-does)
+  - [Options](#options)
+  - [The one-line form](#the-one-line-form)
+  - [Reading problems](#reading-problems)
+- [Scenario IDs](#scenario-ids)
+- [How the scenarios are counted](#how-the-scenarios-are-counted)
+- [Modes](#modes)
+  - [What each mode guarantees](#what-each-mode-guarantees)
+    - [The math](#the-math)
+  - [Flow check](#flow-check)
+- [Writing a flow that tests well](#writing-a-flow-that-tests-well)
+- [Notes](#notes)
+- [Development](#development)
+  - [Tests](#tests)
+- [Credits](#credits)
+
 ```
 @builder
-@title Shop checkout
-1. Sign in
-   given: the shop is up
-   data: user a
-   then: the login dialog closes
-   - Sign in ok [P1]
-   - Sign in failed -> end [P2]
-2. Pick an item
-   - shirt [variant]
-   - shoes [variant]
-   - sold out -> loop to step 2 max 2 [negative]
-3. Checkout
-   - paid [P1]
-   - card declined -> end [P1]
+@title Online shop: checkout
+
+1. Authentication
+   req: R-01
+   given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
+   - Log in [P1, sets user]
+     data: username user_001, password Passw0rd!
+     then: 200 OK, the header shows "user_001", a session token is issued
+   - Continue as guest [P2, sets guest]
+     data: no account, email guest@example.com
+     then: 200 OK, the header shows "Guest", no session token
+2. Select Products
+   req: R-02
+   given: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
+   - Shirt [variant]
+     data: SKU-001, quantity 1
+     then: the product page shows price 20.00
+   - Shoes [variant]
+     data: SKU-002, quantity 1
+     then: the product page shows price 50.00
+3. Add to Shopping Cart
+   - Added [P1]
+     then: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
+   - Out of stock -> end [negative]
+     given: the stock of the product is 0
+     then: 409 OUT_OF_STOCK, the cart item count does not change
 ```
+
+The first three steps of the starter template (**Start with a template** drops all of it on the board). The whole text is under [Text syntax](#text-syntax).
 
 ## Terms
 
@@ -49,7 +87,7 @@ of scenarios.
 2. **Write a flow.** The panel is small, so write on the board: press **Start with a
    template** to drop a note with a ready-made online-shop checkout that uses every piece of
    the syntax, explained in `#` comment lines (they are ignored; delete them when done),
-   and edit it there. Any sticky note whose first line is `@builder` works the same.
+   and edit it there. Any note whose first line is `@builder` works the same.
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
    While one flow note is selected, the panel shows that note's scenario counts, the
@@ -83,10 +121,10 @@ labels follow it, and buttons that do not fit the selection are greyed out.
 | a scenario note (`TSS-…` / `TSN-…`) | **Flow + Table**: that scenario | off | off | only the selected scenarios |
 | a scenario frame | off | on (scenarios again, chosen mode) | off | all scenarios in the frame |
 | a drawn flow frame | off | on (new scenarios) | on | scenarios of the chosen mode |
-| a sticky note that starts with `@builder` | on | on | on | its scenarios |
+| a note that starts with `@builder` | on | on | on | its scenarios |
 | a table | off | off | off | **Copy table** copies that table |
 
-**Only sticky notes that start with `@builder` are read.** Any other note is left
+**Only notes that start with `@builder` are read.** Any other note is left
 alone, so the extension never spends time on notes that are not flows. (The text box
 in the panel does not need the marker.)
 
@@ -94,7 +132,7 @@ in the panel does not need the marker.)
 
 - New results are placed in free space: under the selected note, or in view if
   nothing is selected. If something is already there, the result moves down.
-- Scenario notes are coloured: green = happy path, pink = negative, orange = loop.
+- Scenario notes are text boxes filled with a colour: green = happy path, pink = negative, orange = loop. Each is as tall as its text needs.
   They are ordered happy scenarios first, then negative, each by priority. IDs are
   `TSS-…` (success) and `TSN-…` (negative), five digits.
 - Each scenario note is itself written in the flow syntax (`@builder`, a
@@ -113,22 +151,93 @@ in the panel does not need the marker.)
 Everything can be written in the text, so no UI is needed.
 The words are English; the labels you write can be in any language.
 
+This is the starter template, the note that **Start with a template** drops on the board. It is the standard example for everything below: the `#` lines explain each piece of the syntax as it is used, and the tables after it list the same pieces.
+
 ```
 @builder
-@title Shop checkout            (optional: the name of the drawn frame)
+@title Online shop: checkout
+# One template that shows the whole syntax. Lines starting with # are ignored.
+# 1. Step           a step: a number, then its name
+# - choice          a choice at that step (a step may have many)
+# [P1] [P2] [P3]    priority: the lowest P on a scenario is its priority
+# given: data: then:  setup, test data, expected result (before a choice = the step)
+#                   then: is a value to assert (a number, status or code), never just "works"
+# req: R-01         a requirement id, on a step or a choice
+# -> end            the flow stops here: a negative scenario
+# -> loop to step 2 max 2   go back to step 2, at most 2 rounds
+# [distinct]        on a loop: a round offers only choices not picked yet
+# [variant]         choices marked variant do not multiply each other in EP
+# [negative]        a choice that fails but the flow goes on
+# [sets x]          this choice tags the path with x
+# [needs x]         a choice only a path with tag x can take (and, or, not / !)
+# Delete the comments and the steps you do not need.
 
-1. Open the shop and sign in    <- a step: a number, then its name
-   given: the stack is up       <- fields of the step (before its first condition)
-   data: user a
-   then: login dialog closes
-   req: R-12
-   - Sign in ok [P1]            <- a condition: a choice at this step
-   - Sign in failed -> end [P2]
-     then: error is shown       <- fields of the condition above
-2. Pick an item
-   - shirt [variant]
-   - shoes [variant]
-   - sold out -> loop to step 2 max 2 [negative]
+1. Authentication
+   req: R-01
+   given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
+   - Log in [P1, sets user]
+     data: username user_001, password Passw0rd!
+     then: 200 OK, the header shows "user_001", a session token is issued
+   - Continue as guest [P2, sets guest]
+     data: no account, email guest@example.com
+     then: 200 OK, the header shows "Guest", no session token
+2. Select Products
+   req: R-02
+   given: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
+   - Shirt [variant]
+     data: SKU-001, quantity 1
+     then: the product page shows price 20.00
+   - Shoes [variant]
+     data: SKU-002, quantity 1
+     then: the product page shows price 50.00
+3. Add to Shopping Cart
+   - Added [P1]
+     then: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
+   - Out of stock -> end [negative]
+     given: the stock of the product is 0
+     then: 409 OUT_OF_STOCK, the cart item count does not change
+4. Calculate Total
+   then: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
+5. More product?
+   - Add another product -> loop to step 2 max 2 [distinct]
+     then: the product list opens again, the cart item count is still 1 after round 1
+   - No more product [P1]
+     then: the page moves to shipping, the cart item count is unchanged (1 or 2)
+6. Select Shipping Methods
+   - Standard [P1]
+     then: the shipping method is Standard, the fee is 5.00
+   - Express (members only) [P2, needs user]
+     then: the shipping method is Express, the fee is 12.00
+7. Add shipping Charge
+   data: weight 1 kg
+   - Charge added [P1]
+     then: the shipping charge equals the fee of the method: 5.00 (Standard) or 12.00 (Express)
+   - Free shipping (members only) [P2, needs user]
+     data: promo code FREESHIP
+     then: the shipping charge is 0.00 and the order total equals the subtotal
+8. Enter Shipping Info
+   - Use saved address (members only) [needs user]
+     data: address id addr_001, 12 Main St, Springfield, 12345
+     then: the shipping address is 12 Main St, Springfield, 12345
+   - Type a new address [P1]
+     data: 99 Oak Ave, Austin, TX, 73301
+     then: the address check returns valid, the shipping address is 99 Oak Ave, Austin, TX, 73301
+9. Select Payment Methods
+   - Saved card (members only) [needs user]
+     data: the card saved on user_001, ending 4242
+     then: the payment method shows "Visa ending 4242"
+   - New card [P1]
+     data: card 4111 1111 1111 1111, expiry 12/30, CVV 123
+     then: the payment method shows "Visa ending 1111"
+   - Cash on delivery (guests only) [needs !user, sets cod]
+     then: the payment method is COD, the amount due on delivery is the order total
+10. Verify Credit Info Complete?
+   req: R-03
+   - Payment succeeded [P1]
+     then: the order status is CONFIRMED, a receipt email with the order number and the total is sent
+   - Payment failed -> end [P2, needs !cod]
+     data: test card 4000 0000 0000 0002
+     then: the gateway returns CARD_DECLINED, the order status stays PENDING_PAYMENT, the amount charged is 0.00
 ```
 
 ### Lines
@@ -146,7 +255,7 @@ A field belongs to the step if it comes before the step's first condition, and t
 the last condition above it otherwise. A value can go on over the next lines;
 start such a line with `\` if it would look like a step, a condition or a field
 (`\- not a condition`). Blank lines are fine anywhere. **Indentation is never
-needed**: a sticky note may not keep it, so a line is told apart by how it starts.
+needed**: a note may not keep it, so a line is told apart by how it starts.
 
 ### What a condition does
 
@@ -163,7 +272,9 @@ written `→` or `=>`.
 | `- label -> loop max 2` | limit the rounds: `max 2`. Default 1, up to 9. Works with both forms of `loop`, e.g. `-> loop to step 3 max 2` |
 | `- label -> next` | continue (the default, written out; use it with `[negative]`) |
 
-### Options (optional, in square brackets at the end, separated by commas)
+### Options
+
+Optional, in square brackets at the end of a condition, separated by commas.
 
 | Write | Meaning |
 | --- | --- |
@@ -172,63 +283,7 @@ written `→` or `=>`.
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
 | `sets lv1` | marks the path with a tag (several: `sets lv1 lv2`) |
-| `needs lv1 and master` | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !master or lv2` and `needs master and lv1` |
-
-### A complete example
-
-```
-@builder
-@title Shop purchase
-1. Open the shop and sign in
-   given: the stack is up
-   data: open the shop, fill in the email and password
-   then: the login dialog is shown
-   req: 09-frontend
-   - Sign in ok [P1]
-     data: correct email and password
-     then: the dialog closes, the wallet balance is shown
-   - Sign in failed -> end [P2]
-     data: wrong password
-     then: an error is shown and there is no token
-2. Check the account
-   data: GET /api/account-info
-   then: the UI reads the level and the status
-   - Verified level 1 [P1, variant, sets lv1]
-     given: the test API sets level 1 / ACTIVE
-     then: normal items can be bought, premium items cannot
-   - Verified level 2 [P1, variant, sets lv2]
-     given: the test API sets level 2 / ACTIVE
-     then: everything can be bought
-   - Not verified -> end [P1]
-     given: the test API sets level 0
-     then: the verify-identity dialog is shown, checkout is disabled
-3. Pick from the catalog
-   - Pick a normal item [variant]
-     data: ultra-ball #2
-   - Pick a premium item [P1, variant, sets premium]
-     data: master-ball #1
-4. Buy more?
-   - Yes -> loop to step 3 [P2, variant]
-   - No
-5. Purchase rules
-   then: the API checks KYC before stock and wallet
-   - All rules pass [P1, needs !premium or lv2]
-     then: 201 Created, the wallet and the stock go down
-   - Level required -> end [P1, needs premium and lv1]
-     then: 403 KYC_LEVEL_REQUIRED, nothing changes
-   - Not enough funds -> end [P1, needs !premium or lv2]
-     given: the wallet is lower than price x quantity
-     then: 422 INSUFFICIENT_FUNDS, nothing changes
-6. Shipping worker creates the label
-   given: the shipping mock is set to success
-   - Got a tracking number [P1]
-     then: the status is LABEL_CREATED and there is a tracking number
-   - Provider down, retry -> loop max 2 [P2, variant, negative]
-     given: the mock is set to unavailable, then success
-     then: RETRY_WAIT, then the label is created without a new purchase
-   - Retries used up -> end [P2]
-     then: the status is FAILED and retries stop
-```
+| `needs lv1 and premium` | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !premium or lv2` and `needs premium and lv1` |
 
 ### The one-line form
 
@@ -237,7 +292,7 @@ the conditions of a step go in parentheses separated by `|`:
 
 ```
 @builder
-Login (ok | !fail) > Pick item (shirt | shoes) > Checkout (paid | !card declined)
+Select Products (Shirt | Shoes) > Add to Shopping Cart (Added | !Out of stock) > Select Shipping Methods (Standard | Express)
 ```
 
 | Write | Meaning |
@@ -444,7 +499,7 @@ scenario. It does not know your system, so a few things stay with the writer:
 
 - **Test data must hold on every path through it.** A scenario puts together the
   `given:` / `data:` of every step and choice it passes. If step 2 says "account
-  lab-user-001" and a choice at step 7 says "account lab-kyc-basic-master", a scenario
+  test-user-001" and a choice at step 7 says "account test-user-premium", a scenario
   through both lists two accounts. Write data that fits every path that can reach
   it, or move it to the choice that decides it (and use `sets` / `needs` to keep
   paths that do not fit apart).
@@ -460,7 +515,7 @@ scenario. It does not know your system, so a few things stay with the writer:
   as B then A. If the order matters (the first item fails, the second is checked
   next), leave it out.
 - **A loop runs once more by default.** `-> loop to step 3` without `max` allows one
-  extra round; the flow diagram shows the limit as `≤1`.
+  extra round; the flow diagram shows the limit as `up to 1 time`.
 - **Happy can include a failure on the way.** A scenario that takes a `[negative]`
   choice and still completes is Happy; its title says `via negative`.
 

@@ -86,7 +86,7 @@ There is no server: nothing leaves the user's browser.
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the
   box first, or select a sticky note on the board"; when a selection is not usable, a
-  red hint note explains what to select and describes what is selected.
+  red hint text box explains what to select and describes what is selected.
 - **DRV-28** Only one action runs at a time; a second press while busy answers "Busy,
   please wait".
 - **DRV-29** The status line after an action is marked bad when it starts with "Could
@@ -138,7 +138,7 @@ the old one.
   to change. `src/index.ts` only starts the driver (`activate`, `onEvent`, the toolbar
   button). Every other file is reached from it:
   - `host.ts`: the command channel to Drawdy (`run`), ids, the busy flag (DRV-28) and
-    `note` (a status sticky on the board). The only file that keeps state about the
+    `note` (a status text box on the board). The only file that keeps state about the
     connection.
   - `webview.ts`: opening the panel, the theme (UI-50), messages to the panel.
   - `panelMessages.ts`: messages from the panel (`preview`, `pull`, `target`,

@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as driver from "../src/index.ts";
 import { parseFlowText } from "../src/syntax.ts";
+import { fitHeight } from "../src/textBox.ts";
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -97,7 +98,9 @@ async function makeHost() {
         return toPanel.find((m) => m.type === "target");
     };
     const lastClip = () => [...toPanel].reverse().find((m) => m.type === "clip");
-    return { scene, toPanel, panel, action, select, find, frames, tables, lastTarget, lastClip, idOf };
+    // put an element on the board as if the user had drawn it
+    const add = (e: El) => void scene.set(idOf(e), e);
+    return { scene, toPanel, panel, action, select, find, frames, tables, lastTarget, lastClip, idOf, add };
 }
 
 /** a host with the flow and its scenario notes already drawn (Flow + Scenarios) */
@@ -106,6 +109,8 @@ async function drawn(mode = "ep") {
     await h.action("board", FLOW, mode);
     return h;
 }
+// a starter note: a text box that starts with @builder and is not one of our scenario notes
+const isStarter = (e: any) => e.type === "shape" && !e.meta?.kind && /^@builder/.test(e.text ?? "");
 const scenarioNotes = (h: Awaited<ReturnType<typeof makeHost>>) =>
     h.find((e) => e.meta?.kind === "scenario");
 
@@ -259,7 +264,7 @@ test("OUT-22: no limit on the number of scenario notes", async () => {
 test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that Flow + Scenarios can read", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
-    const notes = h.find((e) => e.componentType === "sticky-note");
+    const notes = h.find(isStarter);
     assert.equal(notes.length, 1);
     assert.match(notes[0].text, /^@builder\n/);
     assert.ok(notes[0].width >= 400 && notes[0].height >= 170);
@@ -273,11 +278,54 @@ test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that 
     assert.ok(scenarioNotes(h).length >= 2);
 });
 
+test("OUT-50: every note is a filled text box sized to its text, never a sticky note", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "shop" });
+    await h.action("board", FLOW, "ep");
+    await h.action("board", ""); // nothing selected: a hint note
+    const all = h.find(() => true);
+    assert.ok(!all.some((e) => e.componentType === "sticky-note"), "no sticky notes");
+    const boxes = all.filter(
+        (e) => e.type === "shape" && e.componentType === "rect" && e.textAlign === "left" && typeof e.text === "string"
+    );
+    // header + scenarios + starter + hint
+    assert.ok(boxes.length >= 4, "text boxes: " + boxes.length);
+    for (const b of boxes) {
+        assert.ok(b.fillColor && b.strokeColor && b.fillColor !== b.strokeColor, "has a fill and a darker border");
+        assert.ok(b.height >= fitHeight(b.text, b.width, b.fontSize), "the text fits: " + b.text.slice(0, 30));
+    }
+    const starter = boxes.find(isStarter);
+    assert.equal(starter.height, fitHeight(starter.text, starter.width, starter.fontSize), "the starter note is no taller than its text");
+});
+
+test("SYN-01 DRV-20: a flow is read from any element that holds the text: sticky note, text box or plain text", async () => {
+    const shapes: Record<string, El> = {
+        "sticky note": { type: "shape", componentType: "sticky-note", x: 0, y: 0, width: 300, height: 200, fillColor: "blue" },
+        "text box (a rectangle with text)": { type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 200, fillColor: "#fef9c3", strokeColor: "#854d0e" },
+        "plain text": { type: "text", x: 0, y: 0, fontSize: 16, color: "#000000" },
+    };
+    for (const [what, base] of Object.entries(shapes)) {
+        const h = await makeHost();
+        h.add({ ...base, drawdyElementId: "user1", text: FLOW });
+        h.select("user1");
+        await h.action("board", "");
+        assert.ok(h.frames().some((f) => /^E2E Flow/.test(f.name)), what + ": the flow is drawn");
+        assert.ok(h.frames().some((f) => /^Scenarios/.test(f.name)), what + ": the scenarios are drawn");
+        assert.equal(scenarioNotes(h).length, 2, what);
+    }
+    // a note without the marker is left alone, whatever it is
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "plain", text: "1. Login\n- ok" });
+    h.select("plain");
+    await h.action("board", "");
+    assert.equal(h.frames().length, 0);
+});
+
 test("OUT-41: a second starter note goes into free space, not on top of the first", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
     await h.panel({ type: "template", id: "shop" });
-    const [a, b] = h.find((e) => e.componentType === "sticky-note");
+    const [a, b] = h.find(isStarter);
     const overlap =
         a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
     assert.ok(!overlap);
@@ -286,13 +334,13 @@ test("OUT-41: a second starter note goes into free space, not on top of the firs
 test("DRV-30: an unknown starter id adds nothing", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "nope" });
-    assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
+    assert.equal(h.find(isStarter).length, 0);
 });
 
 test("UI-40 DRV-42 DRV-43: the panel counts the flow note selected on the board, and goes back to the paste box after", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
-    const note = h.find((e) => e.componentType === "sticky-note")[0];
+    const note = h.find(isStarter)[0];
     h.select(h.idOf(note));
     h.toPanel.length = 0;
     await h.panel({ type: "target" });
@@ -319,7 +367,7 @@ test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out 
     const { clearCache, cacheStats } = await import("../src/analysis.ts");
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
-    const note = h.find((e) => e.componentType === "sticky-note")[0];
+    const note = h.find(isStarter)[0];
     h.select(h.idOf(note));
     clearCache();
     await h.panel({ type: "target" }); // the panel's poll: counts the note

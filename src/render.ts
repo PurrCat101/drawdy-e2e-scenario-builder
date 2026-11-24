@@ -29,8 +29,11 @@ function wrap(text: string, n: number): string[] {
     return out.length ? out : [""];
 }
 
-/** Several choices on one arrow: one per line, each wrapped. */
-const arrowText = (labels: string[]) => labels.flatMap((l) => wrap(l, 22)).join("\n");
+/** Several choices on one arrow: one per line, and a choice is never broken across lines. */
+const arrowText = (labels: string[]) => labels.join("\n");
+
+/** About how wide a character of an arrow label is (font size 12). */
+const LABEL_CHAR_W = 7;
 
 export type ArrowLabel = {
     arrowId: string;
@@ -74,15 +77,14 @@ export function renderFlow(
     });
 
     const mainY = oy + PAD + 80;
-    // the gap after a step grows with the widest line of the label on its arrow
+    // the arrow after a step is as long as its longest choice label needs, so each
+    // choice stays on one line (OUT-12)
     const gapAfter = flow.steps.map((s) => {
         const widest = Math.max(
             0,
-            ...s.conds
-                .filter((c) => c.action === "next")
-                .flatMap((c) => wrap(c.label, 22).map((l) => l.length))
+            ...s.conds.filter((c) => c.action === "next").map((c) => c.label.length)
         );
-        return Math.min(320, Math.max(GAP, widest * 8 + 50));
+        return Math.max(GAP, widest * LABEL_CHAR_W + 60);
     });
     const stepX = (i: number) =>
         ox + PAD + i * W + gapAfter.slice(0, i).reduce((a, b) => a + b, 0);
@@ -168,7 +170,7 @@ export function renderFlow(
                     { id, ax: 0.5, ay: 0 },
                     { id: stepId[c.target], ax: 0.5, ay: 0 },
                     COLORS.loop,
-                    `${c.label} ↻ ≤${c.max}${c.distinct ? " · distinct" : ""}`,
+                    `${c.label} ↻ up to ${c.max} ${c.max === 1 ? "time" : "times"}`,
                     [(stepX(i) + stepX(t)) / 2 + W / 2, mainY - 30],
                     { dashed: true, elbow: true }
                 );
@@ -220,7 +222,7 @@ export function renderFlow(
         componentType: "rect",
         drawdyElementId: endId,
         frameId,
-        x: stepX(lastI) + W + GAP,
+        x: stepX(lastI) + W + gapAfter[lastI],
         y: mainY + 30,
         width: 100,
         height: 60,
@@ -241,7 +243,7 @@ export function renderFlow(
         { id: endId, ax: 0, ay: 0.5 },
         COLORS.ok,
         lastNexts,
-        [stepX(lastI) + W + GAP / 2, mainY + 46]
+        [stepX(lastI) + W + gapAfter[lastI] / 2, mainY + 46]
     );
     }
 
@@ -250,7 +252,7 @@ export function renderFlow(
         drawdyElementId: frameId,
         name: opts.name ?? "E2E Flow",
         position: [ox, oy],
-        width: stepX(lastI) + W + (success ? GAP + 100 : 0) + PAD - ox,
+        width: stepX(lastI) + W + (success ? gapAfter[lastI] + 100 : 0) + PAD - ox,
         height: maxY + PAD - oy,
         rotation: 0,
         // canonical model lives on the board, so no localStorage is needed

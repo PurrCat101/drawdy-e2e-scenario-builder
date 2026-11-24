@@ -16,8 +16,14 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 - **OUT-10** A frame named after `@title` (else "E2E Flow"), holding the steps left to
   right, each choice that continues as an arrow to the next step, each `end` choice as
-  a red box below its step, loops as dashed elbow arrows labelled `label ↻ ≤max`
-  (`· distinct` added for distinct loops), and a green end after the last step.
+  a red box below its step, loops as dashed elbow arrows labelled `label ↻ up to N times`
+  (`time` when N is 1), and a green end after the last step. The diagram uses only plain
+  words, so it can be shown to people who do not know the syntax: no `distinct`, `sets`,
+  `needs` or priority appears on it.
+- **OUT-12** On the flow diagram a choice's label is always on one line, never wrapped
+  in the middle; several choices on one arrow are one per line. The arrow after a step
+  is made as long as its longest label needs (about 7 units a character), so a reader
+  can tell which step a label belongs to.
 - **OUT-11** A single scenario's flow (Flow on a scenario note) is drawn without the
   green end when that scenario fails.
 
@@ -25,7 +31,7 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 - **OUT-20** Name: `Scenarios · <mode name> · N scenarios`, mode names "All Paths",
   "Equivalence Partitioning", "Pairwise (2-wise)", "Each-Choice (1-wise)".
-- **OUT-21** A header note first (blue, pink when the flow check has errors), with:
+- **OUT-21** A header note first (a text box, blue; pink when the flow check has errors), with:
   1. the mode name;
   2. `N of M paths · H happy · K negative`;
   3. `All a · EP b · Pairwise c · Each-Choice d`;
@@ -39,8 +45,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   8. the mode tip (CALC-70);
   9. the flow check items, if any.
 - **OUT-22** Then one note per scenario, Happy first, then Negative, each by priority
-  then ID; 4 columns up to 40 scenarios, more columns (at most 12) above that. Colour:
-  pink = Negative, orange = Happy with loops, green = other Happy.
+  then ID; 4 columns up to 40 scenarios, more columns (at most 12) above that. Fill
+  colour: pink = Negative, orange = Happy with loops, green = other Happy.
 - **OUT-23** A scenario note is itself in the flow syntax: `@builder`, `@title <ID> ·
   Happy|Negative · P<n>[ · via negative][ · loop xN]`, then the steps it passes with
   only the choice it takes and their fields (no priority, tags or rules). An EP note
@@ -67,9 +73,20 @@ the board, `src/actions.ts` decides what to draw for each button.
 ## Starter notes
 
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
-  shipping, payment), 520 units wide, yellow, font 14. It is a complete `@builder` flow
+  shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow
   whose `#` lines explain the syntax it uses, and it uses every kind of choice and field
-  the syntax has (SYN-41).
-  Height follows the number of lines.
+  the syntax has (SYN-41). Its fields hold concrete values (account `user_001`, prices,
+  status codes), not descriptions.
+  Its height fits the text (OUT-50).
 - **OUT-41** A starter note is placed in free space in the view (OUT-01), and a second
   press puts the next note below the first.
+
+## Text boxes
+
+- **OUT-50** Every note the extension puts on the board (the starter note, the header and
+  scenario notes of a scenario frame, hints and errors) is a text box: a rectangle with a
+  coloured fill, a border in a darker shade of the same colour, rounded corners, and the
+  text left-aligned from the top, never a sticky note, because a rectangle can be given
+  any width and height. Its height is the height the text needs at its width and font
+  size (about 0.6 x the font size a character, 1.4 x a line, 12 units of space inside the
+  border), so no text is cut off and no box is much taller than its text.

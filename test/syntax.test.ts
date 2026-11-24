@@ -12,13 +12,14 @@ import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from
 import { generate, pick } from "../src/scenarios.ts";
 import type { Flow } from "../src/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
+import { renderFlow } from "../src/render.ts";
 import { TEMPLATES, templateById } from "../src/templates.ts";
 import { validate } from "../src/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
     "Check the account (Verified level 1 [tag=lv1 variant P1] | Verified level 2 [tag=lv2 variant P1] | !Not verified [P1] | !Under review [P2]) >",
-    "Pick from the catalog (Pick a creature [variant] | Pick a normal item [variant] | Pick a premium item [variant tag=premium P1]) >",
+    "Pick from the catalog (Pick a digital item [variant] | Pick a normal item [variant] | Pick a premium item [variant tag=premium P1]) >",
     "Add to bag >",
     "Buy more? (~3 Pick more [P2 variant] | Done shopping) >",
     "Open the bag and check out >",
@@ -42,7 +43,7 @@ const BLOCKS = `@builder
    - Not verified -> end [P1]
    - Under review -> end [P2]
 3. Pick from the catalog
-   - Pick a creature [variant]
+   - Pick a digital item [variant]
    - Pick a normal item [variant]
    - Pick a premium item [P1, variant, sets premium]
 4. Add to bag
@@ -408,6 +409,13 @@ test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scen
     assert.ok(has((c) => !!c.tags), "a sets");
     assert.ok(has((c) => !!c.need && /[|,!]/.test(c.need)), "a needs with or / not");
     assert.ok(shop.steps.some((s) => s.req), "a req on a step");
+    // SYN-41: every step has an expected result, its own or one on each of its choices,
+    // and it is a value (a digit or an upper-case code), not just "works"
+    for (const s of shop.steps) {
+        const exps = s.exp ? [s.exp] : s.conds.map((c) => c.exp || "");
+        assert.ok(exps.length > 0 && exps.every((e) => /\d|[A-Z]{3,}/.test(e)), `step ${s.id}: expected result with a value`);
+    }
+    assert.ok(!/lab-/.test(TEMPLATES[0].text), "no lab- prefix on the account");
     for (const t of TEMPLATES) {
         assert.ok(hasMarker(t.text), t.id + ": starts with @builder");
         const r = parseFlowText(t.text);
@@ -423,6 +431,40 @@ test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scen
         assert.ok(/^#/m.test(t.text), t.id + ": explains the syntax in comments");
     }
     assert.equal(templateById("nope"), undefined);
+});
+
+test("OUT-10: the flow diagram has plain words only (no distinct, sets, needs, P1)", () => {
+    let n = 0;
+    const r = renderFlow(parseFlowText(TEMPLATES[0].text).flow, () => "e" + ++n, [0, 0]);
+    // everything a viewer can read: the arrow labels and the text on the shapes
+    const seen = [
+        ...r.labels.map((l) => l.text),
+        ...(r.elements as any[]).map((e) => e.text).filter((t) => typeof t === "string"),
+    ].join("\n");
+    assert.ok(/Add another product ↻ up to 2 times/.test(seen), seen);
+    assert.ok(!/distinct|\bsets\b|\bneeds\b|\bP[123]\b|≤/.test(seen), "no syntax words on the diagram: " + seen);
+    let m = 0;
+    const one = renderFlow(parseFlowText("@builder\n1. A\n- go -> loop to step 1\n2. B\n- ok").flow, () => "x" + ++m, [0, 0]);
+    assert.ok(one.labels.some((l) => /go ↻ up to 1 time$/.test(l.text)));
+});
+
+test("OUT-12: a choice label stays on one line and its arrow is long enough for it", () => {
+    let n = 0;
+    const flow = parseFlowText(TEMPLATES[0].text).flow;
+    const r = renderFlow(flow, () => "e" + ++n, [0, 0]);
+    const steps = (r.elements as any[]).filter((e) => e.meta?.kind === "step");
+    const labels = new Set(flow.steps.flatMap((s) => s.conds.map((c) => c.label)));
+    flow.steps.forEach((s, i) => {
+        const nexts = s.conds.filter((c) => c.action === "next");
+        if (!nexts.length || i === flow.steps.length - 1) return;
+        const gap = steps[i + 1].x - (steps[i].x + steps[i].width);
+        for (const c of nexts) assert.ok(gap >= c.label.length * 6.6, `${c.label}: arrow ${gap} is too short`);
+    });
+    // every line of an arrow label is a whole choice label, none is cut in two
+    for (const l of r.labels) {
+        if (/↻/.test(l.text)) continue;
+        for (const line of l.text.split("\n")) assert.ok(labels.has(line), `"${line}" is not a whole label`);
+    }
 });
 
 test("SYN-41: starter templates: the comments do not change the flow", () => {
@@ -559,7 +601,8 @@ test("CALC-41: a happy scenario that passes a [negative] choice says so in its t
 /* ------------------- the worked examples in the README --------------------- */
 
 test("CALC-04 CALC-11: README: the worked counting examples are in the README and give the numbers it states", () => {
-    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    // a Windows checkout (autocrlf) turns README into CRLF; template literals below are always LF
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     const A = `1. Sign in
 - ok
 - failed -> end
@@ -596,6 +639,40 @@ test("CALC-04 CALC-11: README: the worked counting examples are in the README an
     const b = generate(parseFlowText(B).flow);
     assert.equal(b.list.length, 2);
     assert.deepEqual(b.list.map((s) => s.type).sort(), ["happy", "neg"]);
+});
+
+test("SYN-41: README: the syntax example is the starter template, word for word", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    const text = TEMPLATES[0].text.trimEnd();
+    assert.ok(readme.includes(text), "the whole starter template is in the README");
+    // the short example at the top is the first steps of it: every line is a line of the template
+    const top = readme.slice(readme.indexOf("```\n@builder") + 4, readme.indexOf("```", readme.indexOf("```\n@builder") + 4));
+    const lines = new Set(text.split("\n"));
+    for (const l of top.split("\n").filter((x) => x.trim())) assert.ok(lines.has(l), `not in the template: ${l}`);
+    // the one-line form example reads without warnings
+    const one = readme.match(/```\n(@builder\n[^\n]+ > [^\n]+)\n```/);
+    assert.ok(one, "a one-line example");
+    const r = parseFlowText(one![1]);
+    assert.deepEqual(r.warnings, []);
+    assert.ok(r.flow.steps.length >= 3);
+});
+
+test("README: every link in the contents points at a heading of the README", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9 _-]/g, "").replace(/ /g, "-");
+    const heads = new Set<string>();
+    let fence = false;
+    for (const l of readme.split("\n")) {
+        if (l.startsWith("```")) fence = !fence;
+        const m = !fence && l.match(/^#{2,4} (.+)$/);
+        if (m) heads.add(slug(m[1]));
+    }
+    const toc = readme.slice(readme.indexOf("## Contents"), readme.indexOf("\n## Terms"));
+    const links = [...toc.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]);
+    assert.ok(links.length >= 15, "the contents has links");
+    for (const a of links) assert.ok(heads.has(a), `no heading for #${a}`);
+    // and every heading is in the contents
+    for (const h of heads) if (h !== "contents") assert.ok(links.includes(h), `#${h} is not in the contents`);
 });
 
 test("CALC-21 CALC-64: past 1,000 paths: the late choices are found, and the message says what was done", () => {

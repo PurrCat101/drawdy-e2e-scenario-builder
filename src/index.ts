@@ -37,7 +37,7 @@ async function toggleMenu() {
             "\n\nCheck that the permissions the extension asks for (dom, scene) are allowed",
         r.x + 40,
         r.y + 40,
-        "#fecaca"
+        "red"
     );
 }
 
@@ -83,7 +83,7 @@ export const onEvent: DriverModule["onEvent"] = async (event) => {
     try {
         await toggleMenu();
     } catch (e) {
-        await note(`Unexpected error\n${String(e)}`, 0, 0, "#fecaca");
+        await note(`Unexpected error\n${String(e)}`, 0, 0, "red");
     } finally {
         setBusy(false);
     }

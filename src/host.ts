@@ -1,8 +1,9 @@
 import type { DriverCommandIssuer, DriverModule } from "@drawdy/driver-protocol";
+import { textBox, type Tone } from "./textBox";
 
 /**
  * What every part of the driver shares: the command channel to Drawdy, the id
- * generator, the busy flag, and `note` (a status sticky on the board).
+ * generator, the busy flag, and `note` (a status text box on the board).
  */
 
 let issue: DriverCommandIssuer;
@@ -49,26 +50,19 @@ export async function run(
 }
 
 /** Put a short status note on the board (errors, hints). */
-export async function note(text: string, x: number, y: number, fill = "#fde68a") {
-    // size the note to its text (about 36 characters per line at 14px)
-    const rows = text
-        .split("\n")
-        .reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 36)), 0);
-    const height = Math.max(170, 50 + rows * 24);
+export async function note(text: string, x: number, y: number, tone: Tone = "amber") {
+    // a filled text box sized to its text (OUT-50)
     await run("command:scene:add-drawdy-elements", {
         elements: [
-            {
-                type: "shape",
-                componentType: "sticky-note",
-                drawdyElementId: generateId(),
+            textBox({
+                id: generateId(),
                 x,
                 y,
                 width: 320,
-                height,
                 text,
                 fontSize: 14,
-                fillColor: fill,
-            },
+                tone,
+            }),
         ],
     });
 }

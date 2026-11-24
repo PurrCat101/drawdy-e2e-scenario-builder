@@ -26,7 +26,7 @@ export async function drawFlow(
         elements: out.elements,
     });
     if (add.error) {
-        await note(`Could not draw the flow\n${add.error}`, anchor.x, anchor.y - 200, "#fecaca");
+        await note(`Could not draw the flow\n${add.error}`, anchor.x, anchor.y - 200, "red");
         return null;
     }
     // label the arrows (the create schema has no text field for arrows)
@@ -91,7 +91,7 @@ export async function drawScenarioTable(flow: Flow, name: string, below: Box) {
     const out = renderScenarioTables({ scenarios: one, name: `${name} · table`, origin, generateId });
     const failed = await addInBatches(out.elements);
     if (failed) await note(`Could not draw the scenario table
-${failed}`, below.x, below.y - 200, "#fecaca");
+${failed}`, below.x, below.y - 200, "red");
 }
 
 /** Generate the scenarios for `flow` below `below` and fly to them. */
@@ -117,7 +117,7 @@ export async function drawScenarios(flow: Flow, mode: Mode, below: Box) {
         elements: out.elements,
     });
     if (add.error) {
-        await note(`Could not draw scenarios\n${add.error}`, below.x, below.y - 200, "#fecaca");
+        await note(`Could not draw scenarios\n${add.error}`, below.x, below.y - 200, "red");
         return;
     }
     await run("command:camera:fly-to-elements", {

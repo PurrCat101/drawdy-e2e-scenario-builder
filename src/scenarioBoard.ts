@@ -3,12 +3,14 @@ import type { Flow, Mode } from "./flow";
 import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
 import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
+import { fitHeight, textBox, type Tone } from "./textBox";
 
 const W = 300;
 const GAP = 24;
 const PAD = 40;
 const HEAD = 70;
-const CPL = 34; // approx characters per line in a note at fontSize 13
+const FONT = 13; // a scenario note
+const HEAD_FONT = 14;
 
 const MODE_LABEL: Record<Mode, string> = {
     ep: "Equivalence Partitioning",
@@ -42,11 +44,8 @@ function lines(sc: Scenario, flow: Flow): string[] {
     return out;
 }
 
-const wrapped = (ls: string[]) =>
-    ls.reduce((n, l) => n + Math.max(1, Math.ceil(l.length / CPL)), 0);
-
-const fillOf = (sc: Scenario) =>
-    sc.type === "neg" ? "pink" : sc.loops ? "orange" : "lime";
+const toneOf = (sc: Scenario): Tone =>
+    sc.type === "neg" ? "pink" : sc.loops ? "orange" : "green";
 
 /**
  * How much of the flow the shown scenarios touch: choices, loops at their full max
@@ -194,11 +193,12 @@ export function renderScenarios(opts: {
         issues.slice(0, 6).forEach((i) => head.push(`${i.lv === "err" ? "ERROR" : "WARN"}: ${i.msg}`));
         if (issues.length > 6) head.push(`… ${issues.length - 6} more`);
     } else head.push("", "Flow check: no problems");
-    const headH = Math.max(140, 50 + wrapped(head) * 19);
+    const innerW0 = COLS * W + (COLS - 1) * GAP;
+    const headH = fitHeight(head.join("\n"), innerW0, HEAD_FONT);
 
     const elements: DrawdyElementSchema[] = [];
     const rowsH: number[] = [];
-    const hs = shown.map((sc) => Math.max(150, 40 + wrapped(lines(sc, flow)) * 19));
+    const hs = shown.map((sc) => fitHeight(lines(sc, flow).join("\n"), W, FONT));
     for (let i = 0; i < shown.length; i += COLS)
         rowsH.push(Math.max(...hs.slice(i, i + COLS)));
 
@@ -219,45 +219,45 @@ export function renderScenarios(opts: {
         meta: { e2eScenarios: true, mode, count: shown.length, flow },
     });
 
-    elements.push({
-        type: "shape",
-        componentType: "sticky-note",
-        drawdyElementId: generateId(),
-        frameId,
-        x: ox + PAD,
-        y: top,
-        width: innerW,
-        height: headH,
-        text: head.join("\n"),
-        fontSize: 14,
-        fillColor: issues.some((i) => i.lv === "err") ? "pink" : "blue",
-    });
+    elements.push(
+        textBox({
+            id: generateId(),
+            frameId,
+            x: ox + PAD,
+            y: top,
+            width: innerW,
+            height: headH,
+            text: head.join("\n"),
+            fontSize: HEAD_FONT,
+            tone: issues.some((i) => i.lv === "err") ? "pink" : "blue",
+        })
+    );
 
     let y = top + headH + GAP;
     shown.forEach((sc, k) => {
         const col = k % COLS;
         const row = Math.floor(k / COLS);
         if (col === 0 && row > 0) y += rowsH[row - 1] + GAP;
-        elements.push({
-            type: "shape",
-            componentType: "sticky-note",
-            drawdyElementId: generateId(),
-            frameId,
-            x: ox + PAD + col * (W + GAP),
-            y,
-            width: W,
-            height: rowsH[row],
-            text: lines(sc, flow).join("\n"),
-            fontSize: 13,
-            fillColor: fillOf(sc),
-            meta: {
-                kind: "scenario",
-                id: sc.id,
-                type: sc.type,
-                // [step index, condition id | null] for each stop on the path
-                path: sc.path.map((v) => [v.i, v.c ? v.c.id : null]),
-            },
-        });
+        elements.push(
+            textBox({
+                id: generateId(),
+                frameId,
+                x: ox + PAD + col * (W + GAP),
+                y,
+                width: W,
+                height: rowsH[row],
+                text: lines(sc, flow).join("\n"),
+                fontSize: FONT,
+                tone: toneOf(sc),
+                meta: {
+                    kind: "scenario",
+                    id: sc.id,
+                    type: sc.type,
+                    // [step index, condition id | null] for each stop on the path
+                    path: sc.path.map((v) => [v.i, v.c ? v.c.id : null]),
+                },
+            })
+        );
     });
 
     return { frameId, elements };

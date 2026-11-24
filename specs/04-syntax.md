@@ -72,4 +72,9 @@ The README's "Text syntax" is the user's guide to the same rules.
 - **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
   every kind of choice and field the syntax has (a distinct loop with max, an end, a
   variant, sets, needs with or and not, a req); its
-  `#` lines explain the syntax and do not change the flow.
+  `#` lines explain the syntax and do not change the flow. Every step has an expected
+  result (`then:`), on the step or on each of its choices, written as a value to assert
+  (a number, a status, a code), and the test data is concrete (such as `user_001`), so
+  the note can be turned into automated tests as it is. The README's syntax example is
+  this note's text, word for word, so the README and the extension teach the same
+  example; the README's short examples at the top are lines of it.

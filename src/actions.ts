@@ -6,6 +6,7 @@ import { orderScenarios } from "./scenarioBoard";
 import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
 import type { Template } from "./templates";
 import { generateId, note, run } from "./host";
+import { fitHeight, textBox } from "./textBox";
 import { toPanel } from "./webview";
 import {
     anchorFor,
@@ -80,27 +81,22 @@ const TEMPLATE_W = 520;
 export async function addTemplateNote(t: Template): Promise<string> {
     const vp = await run("command:camera:get-viewport-rect", undefined);
     const r = vp.value?.rect ?? { x: 0, y: 0, width: 1400, height: 900 };
-    // about 61 characters per line at 14px in a note this wide
-    const rows = t.text
-        .split("\n")
-        .reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 61)), 0);
-    const height = Math.max(170, 50 + rows * 24);
+    // a filled text box, as tall as its text needs (OUT-40, OUT-50)
+    const height = fitHeight(t.text, TEMPLATE_W, 14);
     const [x, y] = findFree(await occupiedRects(), r.x + 60, r.y + 60, TEMPLATE_W, height);
     const id = generateId();
     await run("command:scene:add-drawdy-elements", {
         elements: [
-            {
-                type: "shape",
-                componentType: "sticky-note",
-                drawdyElementId: id,
+            textBox({
+                id,
                 x,
                 y,
                 width: TEMPLATE_W,
                 height,
                 text: t.text,
                 fontSize: 14,
-                fillColor: "#fef9c3",
-            },
+                tone: "yellow",
+            }),
         ],
     });
     await run("command:camera:fly-to-elements", {
@@ -219,7 +215,7 @@ const HINT_BOARD =
 /** Button 1: flow diagram + scenarios from the selected notes, or scenarios again. */
 export async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) {
     if (!sel.length) {
-        await note(HINT_BOARD, 0, 0, "#fecaca");
+        await note(HINT_BOARD, 0, 0, "red");
         return;
     }
     // a flow frame or a scenario frame: new scenarios, in the chosen mode, from the
@@ -234,7 +230,7 @@ export async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow =
     // only notes that start with @builder are read; the others are left alone
     const notes = sel.filter((p) => p.text.trim() && !p.meta?.kind && hasMarker(p.text));
     if (!notes.length) {
-        await note(HINT_BOARD + "\n\n" + describeSel(sel), sel[0].x, sel[0].y - 220, "#fecaca");
+        await note(HINT_BOARD + "\n\n" + describeSel(sel), sel[0].x, sel[0].y - 220, "red");
         return;
     }
     for (const n of notes) {
@@ -244,7 +240,7 @@ export async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow =
                 "Cannot read this note as a flow\n\n" + r.warnings.slice(0, 5).join("\n"),
                 n.x,
                 n.y - 220,
-                "#fecaca"
+                "red"
             );
             continue;
         }
@@ -285,7 +281,7 @@ export async function actionFlow(sel: Picked[]) {
             HINT_FLOW + "\n\n" + describeSel(sel),
             sel[0]?.x ?? 0,
             (sel[0]?.y ?? 0) - 220,
-            "#fecaca"
+            "red"
         );
         return;
     }
@@ -336,7 +332,7 @@ export async function actionFlow(sel: Picked[]) {
                 "Cannot read this note as a flow\n\n" + HINT_FLOW + "\n\n" + describeSel([p]),
                 p.x,
                 p.y - 220,
-                "#fecaca"
+                "red"
             );
             continue;
         }
