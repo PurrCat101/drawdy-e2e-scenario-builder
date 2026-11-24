@@ -1,72 +1,75 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
-- Panel: issues are one line each, coloured by kind (a TIP is no longer red like an
-  error), and past two they fold under "N more" so the buttons stay in view. The "a
-  lot of scenarios" line suggests only modes that draw fewer (it said "Try EP" while EP
-  was picked).
-- A scenario's priority is now the most important `P` on its path (the lowest
-  number): a path with a P1 choice is P1. It used to take the largest number, so one
-  P3 choice made a whole P1 path P3. This changes the `P` in scenario titles and the
-  order of notes and tables (P1 first).
-- Fix: Scenarios on a selected scenario frame drew nothing (a hint note appeared and
-  the status said "Done"). It now draws a new scenario frame in the chosen mode from
-  the flow stored on the frame, as the panel promised.
-- `specs/`: the source of truth for what the extension does, one file per area
-  (glossary, panel, driver, calculation, syntax, board output, testing), with rule IDs
-  that tests name. `test/specs.test.ts` keeps the IDs unique and every named rule
-  defined. `CLAUDE.md` says how to keep specs and code together.
-- Faster in Drawdy: a flow already worked out is remembered (in memory, last 8 flows),
-  so pressing a button after the panel counted it does not count again. While a flow
-  note is typed in, the panel counts it when the text holds still, not on every poll,
-  with a short search budget past 1,000 paths and the coverage safety net only up to
-  300 scenarios; a button runs the full search. Pairwise picks the same scenarios as
-  before, about 8 times faster. The panel shows "counted in … s" for a slow count.
-- Past 1,000 paths, every mode still covers every choice and every pair that can
-  happen: a targeted search adds a path for each one the first 1,000 missed. Before,
-  those choices were in no mode at all. The flow check now tells a choice that can
-  never be taken apart from one the search ran out of time for.
-- Every mode covers each loop (max 2 or more) at its full max, the last round it
-  allows. The sample flow's EP goes from 28 to 29.
+### Read this before upgrading
+
+- **Scenario IDs look different.** They come from the path itself (`TSS-04821`), not
+  from walk order (`TSS-001`), so they no longer move when the flow changes elsewhere.
+  IDs kept from 0.1.0 do not match the new ones. Old notes still read.
+- **Priority** is now the most important `P` on a path (the lowest number): a path
+  with a P1 choice is P1. 0.1.0 took the largest number.
+- **"Cases" are "scenarios"** everywhere: buttons **Scenarios** and **Flow +
+  Scenarios**, the table's first column, frame names, status lines.
+- Counts can grow a little: every mode now also covers each loop at its full `max`
+  (the sample flow's EP goes from 28 to 29).
+
+### Added
+
+- Starter notes: Basic, Loop and Levels drop a ready-made `@builder` note on the
+  board, with the syntax explained in `#` comments, so a flow is written on the board
+  instead of in the small panel.
+- The panel shows the counts, flow check and a mode tip of the flow note selected on
+  the board, updated once the text holds still while you type.
+- `distinct` on `loop to step N`: the next round offers only the choices not taken
+  yet at that step, and rounds that differ only in order count once (3 items: 6 pick
+  sets instead of 12). The flow check warns when it does nothing or `max` asks for
+  more rounds than there are choices.
+- Past 1,000 paths, a targeted search adds a path for each choice, loop end and pair
+  the first 1,000 missed, so every mode still covers them. The flow check tells a
+  choice that can never be taken apart from one the search ran out of time for.
 - The scenario frame header says `OK: every choice … is covered` or names what is
   missing, counts loop ends, lists unreachable choices, and traces each `req:` to the
   scenarios that pass it. The panel shows an ERROR if a mode ever misses what it
   promises.
-- Stable scenario IDs: the number comes from the steps and choices the scenario
-  passes (`TSS-04821`), so it no longer moves when the flow changes elsewhere.
 - A TIP line in the panel and the frame header suggests a mode for the flow.
-- The panel shows the counts of the flow note selected on the board.
-- `distinct` option for `loop to step N`: the next round offers only the choices
-  not taken yet at the step it goes back to, and rounds that differ only in order
-  count once. An "add another item" loop over 3 items gives 6 pick sets instead of
-  12 (3 + 3×3). The panel warns when `distinct` does nothing or `max` asks for more
-  rounds than there are choices.
-- A Happy scenario that passes a `[negative]` choice (a retry that then succeeds)
-  says `via negative` in its title.
-- README: "How the scenarios are counted", a 3-step flow counted by hand with a
-  diagram, a backwards check anyone can repeat, and what each part of the syntax
-  does to the count. A test keeps the examples and every number on the diagram in
-  step with the generator.
-- README: "What each mode guarantees" and the math behind it: what Each, Pairwise
-  and EP cover and do not (never every path, and not the last round of a loop), why
-  greedy is complete but not minimal, the `distinct` formula, and two lower bounds to
-  check a size by hand. The Each mode is no longer described as "the fewest".
-- Tests: the path generator is checked against a second, independent enumerator on
-  1,500 random flows (same paths, none twice, same Happy/Negative split), EP / Pair
-  / Each are checked to keep every choice and pair, and `distinct` against its
-  closed form.
-- README: a "Writing a flow that tests well" section on test data across steps,
-  one outcome per step, impossible paths, `distinct` and loop defaults.
-- Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
-  note on the board, with the syntax explained in `#` comments, so a flow is
-  written on the board instead of in the small panel.
-- One word for one thing: what the panel, the board and the README called "cases"
-  are now always "scenarios" (buttons **Scenarios** and **Flow + Scenarios**,
-  the table's first column, frame names, status lines). Boards drawn before keep
-  working: the stored keys are unchanged.
-- The panel is more compact: the paste box is folded away, and the status line sits
-  right under the buttons.
+- A Happy scenario that passes a `[negative]` choice says `via negative` in its title.
+- `specs/`: the source of truth for what the extension does, one file per area, with
+  rule IDs that tests name; `test/specs.test.ts` keeps them consistent. `CLAUDE.md`
+  says how to keep specs and code together.
+- GitHub Actions runs the checks on every push and pull request.
+
+### Changed
+
+- Faster: a flow already worked out is remembered (in memory, last 8 flows), so a
+  button after the panel counted it does not count again; the live counts use a short
+  search budget and run the coverage safety net only up to 300 scenarios; Pairwise is
+  about 8 times faster with the same picks. The panel shows "counted in … s" for a slow
+  count.
+- The panel is more compact (the paste box folds away, the status sits under the
+  buttons); issues are one line each, coloured by kind, the first two shown and the rest
+  under "N more"; the "a lot of scenarios" line suggests only modes that draw fewer.
+- Internal names say "scenario" too (`scenarioTable.ts`, `scenarioFlow.ts`). Tables
+  now store `scenarios`; tables from 0.1.0 store `cases`, which is still read.
+- Each is described as a small set, not "the fewest": Each and Pairwise are greedy,
+  complete but not always minimal.
+
+### Fixed
+
+- Scenarios on a selected scenario frame drew nothing (a hint note appeared and the
+  status said "Done"); it now draws a new scenario frame in the chosen mode.
+- Choices the walk never reached past 1,000 paths were in no mode at all, and the flow
+  check called them a conflict.
+- EP's "stands for N similar" marks could leak into other modes' notes.
+
+### Docs and tests
+
+- README: "How the scenarios are counted" (a flow counted by hand, with a diagram),
+  "What each mode guarantees" and the math, "Scenario IDs", "Writing a flow that tests
+  well", and a Terms table (Flow, Scenario, Test case).
+- Tests: the generator is checked against an independent enumerator on random flows,
+  including flows past the limit; the mode guarantees, the `distinct` formula and the
+  lower bounds are tested; 84 tests in all.
 
 ## 0.1.0
 

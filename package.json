@@ -1,7 +1,7 @@
 {
-    "name": "drawdy-extension-starter",
-    "version": "0.1.0",
-    "description": "Drawdy extension starter template.",
+    "name": "drawdy-e2e-scenario-builder",
+    "version": "0.2.0",
+    "description": "Drawdy extension: write an E2E flow, get its flow diagram and test scenarios.",
     "license": "UNLICENSED",
     "private": true,
     "type": "module",
