@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- MIT license (`LICENSE`, `package.json`, README): free to use and share, with the copyright line kept.
+
 - README: a table of contents with links to every section, and the starter template as
   the one syntax example (it replaces the two older, different examples), so the README
   and **Start with a template** teach the same thing (SYN-41). A test keeps the README's

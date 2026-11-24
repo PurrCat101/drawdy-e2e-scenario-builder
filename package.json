@@ -2,7 +2,7 @@
     "name": "drawdy-e2e-scenario-builder",
     "version": "0.2.0",
     "description": "Drawdy extension: write an E2E flow, get its flow diagram and test scenarios.",
-    "license": "UNLICENSED",
+    "license": "MIT",
     "private": true,
     "type": "module",
     "scripts": {

@@ -36,6 +36,7 @@ panel's paste box, or in any note, sticky note or text box, that starts with `@b
 - [Development](#development)
   - [Tests](#tests)
 - [Credits](#credits)
+- [License](#license)
 
 ```
 @builder
@@ -592,3 +593,7 @@ into `src/panelHtml.ts`.
 
 The scenario generation (paths, equivalence partitioning, pairwise, each-choice
 and flow checks) is the author's own work, written for this extension.
+
+## License
+
+[MIT](LICENSE) © 2026 PurrCat101. You can use, change and share this extension freely; keep the copyright line and the license text with every copy, which is how the author gets credit.
