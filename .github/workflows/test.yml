@@ -1,0 +1,28 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # build.ts and the tests run TypeScript directly, which needs Node 22.6+
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: The panel page and its copy in src are in step
+        run: |
+          npm run gen:editor
+          git diff --exit-code src/panelHtml.ts
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: dist/*.drawdyx

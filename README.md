@@ -487,7 +487,9 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
 
 ### Tests
 
-`npm test` needs no browser and no extra packages:
+`npm test` needs no browser and no extra packages. GitHub Actions runs the same checks
+(plus the typecheck, the build, and that `src/panelHtml.ts` matches the panel page) on
+every push and pull request:
 
 - `test/syntax.test.ts`: the text syntax, the scenario counts, notes and tables.
 - `test/driver.test.ts`: the driver against a small fake Drawdy host (an in-memory

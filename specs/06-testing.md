@@ -19,6 +19,10 @@ packages).
 - **TEST-05** `npm test` lists the test files explicitly (`package.json`): a new test
   file must be added there.
 
+- **TEST-06** GitHub Actions (`.github/workflows/test.yml`) runs on every push and pull
+  request: `npm ci`, checks that `src/panelHtml.ts` matches `editor/panel.html`,
+  typecheck, `npm test`, build, and keeps the built `.drawdyx` as an artifact.
+
 ## The independent enumerator
 
 - **TEST-10** The enumerator in `test/oracle.test.ts` shares no code with
