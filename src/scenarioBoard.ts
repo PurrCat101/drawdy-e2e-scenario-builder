@@ -1,6 +1,6 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import type { Flow, Mode } from "./flow";
-import type { Generated, Issue, Scenario } from "./scenarios";
+import { passesNegative, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
 import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
@@ -26,6 +26,7 @@ const MODE_LABEL: Record<Mode, string> = {
 function lines(sc: Scenario, flow: Flow): string[] {
     const title =
         `${sc.id} · ${sc.type === "happy" ? "Happy" : "Negative"} · P${sc.pri}` +
+        (sc.type === "happy" && passesNegative(sc.path) ? ` · ${VIA_NEGATIVE}` : "") +
         (sc.loops ? ` · loop x${sc.loops}` : "");
     const cf = scenarioFlow(
         flow,

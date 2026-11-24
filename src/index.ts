@@ -7,7 +7,7 @@ import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
-import { generate, pick, validate } from "./scenarios";
+import { generate, pick, validate, VIA_NEGATIVE } from "./scenarios";
 import { orderScenarios, renderScenarios } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
@@ -534,7 +534,8 @@ const scenarioPath = (sc: { path: { i: number; c: { id: string } | null }[] }) =
 /** Title of a scenario in the tables: id, kind, priority and the choices it takes. */
 function scenarioTitle(id: string, type: string, pri: string | number | undefined, sub: Flow): string {
     const picks = sub.steps.flatMap((s) => s.conds.map((c) => c.label)).join(" · ");
-    return `${id} · ${type === "happy" ? "Happy" : "Negative"}${pri ? " · P" + pri : ""}${picks ? "   " + picks : ""}`;
+    const via = type === "happy" && sub.steps.some((s) => s.conds.some((c) => c.neg && c.action !== "end"));
+    return `${id} · ${type === "happy" ? "Happy" : "Negative"}${pri ? " · P" + pri : ""}${via ? " · " + VIA_NEGATIVE : ""}${picks ? "   " + picks : ""}`;
 }
 
 /**

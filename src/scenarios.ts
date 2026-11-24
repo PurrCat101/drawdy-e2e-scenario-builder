@@ -50,6 +50,14 @@ function withTags(tags: Tags, c: Cond): Tags {
     return n;
 }
 
+/** A label for a happy scenario that passes a `[negative]` choice and still completes. */
+export const VIA_NEGATIVE = "via negative";
+
+/** Does the path take a failing choice that does not end the flow? */
+export function passesNegative(path: PathItem[]): boolean {
+    return path.some((v) => v.c && v.c.neg && v.c.action !== "end");
+}
+
 /** Happy = reaches the end (loops allowed); Negative = ends on an "end" cond. */
 function classify(path: PathItem[]): "happy" | "neg" {
     const last = path[path.length - 1];

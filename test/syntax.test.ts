@@ -524,3 +524,23 @@ test("validate warns when distinct does nothing or asks for more rounds than cho
     assert.match(issues("1. a\n2. b\n- again -> loop to step 1 [distinct]\n- done")[0], /step 1 has no choices/);
     assert.match(issues("1. a\n- retry -> loop max 2 [distinct]\n- ok")[0], /earlier step/);
 });
+
+test("a happy scenario that passes a [negative] choice says so in its title", () => {
+    const t = "1. ship\n- ok\n- provider down -> loop max 1 [negative]\n2. done\n- delivered";
+    const gen = generate(parseFlowText(t).flow);
+    let n = 0;
+    const out = renderScenarios({
+        flow: parseFlowText(t).flow,
+        mode: "all",
+        shown: gen.list,
+        gen,
+        counts: { all: gen.list.length, ep: 0, pair: 0, min: 0 },
+        issues: [],
+        origin: [0, 0],
+        generateId: () => "e" + ++n,
+    });
+    const titles = (out.elements as any[]).filter((e: any) => typeof e.text === "string" && /TS[SN]-\d+/.test(e.text))
+        .map((e: any) => e.text.split("\n").find((l: string) => /TS[SN]-/.test(l)));
+    assert.equal(titles.filter((x: string) => /via negative/.test(x)).length, 1, titles.join(" / "));
+    assert.ok(titles.some((x: string) => /Happy/.test(x) && !/via negative/.test(x)));
+});
