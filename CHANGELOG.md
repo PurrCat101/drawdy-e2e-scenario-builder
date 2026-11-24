@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Panel: issues are one line each, coloured by kind (a TIP is no longer red like an
+  error), and past two they fold under "N more" so the buttons stay in view. The "a
+  lot of scenarios" line suggests only modes that draw fewer (it said "Try EP" while EP
+  was picked).
 - A scenario's priority is now the most important `P` on its path (the lowest
   number): a path with a P1 choice is P1. It used to take the largest number, so one
   P3 choice made a whole P1 path P3. This changes the `P` in scenario titles and the

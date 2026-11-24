@@ -419,7 +419,16 @@ function loadPanel() {
     g.document = {
         getElementById: mk,
         querySelectorAll: () => [],
-        createElement: () => ({ textContent: "", appendChild() {} }),
+        createElement: (tag: string) => ({
+            tag,
+            textContent: "",
+            className: "",
+            style: {},
+            children: [] as any[],
+            appendChild(c: any) {
+                this.children.push(c);
+            },
+        }),
         createTextNode: () => ({}),
         execCommand: () => true,
     };
@@ -480,6 +489,36 @@ test("panel: labels follow the selection and say what will be used", () => {
         assert.equal(p.els.copy.textContent, "Copy table · all scenarios in the frame (28)");
         p.send({ type: "target", kind: "table", n: 1 });
         assert.equal(p.els.copy.textContent, "Copy table · selected table");
+    } finally {
+        p.restore();
+    }
+});
+
+test("UI-45: issues are one line each, coloured by kind, and past two they fold away", () => {
+    const p = loadPanel();
+    try {
+        p.send({
+            type: "counts",
+            counts: { all: 9, ep: 5, pair: 4, min: 3 },
+            steps: 3,
+            issues: ["ERROR: EP MISSING choices: \"x\"", "TIP: run them all", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
+        });
+        const kids = p.els.issues.children;
+        assert.deepEqual(kids.slice(0, 2).map((d: any) => d.className), ["iss err", "iss info"]);
+        const more = kids[2];
+        assert.equal(more.tag, "details");
+        assert.equal(more.children[0].textContent, "2 more");
+        assert.deepEqual(more.children.slice(1).map((d: any) => d.className), ["iss warn", "iss warn"]);
+    } finally {
+        p.restore();
+    }
+});
+
+test("UI-04: a big mode suggests only modes with fewer scenarios", () => {
+    const p = loadPanel();
+    try {
+        p.send({ type: "counts", counts: { all: 1624, ep: 1201, pair: 64, min: 9 }, steps: 12, issues: [] });
+        assert.equal(p.els.plan.textContent, "Mode EP: 1201 scenarios (a lot; the board may get slow. Each has 9, Pair has 64)");
     } finally {
         p.restore();
     }

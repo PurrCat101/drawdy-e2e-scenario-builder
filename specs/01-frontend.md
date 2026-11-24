@@ -12,7 +12,8 @@ control: flows are written on the board, not in the panel.
   (UI-30).
 - **UI-03** Counts: steps, All, EP, Pairwise, Each-Choice, for the selected flow note
   or the paste box (UI-40), then the issues line (flow problems, tip, errors).
-- **UI-04** The plan line: "Mode X: N scenarios".
+- **UI-04** The plan line: "Mode X: N scenarios". Above 50 it adds "(a lot; the board
+  may get slow. …)", naming only the modes that would draw fewer, fewest first.
 - **UI-05** The mode switch: All, EP (default), Pair, Each.
 - **UI-06** The action buttons: Flow, Scenarios, Flow + Scenarios (primary, full
   width), Table (full width), Copy table (full width).
@@ -77,9 +78,11 @@ control: flows are written on the board, not in the panel.
 - **UI-43** When a count took over 300 ms, the counts show "counted in X s".
 - **UI-44** When the selected note is unselected, the driver sends `recount` and the
   panel sends `preview` for its paste box at once.
-- **UI-45** The issues line shows, in order: ERROR lines from the coverage safety net
+- **UI-45** The issues show, in order: ERROR lines from the coverage safety net
   (DRV-41), an INFO line when the counts come from a quick search (CALC-22), reading
-  problems (up to 4), the mode tip (CALC-70), and up to 3 flow check items.
+  problems (up to 4), the mode tip (CALC-70), and up to 3 flow check items. One line
+  each, coloured by kind: ERROR red, TIP and INFO muted, the rest amber. Only the first
+  two are shown; the others fold under "N more", so the buttons stay in view.
 
 ## Theme
 
