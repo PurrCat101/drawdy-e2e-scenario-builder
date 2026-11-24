@@ -22,9 +22,10 @@ export type Cond = {
     /** does not multiply with other scenarios (collapsed by EP) */
     variant: boolean;
     /**
-     * loop: on the next round, the steps it goes back over offer only the choices
-     * not taken yet, and an earlier pick counts once whatever the order
-     * (pick A then B = pick B then A). Ends and loops there stay available.
+     * loop: on the next round, the step it goes back to offers only the choices not
+     * taken there yet, and rounds that differ only in order count once (pick A then
+     * B = pick B then A). Ends and loops at that step stay available; the steps
+     * after it are free.
      */
     distinct?: boolean;
     /** test data, expected result, setup and requirement id (all optional) */

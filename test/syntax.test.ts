@@ -476,3 +476,40 @@ test("distinct: read, written back, and warned about when not on a loop", () => 
     assert.ok(bad.warnings.every((w) => /distinct only works with loop/.test(w)));
     assert.ok(bad.flow.steps[0].conds.every((c) => !c.distinct));
 });
+
+const rounds = (text: string, steps: number[]) =>
+    generate(parseFlowText(text).flow)
+        .list.filter((s) => s.type === "happy")
+        .map((s) =>
+            steps
+                .map((i) => s.path.filter((v) => v.i === i && v.c).map((v) => v.c!.label).join("+"))
+                .join(" | ")
+        )
+        .sort();
+
+test("distinct holds back only the step it goes back to, not the steps after it", () => {
+    const t = "1. pick\n- A\n- B\n2. qty\n- one\n- two\n3. more\n- again -> loop to step 1 [distinct]\n- done";
+    assert.deepEqual(rounds(t, [0, 1]), [
+        "A+B | one+one",
+        "A+B | one+two",
+        "A+B | two+one",
+        "A+B | two+two",
+        "A | one",
+        "A | two",
+        "B | one",
+        "B | two",
+    ].sort());
+});
+
+test("distinct with needs: a set is kept even when only one order is allowed", () => {
+    const t = "1. pick\n- A [needs c]\n- B\n- C [sets c]\n2. more\n- again -> loop to step 1 [distinct]\n- done";
+    // A needs C first, so {A, C} only exists as C then A; it must not be lost
+    assert.deepEqual(rounds(t, [0]), ["B", "B+C", "C", "C+A"]);
+});
+
+test("distinct ends with the run: a later plain loop back to the same step picks freely", () => {
+    const t =
+        "1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 [distinct]\n- done\n3. retry\n- redo -> loop to step 1\n- ok";
+    const r = rounds(t, [0]);
+    assert.ok(r.includes("A+B+A") && r.includes("A+B+B"), r.join(", "));
+});

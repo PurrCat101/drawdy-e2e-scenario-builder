@@ -167,7 +167,7 @@ written `→` or `=>`.
 | `P1` `P2` `P3` | priority of the scenario (no option = P2; a scenario takes the highest number on its path) |
 | `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
-| `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the steps it goes back over, and a set of picks counts once whatever the order. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
+| `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
 | `sets lv1` | marks the path with a tag (several: `sets lv1 lv2`) |
 | `needs lv1 and master` | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !master or lv2` and `needs master and lv1` |
 

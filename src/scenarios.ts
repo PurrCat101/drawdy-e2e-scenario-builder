@@ -66,6 +66,60 @@ function priOf(path: PathItem[]): number {
     return m || 2;
 }
 
+/**
+ * A path's identity with the rounds of every `distinct` loop put in a fixed order,
+ * so picking A then B and B then A give the same key. A round runs from the step
+ * the loop goes back to up to (not including) the loop's own step; the last round
+ * of a run ends at the choice that leaves the loop step. A round cut short by an
+ * end stays last.
+ */
+function orderFreeKey(path: PathItem[], idx: Record<string, number>): string {
+    const tok = (v: PathItem) => v.i + ":" + (v.c ? v.c.id : "-");
+    const out: string[] = [];
+    let j = 0;
+    while (j < path.length) {
+        let e = j;
+        while (e < path.length && !(path[e].c?.action === "loop" && path[e].c!.distinct)) e++;
+        if (e >= path.length) {
+            for (; j < path.length; j++) out.push(tok(path[j]));
+            break;
+        }
+        const L = path[e].c!;
+        const t = L.target ? idx[L.target] : -1;
+        const s = path[e].i;
+        if (!(t >= 0 && t < s)) {
+            for (; j <= e; j++) out.push(tok(path[j]));
+            continue;
+        }
+        let start = e;
+        while (start > j && path[start].i !== t) start--;
+        for (; j < start; j++) out.push(tok(path[j]));
+        const rounds: string[] = [path.slice(start, e).map(tok).join(",")];
+        let tail = "";
+        let k = e + 1;
+        for (;;) {
+            let m = k;
+            while (m < path.length && path[m].i !== s) m++;
+            if (m >= path.length) {
+                tail = path.slice(k).map(tok).join(",");
+                k = path.length;
+                break;
+            }
+            rounds.push(path.slice(k, m).map(tok).join(","));
+            if (path[m].c && path[m].c!.id === L.id) {
+                k = m + 1;
+                continue;
+            }
+            k = m; // the choice that leaves the loop step is read as usual
+            break;
+        }
+        rounds.sort();
+        out.push("{" + rounds.join("|" + L.id + "|") + "}" + (tail ? "+" + tail : ""));
+        j = k;
+    }
+    return out.join(" ");
+}
+
 export function generate(flow: Flow, limit = 1000): Generated {
     const steps = flow.steps;
     const out: PathItem[][] = [];
@@ -74,6 +128,26 @@ export function generate(flow: Flow, limit = 1000): Generated {
     steps.forEach((s, i) => {
         idx[s.id] = i;
     });
+    /** keep one path per set of distinct-loop rounds (the first one walked) */
+    const dropReordered = (paths: PathItem[][]) => {
+        if (!steps.some((s) => s.conds.some((c) => c.distinct))) return;
+        const seen = new Set<string>();
+        let w = 0;
+        for (const p of paths) {
+            const k = orderFreeKey(p, idx);
+            if (seen.has(k)) continue;
+            seen.add(k);
+            paths[w++] = p;
+        }
+        paths.length = w;
+    };
+
+    /**
+     * A `distinct` loop in progress: the step it goes back to (`t`), the choices
+     * taken there in the rounds so far, and whether the round being walked has not
+     * yet passed `t` (only then are those choices held back).
+     */
+    type Run = { loop: string; t: number; picks: number[]; armed: boolean };
 
     function walk(
         i: number,
@@ -82,8 +156,7 @@ export function generate(flow: Flow, limit = 1000): Generated {
         tags: Tags,
         /** per step: the index of the last "next" choice taken there on this path */
         last: Record<number, number> = {},
-        /** steps a `distinct` loop went back over: they offer only later choices */
-        dist: Record<number, 1> = {}
+        run: Run | null = null
     ) {
         if (out.length >= limit) {
             capped = true;
@@ -94,16 +167,20 @@ export function generate(flow: Flow, limit = 1000): Generated {
             return;
         }
         const s = steps[i];
+        // past the step a distinct loop went back to: the next round may pick freely
+        // there again only after the loop is taken once more
+        const here = run && run.armed && run.t === i;
+        const after = here ? { ...run!, armed: false } : run;
         if (!s.conds.length) {
-            walk(i + 1, path.concat([{ i, c: null }]), usage, tags, last, dist);
+            walk(i + 1, path.concat([{ i, c: null }]), usage, tags, last, after);
             return;
         }
         for (let k = 0; k < s.conds.length; k++) {
             const c = s.conds[k];
             if (!needOk(c, tags)) continue;
-            // a distinct round: no choice taken before, and in list order only, so a
-            // set of picks is walked once (A then B, never B then A as well)
-            if (c.action === "next" && dist[i] && k <= (last[i] ?? -1)) continue;
+            // a distinct round: a choice taken in an earlier round is not offered
+            // again (ends and loops are). The order of picks is dropped afterwards.
+            if (here && c.action === "next" && run!.picks.includes(k)) continue;
             const p = path.concat([{ i, c }]);
             const nt = withTags(tags, c);
             if (c.action === "end") {
@@ -118,18 +195,25 @@ export function generate(flow: Flow, limit = 1000): Generated {
                 const u = usage[c.id] || 0;
                 const t = c.target ? idx[c.target] : undefined;
                 if (u >= (c.max || 1) || t === undefined) continue;
-                let d = dist;
+                let r: Run | null = null; // any other loop ends a distinct run
                 if (c.distinct && t < i) {
-                    d = { ...dist };
-                    for (let j = t; j < i; j++) d[j] = 1;
+                    const before = after && after.loop === c.id ? after.picks : [];
+                    const pick = last[t];
+                    r = {
+                        loop: c.id,
+                        t,
+                        picks: pick === undefined ? before : [...before, pick],
+                        armed: true,
+                    };
                 }
-                walk(t, p, { ...usage, [c.id]: u + 1 }, nt, last, d);
+                walk(t, p, { ...usage, [c.id]: u + 1 }, nt, last, r);
                 continue;
             }
-            walk(i + 1, p, usage, nt, { ...last, [i]: k }, dist);
+            walk(i + 1, p, usage, nt, { ...last, [i]: k }, after);
         }
     }
     walk(0, [], {}, {});
+    dropReordered(out);
 
     const loopN = (p: PathItem[]) =>
         p.filter((v) => v.c && v.c.action === "loop").length;
