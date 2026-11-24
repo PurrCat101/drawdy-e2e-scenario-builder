@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { generate, pick } from "../src/scenarios.ts";
+import { generate, pick, singles } from "../src/scenarios.ts";
 import type { Cond, Flow } from "../src/flow.ts";
 
 /* a small seeded random generator, so a failure can be reproduced */
@@ -154,6 +154,12 @@ test("EP, Pair and Each only choose from All, and keep every choice and pair All
         }
         const got = pairsOf(pick(g, "pair"));
         for (const p of pairsOf(g.list)) assert.ok(got.has(p), `pair: ${p} is still covered`);
+        // the last round of every loop (max 2 or more) that All has
+        const ends = new Set(g.list.flatMap((sc) => singles(sc).filter((x) => x.startsWith("end:"))));
+        for (const mode of ["ep", "pair", "min"] as const) {
+            const have = new Set(pick(g, mode).flatMap((sc) => singles(sc)));
+            for (const e of ends) assert.ok(have.has(e), `${mode}: ${e} is covered`);
+        }
     }
     assert.ok(checked > 500, "enough flows: " + checked);
 });

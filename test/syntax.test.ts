@@ -3,7 +3,7 @@
 // The sample flow is a shop checkout with the same structure as a real, large
 // flow (12 steps, loops, negative ends, tags and `need` rules). Written in both
 // forms it must give the same flow, and the scenario counts must stay
-// All 231 / EP 28 / Pairwise 17 / Each-Choice 11.
+// All 231 / EP 29 / Pairwise 17 / Each-Choice 11.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -96,7 +96,7 @@ const counts = (flow: Flow) => {
 };
 
 test("the sample flow gives the same counts in both forms", () => {
-    const want = { all: 231, ep: 28, pair: 17, min: 11 };
+    const want = { all: 231, ep: 29, pair: 17, min: 11 };
     const compact = parseFlowText(COMPACT);
     const blocks = parseFlowText(BLOCKS);
     assert.equal(compact.format, "compact");
@@ -250,7 +250,7 @@ test("writing the flow back and reading it again gives the same flow", () => {
     assert.deepEqual(again.warnings, []);
     assert.deepEqual(shape(again.flow), shape(first.flow));
     assert.equal(again.title, "Shop checkout");
-    assert.deepEqual(counts(again.flow), { all: 231, ep: 28, pair: 17, min: 11 });
+    assert.deepEqual(counts(again.flow), { all: 231, ep: 29, pair: 17, min: 11 });
     // and writing it twice changes nothing
     assert.equal(formatFlow(again.flow, { title: again.title }), text);
 });
@@ -298,7 +298,7 @@ test("a scenario note is written in the flow syntax and reads back as that scena
         mode: "ep",
         shown,
         gen,
-        counts: { all: 231, ep: 28, pair: 17, min: 11 },
+        counts: { all: 231, ep: 29, pair: 17, min: 11 },
         issues: [],
         origin: [0, 0],
         generateId: (() => {
@@ -307,7 +307,7 @@ test("a scenario note is written in the flow syntax and reads back as that scena
         })(),
     });
     const notes = out.elements.filter((e: any) => e.meta?.kind === "scenario") as any[];
-    assert.equal(notes.length, 28);
+    assert.equal(notes.length, 29);
     // happy first, then negative; P1 before P2 inside each group
     const types = notes.map((n) => n.meta.type);
     assert.equal(types.indexOf("neg"), types.lastIndexOf("happy") + 1);
@@ -603,6 +603,13 @@ test("past 1,000 paths: the late choices are found, and the message says what wa
     const msgs = validate(flow, g).map((i) => i.msg);
     assert.ok(msgs.some((m) => /All lists the first 1,000, plus \d+ found/.test(m)), msgs.join(" / "));
     assert.ok(!msgs.some((m) => /no path can take/.test(m)));
+});
+
+test("every mode tests the last round a loop allows", () => {
+    const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 3\n- done\n3. pay\n- ok").flow;
+    const g = generate(flow);
+    for (const mode of ["ep", "pair", "min"] as const)
+        assert.equal(Math.max(...pick(g, mode).map((s) => s.loops)), 3, mode);
 });
 
 test("a choice that can never be taken says why, and is listed as unreachable", () => {

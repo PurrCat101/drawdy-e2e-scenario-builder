@@ -395,6 +395,27 @@ export function generate(flow: Flow, limit = 1000): Generated {
 }
 
 /**
+ * What a scenario covers on its own: its choices, plus "loop end" items, one per
+ * loop with max 2 or more that the scenario takes its full max times. Every mode
+ * covers all of these items that All has, so the last round a loop allows is
+ * always tested (a loop with max 1 is covered by its choice already).
+ */
+export function singles(sc: Scenario): string[] {
+    const n = new Map<string, number>();
+    const out = new Set<string>();
+    sc.path.forEach((v) => {
+        if (!v.c) return;
+        out.add(v.c.id);
+        if (v.c.action === "loop") n.set(v.c.id, (n.get(v.c.id) || 0) + 1);
+    });
+    n.forEach((k, id) => {
+        const c = sc.path.find((v) => v.c && v.c.id === id)!.c!;
+        if ((c.max || 1) >= 2 && k === c.max) out.add("end:" + id);
+    });
+    return [...out];
+}
+
+/**
  * Equivalence partitioning: a condition marked `variant` (and not used as a
  * tag by anyone) does not make a case different, so scenarios that differ only in
  * those choices keep a single representative. Every condition stays covered.
@@ -433,11 +454,11 @@ export function dedupe(list: Scenario[]): Scenario[] {
         } else seen[sig].covers!.push(sc);
     });
     const cov = new Set<string>();
-    keep.forEach((sc) => sc.path.forEach((v) => v.c && cov.add(v.c.id)));
+    keep.forEach((sc) => singles(sc).forEach((x) => cov.add(x)));
     const ids: string[] = [];
     list.forEach((sc) =>
-        sc.path.forEach((v) => {
-            if (v.c && ids.indexOf(v.c.id) < 0) ids.push(v.c.id);
+        singles(sc).forEach((x) => {
+            if (ids.indexOf(x) < 0) ids.push(x);
         })
     );
     ids.forEach((id) => {
@@ -450,7 +471,7 @@ export function dedupe(list: Scenario[]): Scenario[] {
             s.path.length,
         ];
         list.forEach((sc) => {
-            if (!sc.path.some((v) => v.c && v.c.id === id)) return;
+            if (!singles(sc).includes(id)) return;
             if (!best) {
                 best = sc;
                 return;
@@ -467,7 +488,7 @@ export function dedupe(list: Scenario[]): Scenario[] {
         if (best) {
             const b = best as Scenario;
             keep.push(b);
-            b.path.forEach((v) => v.c && cov.add(v.c.id));
+            singles(b).forEach((x) => cov.add(x));
         }
     });
     const keptIds = new Set(keep.map((s) => s.id));
@@ -484,13 +505,13 @@ export function dedupe(list: Scenario[]): Scenario[] {
  */
 export function minimal(list: Scenario[]): Scenario[] {
     const all = new Set<string>();
-    list.forEach((sc) => sc.path.forEach((v) => v.c && all.add(v.c.id)));
+    list.forEach((sc) => singles(sc).forEach((x) => all.add(x)));
     const negN = (sc: Scenario) => sc.path.filter((v) => v.c && v.c.neg).length;
     const chosen: Scenario[] = [];
     const cov = new Set<string>();
     const add = (sc: Scenario) => {
         chosen.push(sc);
-        sc.path.forEach((v) => v.c && cov.add(v.c.id));
+        singles(sc).forEach((x) => cov.add(x));
     };
     const fill = (pool: Scenario[]) => {
         while (cov.size < all.size) {
@@ -498,11 +519,7 @@ export function minimal(list: Scenario[]): Scenario[] {
             let bs = 0;
             for (const sc of pool) {
                 if (chosen.indexOf(sc) >= 0) continue;
-                const n = new Set(
-                    sc.path
-                        .filter((v) => v.c && !cov.has(v.c.id))
-                        .map((v) => v.c!.id)
-                ).size;
+                const n = singles(sc).filter((x) => !cov.has(x)).length;
                 if (
                     n > bs ||
                     (n === bs &&
@@ -538,7 +555,7 @@ export function pairwise(list: Scenario[]): Scenario[] {
         const ids = Array.from(
             new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))
         ).sort();
-        const out: string[] = ids.slice();
+        const out: string[] = singles(sc);
         for (let a = 0; a < ids.length; a++)
             for (let b = a + 1; b < ids.length; b++)
                 out.push(ids[a] + "&" + ids[b]);

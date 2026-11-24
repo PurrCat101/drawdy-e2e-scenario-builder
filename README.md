@@ -350,14 +350,15 @@ as `x/y`), so you do not have to take it on trust.
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |
 | All | every path, up to 1,000 (past that: the first 1,000, plus a path found for each choice, loop end and pair the first 1,000 missed) | every path while under 1,000 | every path past 1,000 |
-| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice still uncovered | every choice, and every group your `variant` marks define | every pair of choices |
-| Pairwise | greedy: take the scenario that covers the most choices and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, and every pair of choices that can share a path | three choices together, order, a second pass through a loop, the last round a loop allows |
-| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice is covered | every choice | any two choices together, loop depth |
+| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice or loop end still uncovered | every choice, every loop at its full `max`, and every group your `variant` marks define | every pair of choices |
+| Pairwise | greedy: take the scenario that covers the most choices, loop ends and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, every loop at its full `max`, and every pair of choices that can share a path | three choices together, order, every number of rounds in between |
+| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice and loop end is covered | every choice, every loop at its full `max` | any two choices together, every number of rounds in between |
 
-So Each and Pairwise reach 100% of the choices they promise, but never 100% of the
-paths, and they stop short of the last round of a loop (`max`) unless covering a
-choice needs it. If the end of a loop matters, use All or EP, or write that round as
-a choice of its own.
+So every mode reaches 100% of what it promises, but only All reaches 100% of the
+paths. A "loop end" is a loop with `max 2` or more taken its full `max` times: every
+mode has at least one scenario that does it, because the last round allowed is a
+boundary worth testing. The rounds in between (for `max 3`: 1 and 2 rounds) are only
+in All.
 
 #### The math
 
