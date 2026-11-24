@@ -330,10 +330,18 @@ test("a flow the panel already counted is not worked out again when a button is 
     const s = cacheStats();
     assert.equal(s.misses, 1, "worked out once");
     assert.ok(s.hits >= 2, "then answered from memory: " + s.hits);
-    // an edited note is a different flow
+    // an edited note is a different flow, counted once the text holds still: the poll
+    // right after a change only says "counting", the next one counts
     note.text += "\n4. Done\n- ok";
+    h.toPanel.length = 0;
+    await h.panel({ type: "target" });
+    assert.ok(h.toPanel.some((m) => m.type === "counting"));
+    assert.equal(cacheStats().misses, 1, "not counted while it may still be changing");
     await h.panel({ type: "target" });
     assert.equal(cacheStats().misses, 2);
+    const counts = [...h.toPanel].reverse().find((m) => m.type === "counts");
+    assert.equal(counts.steps, 4);
+    assert.equal(typeof counts.ms, "number");
 });
 
 test("EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
@@ -342,6 +350,20 @@ test("EP's 'stands for' marks stay on EP: another mode drawn after it has none",
     const a = analyze(flow);
     assert.ok(a.pick("ep").some((sc) => sc.covers && sc.covers.length));
     for (const m of ["all", "pair", "min"] as const) assert.ok(a.pick(m).every((sc) => !sc.covers || !sc.covers.length), m);
+});
+
+test("a quick preview of a huge flow is worked out again in full for a button", async () => {
+    const { analyze, clearCache, cacheStats } = await import("../src/analysis.ts");
+    const text = Array.from({ length: 10 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}\n- d${i}`).join("\n");
+    const flow = parseFlowText(text).flow;
+    clearCache();
+    const quick = analyze(flow, 0); // no time at all for the search past 1,000 paths
+    assert.equal(quick.complete, false);
+    const full = analyze(flow);
+    assert.equal(full.complete, true);
+    assert.equal(cacheStats().misses, 2, "the quick answer was not reused for the full one");
+    assert.equal(analyze(flow, 0), full, "a full answer serves a quick request too");
+    assert.ok(full.counts().all > quick.counts().all);
 });
 
 /* ------------------------------ the panel page ----------------------------- */
@@ -471,6 +493,18 @@ test("panel: the starter buttons ask the driver for a template; a pulled note op
         p.send({ type: "fill", text: "@builder\n1. a\n- b" });
         assert.equal(p.els.paste.open, true);
         assert.equal(p.els.t.value, "@builder\n1. a\n- b");
+    } finally {
+        p.restore();
+    }
+});
+
+test("panel: counts dim while the note is being typed in, and come back with the next count", () => {
+    const p = loadPanel();
+    try {
+        p.send({ type: "counting" });
+        assert.equal(p.els.counts.style.opacity, "0.5");
+        p.send({ type: "counts", from: "note", counts: { all: 9, ep: 5, pair: 4, min: 3 }, steps: 3, issues: [], ms: 1300 });
+        assert.equal(p.els.counts.style.opacity, "");
     } finally {
         p.restore();
     }

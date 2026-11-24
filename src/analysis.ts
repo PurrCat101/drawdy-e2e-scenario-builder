@@ -12,6 +12,12 @@ export type Counts = { all: number; ep: number; pair: number; min: number };
 export type Analysis = {
     flow: Flow;
     gen: Generated;
+    /** the time budget the search past 1,000 paths had */
+    budgetMs: number;
+    /** how long working out the paths took */
+    ms: number;
+    /** false when the search past 1,000 paths stopped at its budget: counts may grow */
+    complete: boolean;
     /** the scenarios of a mode, worked out once */
     pick(mode: Mode): Scenario[];
     counts(): Counts;
@@ -25,14 +31,24 @@ const cache = new Map<string, Analysis>();
 let hits = 0;
 let misses = 0;
 
-function build(flow: Flow): Analysis {
-    const gen = generate(flow);
+/** The search budget for a button press (the full answer). */
+export const FULL_BUDGET_MS = 3000;
+/** The search budget for the panel's live counts, while the writer is typing. */
+export const PREVIEW_BUDGET_MS = 300;
+
+function build(flow: Flow, budgetMs: number): Analysis {
+    const t0 = Date.now();
+    const gen = generate(flow, 1000, budgetMs);
+    const ms = Date.now() - t0;
     const picks = new Map<Mode, Scenario[]>();
     let counts: Counts | null = null;
     let issues: Issue[] | null = null;
     const a: Analysis = {
         flow,
         gen,
+        budgetMs,
+        ms,
+        complete: gen.searchComplete !== false,
         pick(mode) {
             let s = picks.get(mode);
             if (!s) {
@@ -62,11 +78,15 @@ function build(flow: Flow): Analysis {
 /**
  * The analysis of `flow`, from memory when the same flow (same steps, choices and
  * fields) was seen recently. Keep the result read-only: it is shared.
+ *
+ * `budgetMs` limits the search past 1,000 paths. A remembered answer is used when it
+ * is complete, or had at least this budget; a quick preview of a huge flow is
+ * worked out again in full when a button needs it.
  */
-export function analyze(flow: Flow): Analysis {
+export function analyze(flow: Flow, budgetMs = FULL_BUDGET_MS): Analysis {
     const key = JSON.stringify(flow);
     const got = cache.get(key);
-    if (got) {
+    if (got && (got.complete || got.budgetMs >= budgetMs)) {
         hits++;
         // most recently used goes last, so the oldest is dropped first
         cache.delete(key);
@@ -74,7 +94,8 @@ export function analyze(flow: Flow): Analysis {
         return got;
     }
     misses++;
-    const a = build(flow);
+    const a = build(flow, budgetMs);
+    cache.delete(key);
     cache.set(key, a);
     while (cache.size > SIZE) cache.delete(cache.keys().next().value!);
     return a;

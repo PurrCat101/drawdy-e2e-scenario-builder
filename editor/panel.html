@@ -197,9 +197,12 @@
     (function (b) { b.onclick = function () { setMode(b.getAttribute('data-m')); }; })(modeButtons[i]);
   }
 
+  // how long the last count took: a slow flow waits longer after the last key
+  var lastMs = 0;
   function preview() {
     clearTimeout(timer);
-    timer = setTimeout(function () { send({ type: 'preview', text: $('t').value }); }, 250);
+    var wait = Math.min(2000, Math.max(250, lastMs * 1.5));
+    timer = setTimeout(function () { send({ type: 'preview', text: $('t').value }); }, wait);
   }
   $('t').addEventListener('input', preview);
   $('pull').onclick = function () { send({ type: 'pull' }); };
@@ -256,10 +259,22 @@
         box.appendChild(chip('Each-Choice', m.counts.min));
       }
       box.title = m.from === 'note' ? 'Counts of the selected flow note' : 'Counts of the text in the paste box';
+      lastMs = m.ms || 0;
+      if (m.ms > 300) {
+        var slow = document.createElement('span');
+        slow.className = 'hint';
+        slow.textContent = 'counted in ' + (m.ms / 1000).toFixed(1) + ' s';
+        box.appendChild(slow);
+      }
+      box.style.opacity = '';
       lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
       updatePlan();
       updateTarget();
       $('issues').textContent = (m.issues || []).join('  ·  ');
+    } else if (m.type === 'counting') {
+      // the selected note is being edited: its counts come once the typing stops
+      $('counts').style.opacity = '0.5';
+      $('counts').title = 'Counting when you stop typing';
     } else if (m.type === 'recount') {
       // the flow note was unselected: show the paste box's counts again
       send({ type: 'preview', text: $('t').value });

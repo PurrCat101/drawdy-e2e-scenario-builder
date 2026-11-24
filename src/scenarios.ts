@@ -28,6 +28,8 @@ export type Generated = {
     pairsComplete?: boolean;
     /** condition ids no path can take (needs / loops rule them out), when known */
     unreachable?: string[];
+    /** false when the search past the limit stopped at its time budget */
+    searchComplete?: boolean;
 };
 
 export type Issue = { lv: "err" | "warn"; msg: string };
@@ -171,7 +173,11 @@ function stableIds(paths: PathItem[][], steps: Step[]): string[] {
     return out;
 }
 
-export function generate(flow: Flow, limit = 1000): Generated {
+/**
+ * Every path of `flow` (up to `limit`), then, past the limit, a search for the
+ * choices, loop ends and pairs those paths missed, within `budgetMs`.
+ */
+export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
     const steps = flow.steps;
     const out: PathItem[][] = [];
     let capped = false;
@@ -352,8 +358,9 @@ export function generate(flow: Flow, limit = 1000): Generated {
     let extra = 0;
     let pairsComplete = true;
     let unreachable: string[] | undefined;
+    let searchComplete = true;
     if (capped) {
-        const deadline = Date.now() + 3000;
+        const deadline = Date.now() + budgetMs;
         const has = (p: PathItem[], id: string) => p.some((v) => v.c && v.c.id === id);
         const add = (p: PathItem[]) => {
             out.push(p);
@@ -363,7 +370,10 @@ export function generate(flow: Flow, limit = 1000): Generated {
         for (const id of condById.keys()) {
             if (out.some((p) => has(p, id))) continue;
             const p = findPath([id], [], deadline);
-            if (p === "timeout") break;
+            if (p === "timeout") {
+                searchComplete = false;
+                break;
+            }
             if (p) add(p);
             else unreachable.push(id);
         }
@@ -373,7 +383,8 @@ export function generate(flow: Flow, limit = 1000): Generated {
             const full = (p: PathItem[]) => p.filter((v) => v.c && v.c.id === id).length === c.max;
             if (out.some(full)) continue;
             const p = findPath([id], [id], deadline);
-            if (p && p !== "timeout") add(p);
+            if (p === "timeout") searchComplete = false;
+            else if (p) add(p);
         }
         // every pair of choices that can share a path
         const ids = [...condById.keys()].filter((id) => !unreachable!.includes(id));
@@ -389,6 +400,7 @@ export function generate(flow: Flow, limit = 1000): Generated {
                 const p = findPath([a, b], [], deadline);
                 if (p === "timeout") {
                     pairsComplete = false;
+                    searchComplete = false;
                     break outer;
                 }
                 if (!p) continue;
@@ -417,7 +429,7 @@ export function generate(flow: Flow, limit = 1000): Generated {
         out.forEach((p) => p.forEach((v) => v.c && used.add(v.c.id)));
         unreachable = [...condById.keys()].filter((id) => !used.has(id));
     }
-    return { list, capped, extra, pairsComplete, unreachable };
+    return { list, capped, extra, pairsComplete, unreachable, searchComplete };
 }
 
 /**
@@ -589,17 +601,31 @@ export function pairwise(list: Scenario[]): Scenario[] {
                 out.push(ids[a] + "&" + ids[b]);
         return out;
     };
-    const per = list.map(items);
-    const need = new Set<string>();
-    per.forEach((a) => a.forEach((x) => need.add(x)));
-    const cov = new Set<string>();
+    // items as numbers, covered as a bit per item: the greedy loop below looks at
+    // every scenario in every round, so it must not compare strings
+    const index = new Map<string, number>();
+    const per: Int32Array[] = list.map((sc) => {
+        const its = items(sc);
+        const out = new Int32Array(its.length);
+        its.forEach((x, k) => {
+            let n = index.get(x);
+            if (n === undefined) index.set(x, (n = index.size));
+            out[k] = n;
+        });
+        return out;
+    });
+    const covered = new Uint8Array(index.size);
+    let left = index.size;
+    const taken = new Uint8Array(list.length);
     const chosen: number[] = [];
-    while (cov.size < need.size) {
+    while (left > 0) {
         let best = -1;
         let bs = 0;
-        per.forEach((a, k) => {
-            if (chosen.indexOf(k) >= 0) return;
-            const n = a.filter((x) => !cov.has(x)).length;
+        for (let k = 0; k < per.length; k++) {
+            if (taken[k]) continue;
+            const a = per[k];
+            let n = 0;
+            for (let j = 0; j < a.length; j++) if (!covered[a[j]]) n++;
             if (
                 n > bs ||
                 (n === bs &&
@@ -612,10 +638,14 @@ export function pairwise(list: Scenario[]): Scenario[] {
                 best = k;
                 bs = n;
             }
-        });
+        }
         if (best < 0) break;
         chosen.push(best);
-        per[best].forEach((x) => cov.add(x));
+        taken[best] = 1;
+        for (const x of per[best]) if (!covered[x]) {
+            covered[x] = 1;
+            left--;
+        }
     }
     return chosen.map((k) => list[k]).sort((a, b) => a.n - b.n);
 }

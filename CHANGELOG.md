@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Faster in Drawdy: a flow already worked out is remembered (in memory, last 8 flows),
+  so pressing a button after the panel counted it does not count again. While a flow
+  note is typed in, the panel counts it when the text holds still, not on every poll,
+  with a short search budget past 1,000 paths and the coverage safety net only up to
+  300 scenarios; a button runs the full search. Pairwise picks the same scenarios as
+  before, about 8 times faster. The panel shows "counted in … s" for a slow count.
 - Past 1,000 paths, every mode still covers every choice and every pair that can
   happen: a targeted search adds a path for each one the first 1,000 missed. Before,
   those choices were in no mode at all. The flow check now tells a choice that can

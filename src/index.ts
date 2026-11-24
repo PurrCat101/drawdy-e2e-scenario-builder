@@ -8,7 +8,7 @@ import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
 import { VIA_NEGATIVE } from "./scenarios";
-import { analyze } from "./analysis";
+import { analyze, PREVIEW_BUDGET_MS } from "./analysis";
 import { orderScenarios, renderScenarios, coverageLines } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
@@ -130,27 +130,44 @@ async function toPanel(message: unknown) {
  * panel is showing; null when the panel shows the counts of its own paste box.
  */
 let noteShown: string | null = null;
+/** The selected flow note, and its text at the last poll: counted once it holds still. */
+let notePending: { id: string; text: string } | null = null;
 
-/** Scenario counts and flow problems for a text, for the live preview. */
+/** Above this many scenarios, the live preview skips the coverage safety net. */
+const SAFETY_NET_MAX = 300;
+
+/**
+ * Scenario counts and flow problems for a text, for the live preview. Kept light:
+ * the search past 1,000 paths gets a short budget, and the coverage safety net runs
+ * only for flows of a moderate size (the scenario frame always reports coverage).
+ */
 function previewOf(text: string) {
+    const t0 = Date.now();
     const r = parseFlowText(text);
     const flow = r.flow;
     const reading = r.warnings.slice(0, 4);
-    if (!flow.steps.length) return { counts: null, steps: 0, issues: reading };
-    const a = analyze(flow);
+    if (!flow.steps.length) return { counts: null, steps: 0, issues: reading, ms: Date.now() - t0 };
+    const a = analyze(flow, PREVIEW_BUDGET_MS);
     const gen = a.gen;
     const counts = a.counts();
     // a safety net: each mode must keep its promise; say so loudly if one does not
-    const broken = (["ep", "pair", "min"] as const).flatMap((m) =>
-        coverageLines(a.pick(m), gen, m)
-            .filter((l) => l.startsWith("MISSING"))
-            .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
-    );
+    const broken =
+        gen.list.length > SAFETY_NET_MAX
+            ? []
+            : (["ep", "pair", "min"] as const).flatMap((m) =>
+                  coverageLines(a.pick(m), gen, m)
+                      .filter((l) => l.startsWith("MISSING"))
+                      .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
+              );
     return {
         steps: flow.steps.length,
         counts,
+        ms: Date.now() - t0,
         issues: [
             ...broken,
+            ...(a.complete
+                ? []
+                : ["INFO: a very big flow: these counts are what a quick search found; the full search runs when you press a button."]),
             ...reading,
             a.tip(),
             ...a.issues()
@@ -319,13 +336,24 @@ async function onPanelMessage(m: any) {
         await toPanel({ type: "target", kind, n });
         // counts and flow problems for the note being written on the board
         if (kind === "flows" && flows.length === 1) {
-            if (flows[0].text !== noteShown) {
-                noteShown = flows[0].text;
-                await toPanel({ type: "counts", from: "note", ...previewOf(noteShown) });
+            const { id, text } = flows[0];
+            if (text !== noteShown) {
+                // a newly selected note is counted at once; a note being typed in is
+                // counted when its text holds still for one poll, not on every key
+                const fresh = !notePending || notePending.id !== id;
+                const still = notePending && notePending.id === id && notePending.text === text;
+                notePending = { id, text };
+                if (fresh || still) {
+                    noteShown = text;
+                    await toPanel({ type: "counts", from: "note", ...previewOf(text) });
+                } else await toPanel({ type: "counting" });
             }
-        } else if (noteShown !== null) {
-            noteShown = null;
-            await toPanel({ type: "recount" });
+        } else {
+            notePending = null;
+            if (noteShown !== null) {
+                noteShown = null;
+                await toPanel({ type: "recount" });
+            }
         }
         return;
     }
@@ -855,6 +883,7 @@ async function actionFlow(sel: Picked[]) {
 
 export const activate: DriverModule["activate"] = async (ctx) => {
     noteShown = null;
+    notePending = null;
     issue = ctx.issueCommand;
     generateId = ctx.generateId;
     driverId = ctx.manifest.driverId;

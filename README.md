@@ -511,6 +511,14 @@ release, check by hand in Drawdy (about five minutes):
    with `@builder` appears in view and the camera flies to it; a second press puts the
    next note below the first, not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
+8. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
+   paths), select the note and type in it:
+   `@builder` then ten steps `1. S0` … `10. S9`, each with `- a`, `- b`, `- c`, `- d`.
+   While typing, the counts in the panel fade and come back about a second after you
+   stop, with "counted in … s" if it took long. Drawdy must stay responsive while you
+   type and while it counts (if the whole page freezes for a moment, the extension
+   runs on Drawdy's main thread: report it). Then press **Flow + Scenarios**: it
+   should not wait again for the count.
 
 `src/syntax.ts` is the only place that reads the text syntax, so the panel and
 the board actions always agree. `gen:editor` only embeds `editor/panel.html`
