@@ -7,7 +7,8 @@ import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
-import { generate, modeTip, pick, validate, VIA_NEGATIVE } from "./scenarios";
+import { VIA_NEGATIVE } from "./scenarios";
+import { analyze } from "./analysis";
 import { orderScenarios, renderScenarios, coverageLines } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
@@ -136,27 +137,23 @@ function previewOf(text: string) {
     const flow = r.flow;
     const reading = r.warnings.slice(0, 4);
     if (!flow.steps.length) return { counts: null, steps: 0, issues: reading };
-    const gen = generate(flow);
-    const ep = pick(gen, "ep").length;
+    const a = analyze(flow);
+    const gen = a.gen;
+    const counts = a.counts();
     // a safety net: each mode must keep its promise; say so loudly if one does not
     const broken = (["ep", "pair", "min"] as const).flatMap((m) =>
-        coverageLines(pick(gen, m), gen, m)
+        coverageLines(a.pick(m), gen, m)
             .filter((l) => l.startsWith("MISSING"))
             .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
     );
     return {
         steps: flow.steps.length,
-        counts: {
-            all: gen.list.length,
-            ep,
-            pair: pick(gen, "pair").length,
-            min: pick(gen, "min").length,
-        },
+        counts,
         issues: [
             ...broken,
             ...reading,
-            modeTip(flow, { all: gen.list.length, ep, pair: pick(gen, "pair").length, min: pick(gen, "min").length }),
-            ...validate(flow, gen)
+            a.tip(),
+            ...a.issues()
                 .slice(0, 3)
                 .map((i) => (i.lv === "err" ? "ERROR: " : "WARN: ") + i.msg),
         ],
@@ -576,8 +573,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     let anchor: Box | null = null;
     let label = "Test sequence";
     const fromList = (flow: Flow, mode: Mode) => {
-        const gen = generate(flow);
-        for (const sc of orderScenarios(pick(gen, mode))) {
+        for (const sc of orderScenarios(analyze(flow).pick(mode))) {
             const sub = scenarioFlow(flow, scenarioPath(sc));
             scenarios.push({ title: scenarioTitle(sc.id, sc.type, sc.pri, sub), flow: sub });
         }
@@ -675,16 +671,13 @@ ${failed}`, below.x, below.y - 200, "#fecaca");
 
 /** Generate the scenarios for `flow` below `below` and fly to them. */
 async function drawScenarios(flow: Flow, mode: Mode, below: Box) {
-    const gen = generate(flow);
-    const shown = pick(gen, mode);
-    const issues = validate(flow, gen);
+    // usually already worked out by the panel's preview of the same flow
+    const a = analyze(flow);
+    const gen = a.gen;
+    const shown = a.pick(mode);
+    const issues = a.issues();
     // the four numbers side by side, to compare the modes
-    const counts = {
-        all: gen.list.length,
-        ep: pick(gen, "ep").length,
-        pair: pick(gen, "pair").length,
-        min: pick(gen, "min").length,
-    };
+    const counts = a.counts();
     const base = { flow, mode, shown, gen, issues, counts, generateId };
     const size = frameSize(renderScenarios({ ...base, origin: [0, 0] }).elements);
     const origin = findFree(

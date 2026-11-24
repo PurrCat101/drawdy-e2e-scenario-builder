@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as driver from "../src/index.ts";
+import { parseFlowText } from "../src/syntax.ts";
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -312,6 +313,35 @@ test("the panel counts the flow note selected on the board, and goes back to the
     h.toPanel.length = 0;
     await h.panel({ type: "preview", text: "1. a\n- b" });
     assert.equal(h.toPanel.find((m) => m.type === "counts")?.from, undefined);
+});
+
+test("a flow the panel already counted is not worked out again when a button is pressed", async () => {
+    const { clearCache, cacheStats } = await import("../src/analysis.ts");
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "loop" });
+    const note = h.find((e) => e.componentType === "sticky-note")[0];
+    h.select(h.idOf(note));
+    clearCache();
+    await h.panel({ type: "target" }); // the panel's poll: counts the note
+    assert.deepEqual(cacheStats(), { hits: 0, misses: 1, size: 1 });
+    await h.panel({ type: "target" }); // polled again, same text: nothing to do
+    await h.action("board", ""); // Flow + Scenarios on the selected note
+    await h.action("table", "");
+    const s = cacheStats();
+    assert.equal(s.misses, 1, "worked out once");
+    assert.ok(s.hits >= 2, "then answered from memory: " + s.hits);
+    // an edited note is a different flow
+    note.text += "\n4. Done\n- ok";
+    await h.panel({ type: "target" });
+    assert.equal(cacheStats().misses, 2);
+});
+
+test("EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
+    const { analyze } = await import("../src/analysis.ts");
+    const flow = parseFlowText("1. Pick\n- shirt [variant]\n- shoes [variant]\n2. Pay\n- paid\n- declined -> end").flow;
+    const a = analyze(flow);
+    assert.ok(a.pick("ep").some((sc) => sc.covers && sc.covers.length));
+    for (const m of ["all", "pair", "min"] as const) assert.ok(a.pick(m).every((sc) => !sc.covers || !sc.covers.length), m);
 });
 
 /* ------------------------------ the panel page ----------------------------- */

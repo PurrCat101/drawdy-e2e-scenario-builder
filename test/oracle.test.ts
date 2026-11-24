@@ -147,8 +147,9 @@ test("EP, Pair and Each only choose from All, and keep every choice and pair All
         const all = idsOf(g.list);
         for (const mode of ["ep", "pair", "min"] as const) {
             const sel = pick(g, mode);
-            assert.ok(sel.every((sc) => g.list.includes(sc)), mode + ": only scenarios that All lists");
-            assert.equal(new Set(sel).size, sel.length, mode + ": none twice");
+            const allIds = new Set(g.list.map((sc) => sc.id));
+            assert.ok(sel.every((sc) => allIds.has(sc.id)), mode + ": only scenarios that All lists");
+            assert.equal(new Set(sel.map((sc) => sc.id)).size, sel.length, mode + ": none twice");
             const got = idsOf(sel);
             for (const id of all) assert.ok(got.has(id), `${mode}: choice ${id} is still covered`);
         }

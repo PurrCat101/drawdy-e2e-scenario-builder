@@ -53,7 +53,21 @@ const fillOf = (sc: Scenario) =>
  * and pairs of choices, against what All has. Says plainly whether the mode's own
  * promise is kept, and names any choice or loop end left out.
  */
+const coverageMemo = new WeakMap<Scenario[], Map<string, string[]>>();
+
 export function coverageLines(shown: Scenario[], gen: Generated, mode: Mode): string[] {
+    // the same selection is measured more than once (the panel, then the frame,
+    // which is rendered twice): remember the answer per selection and mode
+    let memo = coverageMemo.get(shown);
+    if (!memo) coverageMemo.set(shown, (memo = new Map()));
+    const hit = memo.get(mode);
+    if (hit) return hit;
+    const lines = measureCoverage(shown, gen, mode);
+    memo.set(mode, lines);
+    return lines;
+}
+
+function measureCoverage(shown: Scenario[], gen: Generated, mode: Mode): string[] {
     const label = new Map<string, string>();
     gen.list.forEach((sc) => sc.path.forEach((v) => v.c && label.set(v.c.id, v.c.label)));
     const conds = (sc: Scenario) => [...new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))].sort();

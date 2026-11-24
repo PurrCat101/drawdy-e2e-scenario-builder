@@ -460,6 +460,9 @@ export function dedupe(list: Scenario[]): Scenario[] {
         });
         return r;
     };
+    // which paths each kept scenario stands for; kept apart from the scenarios
+    // themselves, so picking EP never changes what All or another mode returns
+    const covers = new Map<Scenario, Scenario[]>();
     const seen: Record<string, Scenario> = {};
     const keep: Scenario[] = [];
     list.forEach((sc) => {
@@ -475,9 +478,9 @@ export function dedupe(list: Scenario[]): Scenario[] {
             .join("|");
         if (!seen[sig]) {
             seen[sig] = sc;
-            sc.covers = [];
+            covers.set(sc, []);
             keep.push(sc);
-        } else seen[sig].covers!.push(sc);
+        } else covers.get(seen[sig])!.push(sc);
     });
     const cov = new Set<string>();
     keep.forEach((sc) => singles(sc).forEach((x) => cov.add(x)));
@@ -518,10 +521,9 @@ export function dedupe(list: Scenario[]): Scenario[] {
         }
     });
     const keptIds = new Set(keep.map((s) => s.id));
-    keep.forEach((sc) => {
-        sc.covers = (sc.covers || []).filter((o) => !keptIds.has(o.id));
-    });
-    return Array.from(new Set(keep)).sort((a, b) => a.n - b.n);
+    return Array.from(new Set(keep))
+        .sort((a, b) => a.n - b.n)
+        .map((sc) => ({ ...sc, covers: (covers.get(sc) || []).filter((o) => !keptIds.has(o.id)) }));
 }
 
 /**
