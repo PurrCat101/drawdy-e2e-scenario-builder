@@ -12,6 +12,7 @@
         "prebuild": "npm run gen:editor",
         "build": "node build.ts",
         "typecheck": "tsc --noEmit",
+        "spec:coverage": "node scripts/spec-coverage.mjs",
         "test": "node --import ./test/register.mjs --test test/syntax.test.ts test/driver.test.ts test/oracle.test.ts test/specs.test.ts"
     },
     "devDependencies": {

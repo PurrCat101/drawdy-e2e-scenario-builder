@@ -497,7 +497,7 @@ every push and pull request:
   each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
 - `test/specs.test.ts`: the specs themselves: rule IDs are unique and every rule a
-  test names exists.
+  test names exists. `npm run spec:coverage` lists the rules no test names yet.
 - `test/oracle.test.ts`: the scenario generator against a second, independent
   enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
   pair, and `distinct` against its closed form.

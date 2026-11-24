@@ -102,7 +102,7 @@ function enumerate(flow: Flow, limit = 1000): string[] | null {
     return done;
 }
 
-test("CALC-01 CALC-05: the generator lists the same paths as an independent enumerator (random flows)", () => {
+test("CALC-01 CALC-02 CALC-03 CALC-05 CALC-07 CALC-08 CALC-10 CALC-11 CALC-20: the generator lists the same paths as an independent enumerator (random flows)", () => {
     const r = rng(20261124);
     let compared = 0;
     for (let n = 0; n < 1500; n++) {
@@ -124,7 +124,7 @@ test("CALC-01 CALC-05: the generator lists the same paths as an independent enum
     assert.ok(compared > 1000, "enough flows were small enough to compare: " + compared);
 });
 
-test("CALC-30 CALC-36: EP, Pair and Each only choose from All, and keep every choice, loop end and pair they promise", () => {
+test("CALC-30 CALC-31 CALC-33 CALC-34 CALC-36: EP, Pair and Each only choose from All, and keep every choice, loop end and pair they promise", () => {
     const r = rng(77);
     const idsOf = (list: { path: { c: Cond | null }[] }[]) => {
         const x = new Set<string>();

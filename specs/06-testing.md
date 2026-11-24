@@ -23,6 +23,10 @@ packages).
   request: `npm ci`, checks that `src/panelHtml.ts` matches `editor/panel.html`,
   typecheck, `npm test`, build, and keeps the built `.drawdyx` as an artifact.
 
+- **TEST-07** `npm run spec:coverage` lists the rules no test names yet. It is a
+  report, not a gate: some rules (layout, wording, the look in Drawdy) are checked by
+  hand (TEST-30).
+
 ## The independent enumerator
 
 - **TEST-10** The enumerator in `test/oracle.test.ts` shares no code with
