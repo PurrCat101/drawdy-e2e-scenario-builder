@@ -7,8 +7,9 @@ import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
-import { generate, pick, validate, VIA_NEGATIVE } from "./scenarios";
-import { orderScenarios, renderScenarios } from "./scenarioBoard";
+import { VIA_NEGATIVE } from "./scenarios";
+import { analyze, PREVIEW_BUDGET_MS } from "./analysis";
+import { orderScenarios, renderScenarios, coverageLines } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
 import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
@@ -124,28 +125,52 @@ async function toPanel(message: unknown) {
     await run("command:webview:post-message", { webviewDomId: WV_ID, message });
 }
 
-/** Scenario counts and flow problems for a text, for the live preview. */
+/**
+ * The text of the single `@builder` note selected on the board, whose counts the
+ * panel is showing; null when the panel shows the counts of its own paste box.
+ */
+let noteShown: string | null = null;
+/** The selected flow note, and its text at the last poll: counted once it holds still. */
+let notePending: { id: string; text: string } | null = null;
+
+/** Above this many scenarios, the live preview skips the coverage safety net. */
+const SAFETY_NET_MAX = 300;
+
+/**
+ * Scenario counts and flow problems for a text, for the live preview. Kept light:
+ * the search past 1,000 paths gets a short budget, and the coverage safety net runs
+ * only for flows of a moderate size (the scenario frame always reports coverage).
+ */
 function previewOf(text: string) {
+    const t0 = Date.now();
     const r = parseFlowText(text);
     const flow = r.flow;
     const reading = r.warnings.slice(0, 4);
-    if (!flow.steps.length) return { counts: null, steps: 0, issues: reading };
-    const gen = generate(flow);
-    const ep = pick(gen, "ep").length;
+    if (!flow.steps.length) return { counts: null, steps: 0, issues: reading, ms: Date.now() - t0 };
+    const a = analyze(flow, PREVIEW_BUDGET_MS);
+    const gen = a.gen;
+    const counts = a.counts();
+    // a safety net: each mode must keep its promise; say so loudly if one does not
+    const broken =
+        gen.list.length > SAFETY_NET_MAX
+            ? []
+            : (["ep", "pair", "min"] as const).flatMap((m) =>
+                  coverageLines(a.pick(m), gen, m)
+                      .filter((l) => l.startsWith("MISSING"))
+                      .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
+              );
     return {
         steps: flow.steps.length,
-        counts: {
-            all: gen.list.length,
-            ep,
-            pair: pick(gen, "pair").length,
-            min: pick(gen, "min").length,
-        },
+        counts,
+        ms: Date.now() - t0,
         issues: [
+            ...broken,
+            ...(a.complete
+                ? []
+                : ["INFO: a very big flow: these counts are what a quick search found; the full search runs when you press a button."]),
             ...reading,
-            ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && ep > 30
-                ? ["INFO: EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
-                : []),
-            ...validate(flow, gen)
+            a.tip(),
+            ...a.issues()
                 .slice(0, 3)
                 .map((i) => (i.lv === "err" ? "ERROR: " : "WARN: ") + i.msg),
         ],
@@ -255,6 +280,8 @@ const tableCount = (meta: Record<string, any>): number => Number(meta.scenarios 
 async function onPanelMessage(m: any) {
     if (!m || typeof m !== "object") return;
     if (m.type === "preview") {
+        // a selected flow note wins over the paste box, as it does for the buttons
+        if (noteShown !== null) return;
         const p = previewOf(String(m.text ?? ""));
         await toPanel({ type: "counts", ...p });
         return;
@@ -307,6 +334,27 @@ async function onPanelMessage(m: any) {
         else if (flows.length) [kind, n] = ["flows", flows.length];
         else if (flowFrame) [kind, n] = ["flowframe", 1];
         await toPanel({ type: "target", kind, n });
+        // counts and flow problems for the note being written on the board
+        if (kind === "flows" && flows.length === 1) {
+            const { id, text } = flows[0];
+            if (text !== noteShown) {
+                // a newly selected note is counted at once; a note being typed in is
+                // counted when its text holds still for one poll, not on every key
+                const fresh = !notePending || notePending.id !== id;
+                const still = notePending && notePending.id === id && notePending.text === text;
+                notePending = { id, text };
+                if (fresh || still) {
+                    noteShown = text;
+                    await toPanel({ type: "counts", from: "note", ...previewOf(text) });
+                } else await toPanel({ type: "counting" });
+            }
+        } else {
+            notePending = null;
+            if (noteShown !== null) {
+                noteShown = null;
+                await toPanel({ type: "recount" });
+            }
+        }
         return;
     }
     if (m.type !== "action") return;
@@ -553,8 +601,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     let anchor: Box | null = null;
     let label = "Test sequence";
     const fromList = (flow: Flow, mode: Mode) => {
-        const gen = generate(flow);
-        for (const sc of orderScenarios(pick(gen, mode))) {
+        for (const sc of orderScenarios(analyze(flow).pick(mode))) {
             const sub = scenarioFlow(flow, scenarioPath(sc));
             scenarios.push({ title: scenarioTitle(sc.id, sc.type, sc.pri, sub), flow: sub });
         }
@@ -652,16 +699,13 @@ ${failed}`, below.x, below.y - 200, "#fecaca");
 
 /** Generate the scenarios for `flow` below `below` and fly to them. */
 async function drawScenarios(flow: Flow, mode: Mode, below: Box) {
-    const gen = generate(flow);
-    const shown = pick(gen, mode);
-    const issues = validate(flow, gen);
+    // usually already worked out by the panel's preview of the same flow
+    const a = analyze(flow);
+    const gen = a.gen;
+    const shown = a.pick(mode);
+    const issues = a.issues();
     // the four numbers side by side, to compare the modes
-    const counts = {
-        all: gen.list.length,
-        ep: pick(gen, "ep").length,
-        pair: pick(gen, "pair").length,
-        min: pick(gen, "min").length,
-    };
+    const counts = a.counts();
     const base = { flow, mode, shown, gen, issues, counts, generateId };
     const size = frameSize(renderScenarios({ ...base, origin: [0, 0] }).elements);
     const origin = findFree(
@@ -838,6 +882,8 @@ async function actionFlow(sel: Picked[]) {
 /* ---------------------------------- module --------------------------------- */
 
 export const activate: DriverModule["activate"] = async (ctx) => {
+    noteShown = null;
+    notePending = null;
     issue = ctx.issueCommand;
     generateId = ctx.generateId;
     driverId = ctx.manifest.driverId;

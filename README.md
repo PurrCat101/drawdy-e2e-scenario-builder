@@ -36,7 +36,7 @@ panel's paste box, or in any sticky note that starts with `@builder`.)
 | Word | Means |
 | --- | --- |
 | **Flow** | The whole business flow you write: steps, each with its choices |
-| **Scenario** | One path through the flow, from the first step to where it ends: several test cases in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-001…` (happy) and `TSN-001…` (negative) |
+| **Scenario** | One path through the flow, from the first step to where it ends: several test cases in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-04821` (happy) and `TSN-00317` (negative): see "Scenario IDs" below |
 | **Test case** | One step of a scenario with the choice taken there, and its setup (`given:`), test data (`data:`) and expected result (`then:`). It is one row of the table |
 
 So a scenario is a chain of test cases, and the number the panel shows is the number
@@ -52,6 +52,9 @@ of scenarios.
    and edit it there. Any sticky note whose first line is `@builder` works the same.
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
+   While one flow note is selected, the panel shows that note's scenario counts, the
+   flow check and a mode tip, updated as you edit it; with nothing selected it counts
+   the paste box.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
    and of test scenarios in every mode (All, EP, Pairwise, Each-Choice), the problems
    found in the text (with their line) and in the flow.
@@ -93,9 +96,9 @@ in the panel does not need the marker.)
   nothing is selected. If something is already there, the result moves down.
 - Scenario notes are coloured: green = happy path, pink = negative, orange = loop.
   They are ordered happy scenarios first, then negative, each by priority. IDs are
-  `TSS-001…` (success) and `TSN-001…` (negative).
+  `TSS-…` (success) and `TSN-…` (negative), five digits.
 - Each scenario note is itself written in the flow syntax (`@builder`, a
-  `@title TSS-001 · Happy · P1`, the steps and choices of that scenario with their
+  `@title TSS-04821 · Happy · P1`, the steps and choices of that scenario with their
   `given:` / `data:` / `then:`), so it can be selected and read back.
 - A lot of scenarios is laid out in more columns, so the frame stays about as wide as
   it is tall. There is no limit on the number of notes, but the panel warns when a
@@ -136,7 +139,7 @@ The words are English; the labels you write can be in any language.
 | `@title name` | the title of the drawn frame |
 | `1.` or `1)` (a number) | a **step**. The number is how `loop to step` refers to it |
 | `-` (also `*`, `•`) | a **condition** of the step above |
-| `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read |
+| `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read. Several requirement ids go on one line, separated by commas. The scenario frame header lists each requirement with the scenarios that pass it (a step's `req` counts for every scenario through the step, a choice's for every scenario that takes it) and names any requirement the chosen mode leaves out |
 | `#` or `//` | a comment (ignored) |
 
 A field belongs to the step if it comes before the step's first condition, and to
@@ -255,6 +258,23 @@ The extension points out unknown words with the closest known one, a `loop to st
 step that does not exist, repeated or out-of-order step numbers, a condition with
 no step, a field with a typo, and so on.
 
+## Scenario IDs
+
+A scenario's number comes from what it does: the names of the steps it passes and the
+choices it takes, in order (letter case and spaces around them do not count). So the ID
+does not move when you change the flow somewhere the scenario does not go: add a
+choice, add a step it never reaches, put lines in another order. That lets you keep the
+IDs in a test management tool and regenerate the board later.
+
+A scenario does get a new ID when it changes: renaming a step or a choice it passes,
+or adding a step in its way, makes it a different test. The numbers are not in order
+and have gaps; the board lists scenarios in their own order (Happy first, then by
+priority). If two scenarios would get the same number, the one whose description
+sorts later takes the next free number.
+
+Boards drawn by earlier versions show `TSS-001`-style IDs; they still work, as does
+any `TSS-`/`TSN-` number.
+
 ## How the scenarios are counted
 
 **All** walks every path the flow allows, from step 1 to where it ends. Here is a
@@ -334,30 +354,40 @@ Choose the mode with the panel's switch.
 | Mode | What you get |
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked (it stops at 1,000 paths and says so) |
+| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the flow check says so |
 | Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all four modes, so
-you can compare them.
+you can compare them, and the panel and the header give a `TIP:` for this flow:
+
+- All has 30 scenarios or fewer: run them all.
+- No choice is marked `variant`: EP stays close to All, so use Pair (every pair of
+  choices) or Each (a quick pass), or mark interchangeable choices `variant`.
+- Otherwise: EP for regression by your `variant` groups, Pair when choices at
+  different steps affect each other, Each for a smoke pass.
 
 ### What each mode guarantees
 
 "Coverage" means something different in each mode, and only All covers every path.
-The header of a scenario frame prints the coverage it measured (choices and pairs,
-as `x/y`), so you do not have to take it on trust.
+The header of a scenario frame prints the coverage it measured against All
+(choices, loop ends and pairs, as `x/y`), then either `OK: every choice … is
+covered` or `MISSING …` with the names of what is left out, so you do not have to
+take it on trust. The panel shows an `ERROR` if any mode ever misses what it promises
+(it should not happen; it is a safety net).
 
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |
-| All | every path, up to 1,000 | every path (not when it stopped at 1,000: the flow check says so) | |
-| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice still uncovered | every choice, and every group your `variant` marks define | every pair of choices |
-| Pairwise | greedy: take the scenario that covers the most choices and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, and every pair of choices that can share a path | three choices together, order, a second pass through a loop, the last round a loop allows |
-| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice is covered | every choice | any two choices together, loop depth |
+| All | every path, up to 1,000 (past that: the first 1,000, plus a path found for each choice, loop end and pair the first 1,000 missed) | every path while under 1,000 | every path past 1,000 |
+| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice or loop end still uncovered | every choice, every loop at its full `max`, and every group your `variant` marks define | every pair of choices |
+| Pairwise | greedy: take the scenario that covers the most choices, loop ends and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, every loop at its full `max`, and every pair of choices that can share a path | three choices together, order, every number of rounds in between |
+| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice and loop end is covered | every choice, every loop at its full `max` | any two choices together, every number of rounds in between |
 
-So Each and Pairwise reach 100% of the choices they promise, but never 100% of the
-paths, and they stop short of the last round of a loop (`max`) unless covering a
-choice needs it. If the end of a loop matters, use All or EP, or write that round as
-a choice of its own.
+So every mode reaches 100% of what it promises, but only All reaches 100% of the
+paths. A "loop end" is a loop with `max 2` or more taken its full `max` times: every
+mode has at least one scenario that does it, because the last round allowed is a
+boundary worth testing. The rounds in between (for `max 3`: 1 and 2 rounds) are only
+in All.
 
 #### The math
 
@@ -481,6 +511,14 @@ release, check by hand in Drawdy (about five minutes):
    with `@builder` appears in view and the camera flies to it; a second press puts the
    next note below the first, not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
+8. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
+   paths), select the note and type in it:
+   `@builder` then ten steps `1. S0` … `10. S9`, each with `- a`, `- b`, `- c`, `- d`.
+   While typing, the counts in the panel fade and come back about a second after you
+   stop, with "counted in … s" if it took long. Drawdy must stay responsive while you
+   type and while it counts (if the whole page freezes for a moment, the extension
+   runs on Drawdy's main thread: report it). Then press **Flow + Scenarios**: it
+   should not wait again for the count.
 
 `src/syntax.ts` is the only place that reads the text syntax, so the panel and
 the board actions always agree. `gen:editor` only embeds `editor/panel.html`

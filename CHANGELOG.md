@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Faster in Drawdy: a flow already worked out is remembered (in memory, last 8 flows),
+  so pressing a button after the panel counted it does not count again. While a flow
+  note is typed in, the panel counts it when the text holds still, not on every poll,
+  with a short search budget past 1,000 paths and the coverage safety net only up to
+  300 scenarios; a button runs the full search. Pairwise picks the same scenarios as
+  before, about 8 times faster. The panel shows "counted in … s" for a slow count.
+- Past 1,000 paths, every mode still covers every choice and every pair that can
+  happen: a targeted search adds a path for each one the first 1,000 missed. Before,
+  those choices were in no mode at all. The flow check now tells a choice that can
+  never be taken apart from one the search ran out of time for.
+- Every mode covers each loop (max 2 or more) at its full max, the last round it
+  allows. The sample flow's EP goes from 28 to 29.
+- The scenario frame header says `OK: every choice … is covered` or names what is
+  missing, counts loop ends, lists unreachable choices, and traces each `req:` to the
+  scenarios that pass it. The panel shows an ERROR if a mode ever misses what it
+  promises.
+- Stable scenario IDs: the number comes from the steps and choices the scenario
+  passes (`TSS-04821`), so it no longer moves when the flow changes elsewhere.
+- A TIP line in the panel and the frame header suggests a mode for the flow.
+- The panel shows the counts of the flow note selected on the board.
 - `distinct` option for `loop to step N`: the next round offers only the choices
   not taken yet at the step it goes back to, and rounds that differ only in order
   count once. An "add another item" loop over 3 items gives 6 pick sets instead of
