@@ -2,7 +2,8 @@
 
 What the extension draws. Code: `src/render.ts` (flow diagram), `src/scenarioBoard.ts`
 (scenario frame), `src/scenarioTable.ts` (tables, copy text), `src/scenarioFlow.ts`
-(one scenario's flow), `src/templates.ts` (starter notes).
+(one scenario's flow), `src/templates.ts` (starter notes). `src/drawing.ts` puts them on
+the board, `src/actions.ts` decides what to draw for each button.
 
 ## Placement
 

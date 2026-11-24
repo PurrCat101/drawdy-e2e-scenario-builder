@@ -1,8 +1,7 @@
 # 02 · Backend (the driver)
 
-The driver is the extension's code that Drawdy runs (`src/index.ts` starts it; the rest is split by job:
-`host`, `webview`, `panelMessages`, `actions`, `drawing`, `selection`; built to
-`main.js`). It talks to Drawdy through commands and to the panel through messages.
+The driver is the extension's code that Drawdy runs (`src/index.ts`, built to
+`main.js`; code layout below). It talks to Drawdy through commands and to the panel through messages.
 There is no server: nothing leaves the user's browser.
 
 ## Lifecycle
@@ -132,3 +131,20 @@ the old one.
   `scenarios ?? cases ?? 1`.
 - **DRV-55** Without the stored data (copied notes, old boards), a scenario note is
   read back from its text (OUT-23).
+
+## Code layout
+
+- **DRV-56** The driver is split by job, so each file stays short and has one reason
+  to change. `src/index.ts` only starts the driver (`activate`, `onEvent`, the toolbar
+  button). Every other file is reached from it:
+  - `host.ts`: the command channel to Drawdy (`run`), ids, the busy flag (DRV-28) and
+    `note` (a status sticky on the board). The only file that keeps state about the
+    connection.
+  - `webview.ts`: opening the panel, the theme (UI-50), messages to the panel.
+  - `panelMessages.ts`: messages from the panel (`preview`, `pull`, `target`,
+    `template`, `action`) and the live counts of the selected note (DRV-40 to DRV-44).
+  - `actions.ts`: what each button does (Flow, Scenarios, Flow + Scenarios, Table, Copy
+    table, starter note).
+  - `drawing.ts`: drawing the flow, the scenario frame and the tables on the board.
+  - `selection.ts`: reading the selection and the board, finding free space.
+  A change of behaviour goes in the file of its job; no file may import `index.ts`.
