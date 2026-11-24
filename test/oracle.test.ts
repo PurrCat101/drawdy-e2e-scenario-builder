@@ -244,3 +244,77 @@ test("lower bounds for the size of Each and Pair (flows without loops)", () => {
     }
     assert.ok(checked > 600, "enough flows: " + checked);
 });
+
+/* --------------------------- past the 1,000 limit --------------------------- */
+
+function bigFlow(r: ReturnType<typeof rng>): Flow {
+    const n = r.int(6, 9);
+    const steps: Flow["steps"] = [];
+    for (let i = 0; i < n; i++) {
+        const conds: Cond[] = [];
+        const k = r.int(2, 4);
+        for (let c = 0; c < k; c++) {
+            const x = r.next();
+            const action = x < 0.12 ? "end" : x < 0.2 && i > 0 ? "loop" : "next";
+            const lit = () => (r.next() < 0.3 ? "!" : "") + TAGS[r.int(0, 2)];
+            conds.push({
+                id: `s${i}c${c}`,
+                label: `L${i}${c}`,
+                neg: action === "end",
+                action,
+                target: action === "loop" ? `s${r.int(Math.max(0, i - 2), i)}` : null,
+                max: r.int(1, 2),
+                tags: r.next() < 0.25 ? TAGS[r.int(0, 2)] : "",
+                need: r.next() < 0.2 ? lit() : "",
+                pri: "",
+                variant: r.next() < 0.3,
+            });
+        }
+        steps.push({ id: `s${i}`, name: `S${i}`, conds });
+    }
+    return { steps };
+}
+
+test("past the limit, every mode still covers every choice and pair that can happen", () => {
+    const r = rng(9001);
+    let checked = 0;
+    for (let n = 0; n < 120 && checked < 25; n++) {
+        const flow = bigFlow(r);
+        const g = generate(flow);
+        if (!g.capped) continue;
+        const every = enumerate(flow, 300000);
+        if (!every) continue; // too big to check against the enumerator
+        checked++;
+        const valid = new Set(every);
+        const key = (p: { i: number; c: Cond | null }[]) => p.map((v) => `${v.i}:${v.c ? v.c.id : "-"}`).join(">");
+        // every scenario, the added ones too, is a path the flow allows
+        for (const sc of g.list) assert.ok(valid.has(key(sc.path)), "a real path: " + key(sc.path));
+        // what can happen, from the full enumeration
+        const can = new Set<string>();
+        const canPair = new Set<string>();
+        for (const p of every) {
+            const ids = [...new Set(p.split(">").map((t) => t.split(":")[1]).filter((x) => x !== "-"))].sort();
+            ids.forEach((id) => can.add(id));
+            for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) canPair.add(ids[a] + "&" + ids[b]);
+        }
+        assert.deepEqual(
+            [...(g.unreachable ?? [])].sort(),
+            flow.steps.flatMap((s) => s.conds.map((c) => c.id)).filter((id) => !can.has(id)).sort(),
+            "unreachable = what no path takes"
+        );
+        for (const mode of ["ep", "pair", "min"] as const) {
+            const got = new Set<string>();
+            pick(g, mode).forEach((sc) => sc.path.forEach((v) => v.c && got.add(v.c.id)));
+            for (const id of can) assert.ok(got.has(id), `${mode} covers ${id}`);
+        }
+        if (g.pairsComplete) {
+            const got = new Set<string>();
+            pick(g, "pair").forEach((sc) => {
+                const ids = [...new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))].sort();
+                for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) got.add(ids[a] + "&" + ids[b]);
+            });
+            for (const p of canPair) assert.ok(got.has(p), "pair covers " + p);
+        }
+    }
+    assert.ok(checked >= 10, "enough big flows: " + checked);
+});

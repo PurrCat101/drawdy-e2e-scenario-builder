@@ -18,7 +18,17 @@ export type Scenario = {
     covers?: Scenario[];
 };
 
-export type Generated = { list: Scenario[]; capped: boolean };
+export type Generated = {
+    list: Scenario[];
+    /** the walk stopped at the limit: `list` holds the first paths walked, plus `extra` */
+    capped: boolean;
+    /** scenarios added after the limit so every choice (and pair) is in at least one */
+    extra?: number;
+    /** when capped: false if the search for the missing pairs ran out of time */
+    pairsComplete?: boolean;
+    /** condition ids no path can take (needs / loops rule them out), when known */
+    unreachable?: string[];
+};
 
 export type Issue = { lv: "err" | "warn"; msg: string };
 
@@ -150,6 +160,86 @@ export function generate(flow: Flow, limit = 1000): Generated {
         paths.length = w;
     };
 
+    /** distinct loops: the steps they go back to (only those steps' last pick matters) */
+    const distinctTargets = new Set<number>();
+    steps.forEach((s, i) =>
+        s.conds.forEach((c) => {
+            if (c.distinct && c.target && idx[c.target] !== undefined && idx[c.target] < i)
+                distinctTargets.add(idx[c.target]);
+        })
+    );
+    const condById = new Map<string, Cond>();
+    steps.forEach((s) => s.conds.forEach((c) => condById.set(c.id, c)));
+
+    /**
+     * One path that takes every condition in `want` (and every loop in `wantMax` its
+     * full `max` times), walking by the same rules as the full walk; null if none.
+     * Used after the full walk stopped at the limit, to reach what it never got to.
+     * Dead ends are remembered, so an impossible request does not walk every path.
+     */
+    function findPath(want: string[], wantMax: string[], deadline: number): PathItem[] | null | "timeout" {
+        const dead = new Set<string>();
+        let timedOut = false;
+        const done = (path: PathItem[], usage: Record<string, number>) =>
+            want.every((id) => path.some((v) => v.c && v.c.id === id)) &&
+            wantMax.every((id) => (usage[id] || 0) === (condById.get(id)!.max || 1));
+        function go(
+            i: number,
+            path: PathItem[],
+            usage: Record<string, number>,
+            tags: Tags,
+            last: Record<number, number>,
+            run: Run | null
+        ): PathItem[] | null {
+            if (timedOut || Date.now() > deadline) {
+                timedOut = true;
+                return null;
+            }
+            if (i >= steps.length) return done(path, usage) ? path : null;
+            const taken = want.filter((id) => path.some((v) => v.c && v.c.id === id)).join(",");
+            const lastKey = [...distinctTargets].map((t) => last[t] ?? "").join(",");
+            const key = [i, Object.keys(tags).sort().join(","), JSON.stringify(usage), run ? JSON.stringify(run) : "", lastKey, taken].join("|");
+            if (dead.has(key)) return null;
+            const s = steps[i];
+            const here = run && run.armed && run.t === i;
+            const after = here ? { ...run!, armed: false } : run;
+            let found: PathItem[] | null = null;
+            if (!s.conds.length) found = go(i + 1, path.concat([{ i, c: null }]), usage, tags, last, after);
+            else {
+                // the wanted choices first: they are what the search is for
+                const order = s.conds.map((c, k) => k).sort((x, y) => {
+                    const w = (k: number) => (want.includes(s.conds[k].id) || wantMax.includes(s.conds[k].id) ? 0 : 1);
+                    return w(x) - w(y);
+                });
+                for (const k of order) {
+                    const c = s.conds[k];
+                    if (!needOk(c, tags)) continue;
+                    if (here && c.action === "next" && run!.picks.includes(k)) continue;
+                    const p = path.concat([{ i, c }]);
+                    const nt = withTags(tags, c);
+                    if (c.action === "end") found = done(p, usage) ? p : null;
+                    else if (c.action === "loop") {
+                        const u = usage[c.id] || 0;
+                        const t = c.target ? idx[c.target] : undefined;
+                        if (u >= (c.max || 1) || t === undefined) continue;
+                        let r: Run | null = null;
+                        if (c.distinct && t < i) {
+                            const before = after && after.loop === c.id ? after.picks : [];
+                            const pick = last[t];
+                            r = { loop: c.id, t, picks: pick === undefined ? before : [...before, pick], armed: true };
+                        }
+                        found = go(t, p, { ...usage, [c.id]: u + 1 }, nt, last, r);
+                    } else found = go(i + 1, p, usage, nt, { ...last, [i]: k }, after);
+                    if (found) break;
+                }
+            }
+            if (!found && !timedOut) dead.add(key);
+            return found;
+        }
+        const r = go(0, [], {}, {}, {}, null);
+        return r ?? (timedOut ? "timeout" : null);
+    }
+
     /**
      * A `distinct` loop in progress: the step it goes back to (`t`), the choices
      * taken there in the rounds so far, and whether the round being walked has not
@@ -223,6 +313,58 @@ export function generate(flow: Flow, limit = 1000): Generated {
     walk(0, [], {}, {});
     dropReordered(out);
 
+    // Past the limit, the walk never got to some paths, so some choices (and pairs)
+    // would be in no scenario, and no mode could pick them. Look for one path for
+    // each of those, so every mode still covers every choice it can.
+    let extra = 0;
+    let pairsComplete = true;
+    let unreachable: string[] | undefined;
+    if (capped) {
+        const deadline = Date.now() + 3000;
+        const has = (p: PathItem[], id: string) => p.some((v) => v.c && v.c.id === id);
+        const add = (p: PathItem[]) => {
+            out.push(p);
+            extra++;
+        };
+        unreachable = [];
+        for (const id of condById.keys()) {
+            if (out.some((p) => has(p, id))) continue;
+            const p = findPath([id], [], deadline);
+            if (p === "timeout") break;
+            if (p) add(p);
+            else unreachable.push(id);
+        }
+        // loops at their full max (the last round they allow)
+        for (const [id, c] of condById) {
+            if (c.action !== "loop" || (c.max || 1) < 2) continue;
+            const full = (p: PathItem[]) => p.filter((v) => v.c && v.c.id === id).length === c.max;
+            if (out.some(full)) continue;
+            const p = findPath([id], [id], deadline);
+            if (p && p !== "timeout") add(p);
+        }
+        // every pair of choices that can share a path
+        const ids = [...condById.keys()].filter((id) => !unreachable!.includes(id));
+        const seen = new Set<string>();
+        out.forEach((p) => {
+            const a = [...new Set(p.filter((v) => v.c).map((v) => v.c!.id))].sort();
+            for (let x = 0; x < a.length; x++) for (let y = x + 1; y < a.length; y++) seen.add(a[x] + "&" + a[y]);
+        });
+        outer: for (let x = 0; x < ids.length; x++)
+            for (let y = x + 1; y < ids.length; y++) {
+                const [a, b] = [ids[x], ids[y]].sort();
+                if (seen.has(a + "&" + b)) continue;
+                const p = findPath([a, b], [], deadline);
+                if (p === "timeout") {
+                    pairsComplete = false;
+                    break outer;
+                }
+                if (!p) continue;
+                add(p);
+                const q = [...new Set(p.filter((v) => v.c).map((v) => v.c!.id))].sort();
+                for (let i = 0; i < q.length; i++) for (let j = i + 1; j < q.length; j++) seen.add(q[i] + "&" + q[j]);
+            }
+    }
+
     const loopN = (p: PathItem[]) =>
         p.filter((v) => v.c && v.c.action === "loop").length;
     // no loops first, then the longest path first (happy path is case 1)
@@ -244,7 +386,12 @@ export function generate(flow: Flow, limit = 1000): Generated {
             pri: priOf(path),
         };
     });
-    return { list, capped };
+    if (!capped) {
+        const used = new Set<string>();
+        out.forEach((p) => p.forEach((v) => v.c && used.add(v.c.id)));
+        unreachable = [...condById.keys()].filter((id) => !used.has(id));
+    }
+    return { list, capped, extra, pairsComplete, unreachable };
 }
 
 /**
@@ -524,16 +671,24 @@ export function validate(flow: Flow, g: Generated): Issue[] {
                 })
             );
             if (g.list.length && !used.has(c.id))
-                R.push({
-                    lv: "err",
-                    msg: `${cn}: no scenario uses this condition (constraints conflict)`,
-                });
+                R.push(
+                    !g.unreachable || g.unreachable.includes(c.id)
+                        ? { lv: "err", msg: `${cn}: no path can take this choice (its needs, or the loops before it, rule it out)` }
+                        : { lv: "err", msg: `${cn}: not in any scenario: the flow is too big to finish the search for it` }
+                );
         });
     });
-    if (g.capped)
+    if (g.capped) {
+        const added = g.extra ? `, plus ${g.extra} found to cover the rest` : "";
         R.push({
             lv: "warn",
-            msg: "More than 1,000 paths: generation stopped at 1,000. Use @ep, @pair or @min, or add constraints.",
+            msg:
+                `More than 1,000 paths: All lists the first 1,000${added}. ` +
+                (g.pairsComplete === false
+                    ? "Every choice is covered, but not every pair (the search ran out of time). "
+                    : "Every choice and every pair that can meet is in at least one scenario. ") +
+                "EP may miss groups of paths beyond these. Use Pair or Each, or add sets / needs to cut paths that cannot happen.",
         });
+    }
     return R.sort((a, b) => (a.lv === b.lv ? 0 : a.lv === "err" ? -1 : 1));
 }

@@ -334,7 +334,7 @@ Choose the mode with the panel's switch.
 | Mode | What you get |
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked (it stops at 1,000 paths and says so) |
+| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the flow check says so |
 | Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
@@ -349,7 +349,7 @@ as `x/y`), so you do not have to take it on trust.
 
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |
-| All | every path, up to 1,000 | every path (not when it stopped at 1,000: the flow check says so) | |
+| All | every path, up to 1,000 (past that: the first 1,000, plus a path found for each choice, loop end and pair the first 1,000 missed) | every path while under 1,000 | every path past 1,000 |
 | EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice still uncovered | every choice, and every group your `variant` marks define | every pair of choices |
 | Pairwise | greedy: take the scenario that covers the most choices and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, and every pair of choices that can share a path | three choices together, order, a second pass through a loop, the last round a loop allows |
 | Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice is covered | every choice | any two choices together, loop depth |

@@ -587,3 +587,27 @@ test("README: the worked counting examples are in the README and give the number
     assert.equal(b.list.length, 2);
     assert.deepEqual(b.list.map((s) => s.type).sort(), ["happy", "neg"]);
 });
+
+test("past 1,000 paths: the late choices are found, and the message says what was done", () => {
+    const text =
+        Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i + 1}\n- a${i}\n- b${i}\n- c${i}`).join("\n") +
+        "\n8. Last\n- ok\n- late";
+    const flow = parseFlowText(text).flow;
+    const g = generate(flow);
+    assert.ok(g.capped);
+    assert.ok((g.extra ?? 0) > 0);
+    for (const mode of ["ep", "pair", "min"] as const) {
+        const got = new Set(pick(g, mode).flatMap((sc) => sc.path.filter((v) => v.c).map((v) => v.c!.label)));
+        for (const l of ["b0", "c0", "late"]) assert.ok(got.has(l), `${mode} has ${l}`);
+    }
+    const msgs = validate(flow, g).map((i) => i.msg);
+    assert.ok(msgs.some((m) => /All lists the first 1,000, plus \d+ found/.test(m)), msgs.join(" / "));
+    assert.ok(!msgs.some((m) => /no path can take/.test(m)));
+});
+
+test("a choice that can never be taken says why, and is listed as unreachable", () => {
+    const flow = parseFlowText("1. a\n- x\n2. b\n- y [needs z]\n- ok").flow;
+    const g = generate(flow);
+    assert.equal(g.unreachable?.length, 1);
+    assert.ok(validate(flow, g).some((i) => /y: no path can take this choice/.test(i.msg)));
+});
