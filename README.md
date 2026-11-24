@@ -474,6 +474,11 @@ scenario. It does not know your system, so a few things stay with the writer:
 
 ## Development
 
+What the extension must do is written in [`specs/`](specs/README.md), one file per
+area (panel, driver, calculation, syntax, board output, testing). The specs are the
+source of truth: a change in behaviour changes the spec in the same commit, and tests
+name the rules they check (`CALC-17`).
+
 ```
 npm run dev        # dev server for "Add extension dev server" in Drawdy
 npm test           # tests: text syntax, scenarios, tables, the buttons (see below)
@@ -489,6 +494,8 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
   scene), and the panel page against a stub DOM. It checks what each button does for
   each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
+- `test/specs.test.ts`: the specs themselves: rule IDs are unique and every rule a
+  test names exists.
 - `test/oracle.test.ts`: the scenario generator against a second, independent
   enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
   pair, and `distinct` against its closed form.

@@ -167,7 +167,7 @@
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
     else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = false; } // a table: only copy
-    // a selected case note: the Flow button draws that scenario's flow and its table
+    // a selected scenario note: the Flow button draws that scenario's flow and its table
     $('flow').textContent = k === 'scenarios' ? 'Flow + Table' : 'Flow';
     var why = 'Not available for what is selected';
     ['flow', 'scenarios', 'board', 'table', 'copy'].forEach(function (id) {

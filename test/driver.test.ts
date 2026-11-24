@@ -315,7 +315,7 @@ test("the panel counts the flow note selected on the board, and goes back to the
     assert.equal(h.toPanel.find((m) => m.type === "counts")?.from, undefined);
 });
 
-test("a flow the panel already counted is not worked out again when a button is pressed", async () => {
+test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out again when a button is pressed", async () => {
     const { clearCache, cacheStats } = await import("../src/analysis.ts");
     const h = await makeHost();
     await h.panel({ type: "template", id: "loop" });
@@ -352,7 +352,7 @@ test("EP's 'stands for' marks stay on EP: another mode drawn after it has none",
     for (const m of ["all", "pair", "min"] as const) assert.ok(a.pick(m).every((sc) => !sc.covers || !sc.covers.length), m);
 });
 
-test("a quick preview of a huge flow is worked out again in full for a button", async () => {
+test("CALC-81: a quick preview of a huge flow is worked out again in full for a button", async () => {
     const { analyze, clearCache, cacheStats } = await import("../src/analysis.ts");
     const text = Array.from({ length: 10 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}\n- d${i}`).join("\n");
     const flow = parseFlowText(text).flow;

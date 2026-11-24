@@ -605,7 +605,7 @@ test("past 1,000 paths: the late choices are found, and the message says what wa
     assert.ok(!msgs.some((m) => /no path can take/.test(m)));
 });
 
-test("every mode tests the last round a loop allows", () => {
+test("CALC-36: every mode tests the last round a loop allows", () => {
     const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 3\n- done\n3. pay\n- ok").flow;
     const g = generate(flow);
     for (const mode of ["ep", "pair", "min"] as const)
@@ -635,7 +635,7 @@ test("the coverage lines say OK when a mode keeps its promise, and name what is 
     assert.ok(lines.some((l) => /^MISSING loop ends: "again"/.test(l)), lines.join(" / "));
 });
 
-test("requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
+test("OUT-25: requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
     const { requirementLines } = await import("../src/scenarioBoard.ts");
     const flow = parseFlowText("1. Sign in\n   req: R-1\n- ok\n- bad -> end\n  req: R-2\n2. Pay\n   req: R-3, R-4\n- paid").flow;
     const g = generate(flow);
@@ -651,7 +651,7 @@ test("requirements: each req lists the scenarios that pass it, and a missing one
     assert.deepEqual(requirementLines(g.list, parseFlowText("1. a\n- b").flow), []);
 });
 
-test("scenario IDs stay put when the flow changes elsewhere, and are unique", () => {
+test("CALC-51 CALC-53: scenario IDs stay put when the flow changes elsewhere, and are unique", () => {
     const base = "1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n3. Pay\n- paid\n- declined -> end";
     const ids = (t: string) => {
         const m = new Map<string, string>();

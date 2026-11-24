@@ -809,7 +809,7 @@ async function actionFlow(sel: Picked[]) {
     }
     let last: string | null = null;
     for (const p of items) {
-        // a case note: its own title (@title TSS-001 · ...) or the older TSS-001 header
+        // a scenario note: its own title (@title TSS-04821 · ...) or the older TSS-001 header
         const parsed = p.meta?.kind === "scenario" || !hasMarker(p.text) ? null : parseFlowText(p.text);
         const scenarioId = parsed?.title.match(/^(TS[SN]-\d+)/)?.[1];
         const isScenario = p.meta?.kind === "scenario" || !!scenarioId || /^\s*TS[SN]-\d+/.test(p.text);

@@ -102,7 +102,7 @@ function enumerate(flow: Flow, limit = 1000): string[] | null {
     return done;
 }
 
-test("the generator lists the same paths as an independent enumerator (random flows)", () => {
+test("CALC-01 CALC-05: the generator lists the same paths as an independent enumerator (random flows)", () => {
     const r = rng(20261124);
     let compared = 0;
     for (let n = 0; n < 1500; n++) {
@@ -124,7 +124,7 @@ test("the generator lists the same paths as an independent enumerator (random fl
     assert.ok(compared > 1000, "enough flows were small enough to compare: " + compared);
 });
 
-test("EP, Pair and Each only choose from All, and keep every choice and pair All can reach", () => {
+test("CALC-30 CALC-36: EP, Pair and Each only choose from All, and keep every choice, loop end and pair they promise", () => {
     const r = rng(77);
     const idsOf = (list: { path: { c: Cond | null }[] }[]) => {
         const x = new Set<string>();
@@ -165,7 +165,7 @@ test("EP, Pair and Each only choose from All, and keep every choice and pair All
     assert.ok(checked > 500, "enough flows: " + checked);
 });
 
-test("distinct matches the closed form: picking k items over at most m+1 rounds gives sum of C(k, r)", () => {
+test("CALC-17: distinct matches the closed form: picking k items over at most m+1 rounds gives sum of C(k, r)", () => {
     const C = (n: number, k: number) => {
         let x = 1;
         for (let i = 1; i <= k; i++) x = (x * (n - k + i)) / i;
@@ -188,7 +188,7 @@ test("distinct matches the closed form: picking k items over at most m+1 rounds 
         }
 });
 
-test("distinct, in general: sum over r of C(k, r) * q^r (plain loop: sum over r of (k*q)^r)", () => {
+test("CALC-12 CALC-17: distinct, in general: sum over r of C(k, r) * q^r (plain loop: sum over r of (k*q)^r)", () => {
     // k choices at the step the loop goes back to, q ways through the steps between it
     // and the loop, m = max. A scenario is r passes (r from 1 to m+1).
     const C = (n: number, k: number) => {
@@ -218,7 +218,7 @@ test("distinct, in general: sum over r of C(k, r) * q^r (plain loop: sum over r 
             }
 });
 
-test("lower bounds for the size of Each and Pair (flows without loops)", () => {
+test("CALC-38: lower bounds for the size of Each and Pair (flows without loops)", () => {
     const r = rng(4242);
     let checked = 0;
     for (let n = 0; n < 1500; n++) {
@@ -282,7 +282,7 @@ function bigFlow(r: ReturnType<typeof rng>): Flow {
     return { steps };
 }
 
-test("past the limit, every mode still covers every choice and pair that can happen", () => {
+test("CALC-21 CALC-23: past the limit, every mode still covers every choice and pair that can happen", () => {
     const r = rng(9001);
     let checked = 0;
     for (let n = 0; n < 120 && checked < 25; n++) {

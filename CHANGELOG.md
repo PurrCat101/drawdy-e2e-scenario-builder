@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `specs/`: the source of truth for what the extension does, one file per area
+  (glossary, panel, driver, calculation, syntax, board output, testing), with rule IDs
+  that tests name. `test/specs.test.ts` keeps the IDs unique and every named rule
+  defined. `CLAUDE.md` says how to keep specs and code together.
 - Faster in Drawdy: a flow already worked out is remembered (in memory, last 8 flows),
   so pressing a button after the panel counted it does not count again. While a flow
   note is typed in, the panel counts it when the text holds still, not on every poll,
