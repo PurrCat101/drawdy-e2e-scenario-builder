@@ -9,6 +9,14 @@
   rounds than there are choices.
 - A Happy scenario that passes a `[negative]` choice (a retry that then succeeds)
   says `via negative` in its title.
+- README: "How the scenarios are counted", a 3-step flow counted by hand with a
+  diagram, a backwards check anyone can repeat, and what each part of the syntax
+  does to the count. A test keeps the examples and every number on the diagram in
+  step with the generator.
+- Tests: the path generator is checked against a second, independent enumerator on
+  1,500 random flows (same paths, none twice, same Happy/Negative split), EP / Pair
+  / Each are checked to keep every choice and pair, and `distinct` against its
+  closed form.
 - README: a "Writing a flow that tests well" section on test data across steps,
   one outcome per step, impossible paths, `distinct` and loop defaults.
 - Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
