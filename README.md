@@ -255,6 +255,78 @@ The extension points out unknown words with the closest known one, a `loop to st
 step that does not exist, repeated or out-of-order step numbers, a condition with
 no step, a field with a typo, and so on.
 
+## How the scenarios are counted
+
+**All** walks every path the flow allows, from step 1 to where it ends. Here is a
+small flow to count by hand:
+
+```text
+1. Sign in
+- ok
+- failed -> end
+2. Pick an item
+- shirt
+- shoes
+- sold out -> loop to step 2 [negative]
+3. Pay
+- paid
+- declined -> end
+```
+
+```mermaid
+flowchart LR
+    S1["1. Sign in"] -->|"ok · 8 paths"| S2["2. Pick an item"]
+    S1 -->|"failed · 1 path"| E1(["end"])
+    S2 -->|"shirt · 4"| S3["3. Pay"]
+    S2 -->|"shoes · 4"| S3
+    S2 -.->|"sold out ↻ · 4"| S2
+    S3 -->|"paid · 4"| H(["flow complete"])
+    S3 -->|"declined · 4"| E2(["end"])
+```
+
+The number on an arrow is how many of the scenarios use that choice. There are **9**
+scenarios: 4 Happy (they reach the end of step 3) and 5 Negative (they stop on an
+`-> end`).
+
+To check a count yourself, work backwards from the last step. Let *P(step)* be the
+number of ways to finish from that step; a choice adds 1 if it ends the flow, or
+*P(next step)* if it continues:
+
+- Step 3: paid → 1 (flow complete) + declined → 1 (end) = **2**
+- Step 2, after the loop has been used (the `sold out` choice is no longer offered):
+  shirt → 2 + shoes → 2 = **4**
+- Step 2, loop still available: shirt → 2 + shoes → 2 + sold out → 4 = **8**
+- Step 1: ok → 8 + failed → 1 = **9**
+
+What each part of the syntax does to the count:
+
+| In the flow | Effect |
+| --- | --- |
+| A step with several choices | one branch per choice; the branches multiply with the steps after them |
+| A step with no choices | passes through; no effect |
+| `-> end` | that branch stops there and is one Negative scenario, however many steps remain |
+| `-> loop to step N` | goes back and takes that step again. Each use counts against `max` (default 1); once used up, the choice is simply no longer offered, it does not end the scenario |
+| `sets` / `needs` | a choice with `needs` is offered only if the path already carries the tag; a tag stays for the rest of the path. Choices that cannot be offered are cut, together with every scenario through them |
+| `distinct` | on a loop back to a step: the choices already taken at that step are not offered again, and rounds that differ only in order count once |
+
+`sets` / `needs` is what keeps impossible paths out. In this flow, only 2 of the 4
+combinations can happen:
+
+```text
+1. Account
+- level 1 [sets lv1]
+- level 2 [sets lv2]
+2. Buy a premium item
+- allowed [needs lv2]
+- blocked -> end [needs lv1]
+```
+
+Level 1 can only be blocked, level 2 can only be allowed, so there are **2** scenarios
+(1 Happy, 1 Negative) instead of 4.
+
+The other modes pick from these scenarios (see Modes below). They never invent a
+scenario: EP, Pair and Each give a subset of what All lists.
+
 ## Modes
 
 Choose the mode with the panel's switch.
@@ -262,18 +334,105 @@ Choose the mode with the panel's switch.
 | Mode | What you get |
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked |
-| Pairwise (2-wise) | every pair of conditions that can meet is in at least one scenario |
-| Each (each-choice, 1-wise) | the fewest scenarios that touch every condition once |
+| All | every path that can actually be walked (it stops at 1,000 paths and says so) |
+| Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
+| Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all four modes, so
 you can compare them.
+
+### What each mode guarantees
+
+"Coverage" means something different in each mode, and only All covers every path.
+The header of a scenario frame prints the coverage it measured (choices and pairs,
+as `x/y`), so you do not have to take it on trust.
+
+| Mode | How it picks | Always covers | Does not promise |
+| --- | --- | --- | --- |
+| All | every path, up to 1,000 | every path (not when it stopped at 1,000: the flow check says so) | |
+| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice still uncovered | every choice, and every group your `variant` marks define | every pair of choices |
+| Pairwise | greedy: take the scenario that covers the most choices and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, and every pair of choices that can share a path | three choices together, order, a second pass through a loop, the last round a loop allows |
+| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice is covered | every choice | any two choices together, loop depth |
+
+So Each and Pairwise reach 100% of the choices they promise, but never 100% of the
+paths, and they stop short of the last round of a loop (`max`) unless covering a
+choice needs it. If the end of a loop matters, use All or EP, or write that round as
+a choice of its own.
+
+#### The math
+
+**Counting paths (All).** Work backwards from the last step, as in "How the scenarios
+are counted". With no `end`, `loop` or `needs`, the number of paths is the product of
+the number of choices at each step (a step with none counts as 1).
+
+**Loops.** A loop choice with `max m` can be taken at most m times on a path, so a
+step is passed at most m + 1 times. Going round a step with k choices, whose
+steps in between can be passed in q ways, gives (k·q)^r paths for r passes, added
+up for r from 1 to m + 1.
+
+**`distinct`.** The same loop with `distinct` allows each choice at the first step
+only once and counts a set of rounds once whatever the order, so r passes give
+C(k, r)·q^r paths (C is "k choose r", the number of ways to pick r different choices):
+
+> scenarios = Σ over r = 1 … min(k, m + 1) of C(k, r) · q^r
+
+For k = 3 choices, m = 2 and nothing in between (q = 1): 3 + 3 + 1 = 7, against
+3 + 9 + 27 = 39 without `distinct`.
+
+**EP.** The number of scenarios is the number of different sets of non-`variant`
+choices on the paths (a `variant` choice that sets a tag another choice on the path `needs` still counts),
+plus a few more where a choice would otherwise be left out.
+
+**Each and Pairwise (greedy set cover).** Each scenario "covers" some items: its
+choices (Each), or its choices and every pair of its choices (Pairwise). Greedy keeps
+picking the scenario that covers the most items not covered yet, and stops when
+all items are covered. It always stops with full coverage, because every item is on
+some scenario. Finding the smallest set is a hard problem (NP-hard), so greedy can
+pick more than the minimum. For Pairwise, which is plain greedy, the result is at most
+about 1 + ln d times the minimum, where d is the most items one scenario covers. Each
+prefers readable scenarios first, so it has no such bound.
+
+To check a size by hand (a flow without loops):
+
+- Each needs at least ⌈choices ÷ the most choices on one path⌉ scenarios.
+- Pairwise needs at least as many scenarios as there are pairs of choices that can
+  meet between the two steps with the most such pairs (a path takes one choice per
+  step, so it covers one pair of those two steps).
+
+These formulas are checked by the tests (`test/oracle.test.ts`).
 
 ### Flow check
 
 The panel and the scenario frame list problems found in the flow: a step no scenario
 can reach, a condition no scenario uses, a `needs` that refers to a tag nobody sets, a
 loop that points forward, duplicate or empty labels.
+
+## Writing a flow that tests well
+
+The tool walks every path the flow allows and copies each step's fields into the
+scenario. It does not know your system, so a few things stay with the writer:
+
+- **Test data must hold on every path through it.** A scenario puts together the
+  `given:` / `data:` of every step and choice it passes. If step 2 says "account
+  lab-user-001" and a choice at step 7 says "account lab-kyc-basic-master", a scenario
+  through both lists two accounts. Write data that fits every path that can reach
+  it, or move it to the choice that decides it (and use `sets` / `needs` to keep
+  paths that do not fit apart).
+- **One choice is one outcome for the whole step.** If the system handles several
+  things one by one (each line of a cart is sent as its own request), a mixed result
+  such as "line 1 succeeds, line 2 is refused" only appears if you write it as its
+  own choice.
+- **Only allow what can really happen.** A choice reachable on paths where it cannot
+  occur makes scenarios nobody can run. For example, a "gave up after the last retry"
+  ending should need the retry first: `- provider down -> loop max 2 [negative, sets
+  retried]` and `- retries used up -> end [needs retried]`.
+- **`distinct` drops the order.** Use it when picking A then B tests the same thing
+  as B then A. If the order matters (the first item fails, the second is checked
+  next), leave it out.
+- **A loop runs once more by default.** `-> loop to step 3` without `max` allows one
+  extra round; the flow diagram shows the limit as `≤1`.
+- **Happy can include a failure on the way.** A scenario that takes a `[negative]`
+  choice and still completes is Happy; its title says `via negative`.
 
 ## Notes
 
@@ -300,6 +459,9 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
   scene), and the panel page against a stub DOM. It checks what each button does for
   each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
+- `test/oracle.test.ts`: the scenario generator against a second, independent
+  enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
+  pair, and `distinct` against its closed form.
 
 These tests do not see how things *look*, or what Drawdy itself does. Before a
 release, check by hand in Drawdy (about five minutes):
