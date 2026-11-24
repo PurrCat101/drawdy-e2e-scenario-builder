@@ -166,3 +166,23 @@ check), `src/analysis.ts` (remembering results).
 - **CALC-83** Every mode picks at least one scenario when All has one. A flow without
   choices has nothing to cover, but still has its one path: Pairwise picks the first
   Happy scenario (the first scenario if none is Happy), as EP and Each do.
+
+## Decision table
+
+The decision table (a test design technique) is worked out from the scenarios of a
+mode. Drawing it is OUT-60 and the rules after it.
+
+- **CALC-90** A **condition** of the decision table is a step with two or more
+  choices. Its **values** are its choices, in the order they are written. A step with
+  fewer than two choices is not a condition and is left out.
+- **CALC-91** The columns are the scenarios of the chosen mode, Happy first, then
+  Negative, each by priority and then ID (OUT-22). Column k is named `Test Scenario k`.
+  A Happy scenario belongs to the group **Success**, a Negative one to
+  **Negative**.
+- **CALC-92** A value is marked for a scenario when the scenario takes that choice at
+  least once on its path (a loop that takes two choices at one step marks both). A
+  step the scenario never reaches has no mark for it.
+- **CALC-93** (removed) The choices that end Negative scenarios and their expected
+  results were part of the decision table; they are in the Test steps table (DRV-24).
+- **CALC-94** A flow with no condition has no decision table: there is nothing to
+  decide between.

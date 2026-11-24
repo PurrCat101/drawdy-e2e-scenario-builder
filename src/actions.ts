@@ -2,7 +2,10 @@ import type { Flow, Mode } from "./flow";
 import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { analyze } from "./analysis";
-import { orderScenarios } from "./scenarioBoard";
+import { MODE_LABEL, orderScenarios } from "./scenarioBoard";
+import { buildDecisionTable, MAX_DECISION_SCENARIOS } from "./decisionTable";
+import { renderDecisionTables } from "./decisionBoard";
+import type { Scenario } from "./scenarios";
 import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
 import type { Template } from "./templates";
 import { generateId, note, run } from "./host";
@@ -120,7 +123,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     const sel = await readElements(await currentSelectionIds());
     const scenarios: ScenarioItem[] = [];
     let anchor: Box | null = null;
-    let label = "Test sequence";
+    let label = "Test steps";
     const fromList = (flow: Flow, mode: Mode) => {
         for (const sc of orderScenarios(analyze(flow).pick(mode))) {
             const sub = scenarioFlow(flow, scenarioPath(sc));
@@ -135,7 +138,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
         const mode = (frame.meta.mode as Mode) ?? uiMode;
         fromList(frame.meta.flow as Flow, mode);
         anchor = frame;
-        label = `Test sequence · ${mode.toUpperCase()}`;
+        label = `Test steps · ${mode.toUpperCase()}`;
     } else if (scenarioNotes.length) {
         for (const p of scenarioNotes) {
             const fr = p.frameId ? (await readElements([p.frameId]))[0] : undefined;
@@ -153,18 +156,18 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
             fromList(r.flow, r.mode ?? uiMode);
             anchor = anchor ?? p;
         }
-        label = `Test sequence · ${uiMode.toUpperCase()}`;
+        label = `Test steps · ${uiMode.toUpperCase()}`;
     } else if (flowFrame) {
         fromList(flowFrame.meta.e2eFlow as Flow, uiMode);
         anchor = flowFrame;
-        label = `Test sequence · ${uiMode.toUpperCase()}`;
+        label = `Test steps · ${uiMode.toUpperCase()}`;
     } else if (text) {
         const r = parseFlowText(text);
         if (!r.flow.steps.length) return "Cannot read the flow; check the syntax";
         const mode = r.mode ?? uiMode;
         fromList(r.flow, mode);
         anchor = await anchorFor(sel);
-        label = `Test sequence · ${mode.toUpperCase()}`;
+        label = `Test steps · ${mode.toUpperCase()}`;
     }
     if (!scenarios.length || !anchor)
         return "Write a flow in the box first, or select a scenario frame / scenario note on the board";
@@ -205,6 +208,73 @@ export async function copyAction(text: string, uiMode: Mode): Promise<string> {
     if (typeof got === "string") return got;
     await toPanel({ type: "clip", text: scenariosToTsv(got.scenarios), scenarios: got.scenarios.length });
     return "";
+}
+
+/** A flow and the scenarios to make a decision table of, with where to draw it. */
+type DecisionSource = { flow: Flow; scenarios: Scenario[]; mode: Mode; anchor: Box };
+
+/** The same choice as Table (DRV-24), but with the scenarios themselves and their flow. */
+async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSource[] | string> {
+    const sel = await readElements(await currentSelectionIds());
+    const frame = sel.find((p) => p.meta?.e2eScenarios && p.meta?.flow);
+    const scenarioNotes = sel.filter((x) => x.meta?.kind === "scenario" && Array.isArray(x.meta.path));
+    const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
+    const flowFrame = sel.find((x) => x.meta?.e2eFlow);
+    const of = (flow: Flow, mode: Mode, anchor: Box): DecisionSource => ({ flow, mode, scenarios: analyze(flow).pick(mode), anchor });
+    if (frame) return [of(frame.meta.flow as Flow, (frame.meta.mode as Mode) ?? uiMode, frame)];
+    if (scenarioNotes.length) {
+        // the notes of the first frame: their flow is stored on it
+        const first = scenarioNotes[0];
+        const fr = first.frameId ? (await readElements([first.frameId]))[0] : undefined;
+        const flow = fr?.meta?.flow as Flow | undefined;
+        if (!flow?.steps?.length) return "Could not draw: the selected scenario notes no longer know their flow";
+        const ids = new Set(scenarioNotes.filter((p) => p.frameId === first.frameId).map((p) => String(p.meta.id)));
+        const scenarios = analyze(flow).gen.list.filter((s) => ids.has(s.id));
+        if (!scenarios.length) return "Could not draw: the selected scenarios are not in the flow any more";
+        return [{ flow, scenarios, mode: (fr?.meta?.mode as Mode) ?? uiMode, anchor: first }];
+    }
+    if (flowNotes.length) {
+        const out: DecisionSource[] = [];
+        for (const p of flowNotes) {
+            const r = parseFlowText(p.text);
+            if (r.flow.steps.length) out.push(of(r.flow, r.mode ?? uiMode, p));
+        }
+        return out.length ? out : "Cannot read the flow; check the syntax";
+    }
+    if (flowFrame) return [of(flowFrame.meta.e2eFlow as Flow, uiMode, flowFrame)];
+    if (text) {
+        const r = parseFlowText(text);
+        if (!r.flow.steps.length) return "Cannot read the flow; check the syntax";
+        return [of(r.flow, r.mode ?? uiMode, await anchorFor(sel))];
+    }
+    return "Write a flow in the box first, or select a scenario frame / scenario note on the board";
+}
+
+/**
+ * Button 4b: the decision table of the same scenarios (CALC-90 to 94), drawn as text
+ * boxes below the selection or in view (OUT-60 to 64).
+ */
+export async function decisionAction(text: string, uiMode: Mode): Promise<string> {
+    const got = await collectDecision(text, uiMode);
+    if (typeof got === "string") return got;
+    let drawn = 0;
+    let first = "";
+    for (const src of got) {
+        const dt = buildDecisionTable(src.flow, src.scenarios);
+        if (!dt.conditions.length) return "Cannot draw a decision table: the flow has no step with two or more choices";
+        if (dt.columns.length > MAX_DECISION_SCENARIOS)
+            return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each`;
+        const name = `Decision table · ${MODE_LABEL[src.mode]}`;
+        const size = renderDecisionTables({ table: dt, name, origin: [0, 0], generateId });
+        const origin = findFree(await occupiedRects(), src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
+        const out = renderDecisionTables({ table: dt, name, origin, generateId });
+        const failed = await addInBatches(out.elements);
+        if (failed) return "Could not draw the decision table: " + failed;
+        drawn += dt.columns.length;
+        first = first || out.frameIds[0];
+    }
+    await run("command:camera:fly-to-elements", { drawdyElementIds: [first], flyDurationMs: 400, zoom: 0.3 });
+    return `Decision table drawn (${drawn} scenarios)`;
 }
 
 const HINT_BOARD =

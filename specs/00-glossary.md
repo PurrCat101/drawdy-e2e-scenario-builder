@@ -11,12 +11,12 @@
 - **TERM-04 Path.** One walk through the flow from step 1 until it either passes the
   last step or takes an `end` choice. A path lists, for each step it visits, the
   choice taken there (or none, for a step without choices).
-- **TERM-05 Scenario.** One path, as a test: several test cases in a row. It is
+- **TERM-05 Scenario.** One path, as a test: several test steps in a row. It is
   **Happy** when it passes the last step (loops included) and **Negative** when it
   ends on an `end` choice. The user sees "scenario", never "case" (see UI-20).
-- **TERM-06 Test case.** One step of a scenario with the choice taken there, and the
+- **TERM-06 Test step.** One step of a scenario with the choice taken there, and the
   setup (`given:`), test data (`data:`) and expected result (`then:`) that apply. One
-  row of a scenario's table.
+  row of a scenario's table (the Test steps button).
 - **TERM-07 Mode.** How many scenarios are shown: All, EP (equivalence
   partitioning), Pairwise (2-wise) or Each (each-choice, 1-wise). See CALC-30 to
   CALC-37.

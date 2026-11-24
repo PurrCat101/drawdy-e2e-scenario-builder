@@ -29,7 +29,7 @@ There is no server: nothing leaves the user's browser.
   | `target` | | what is selected? (polled every 1.2 s) |
   | `pull` | | send me the selected `@builder` note's text |
   | `template` | `id` | drop a starter note |
-  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table`, `copy` |
+  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `decision`, `copy` (Copy to clipboard) |
 
 - **DRV-11** Driver → panel:
 
@@ -73,15 +73,22 @@ There is no server: nothing leaves the user's browser.
 - **DRV-23** Flow: paste box text or `@builder` notes → the flow diagram only; scenario
   notes → for each, the flow of that scenario next to its frame, and its table
   under it.
-- **DRV-24** Table: the test case tables of the first of these that applies:
+- **DRV-24** Test steps: the test step tables of the first of these that applies:
   1. a selected scenario frame → all its scenarios, in the mode it was drawn in;
   2. selected scenario notes → those scenarios (from the flow stored on their frame);
   3. selected `@builder` notes → all scenarios of the chosen mode (or the note's
      `@mode`);
   4. a selected flow frame → all scenarios of the chosen mode;
   5. the paste box text → all scenarios of the chosen mode (or its `@mode`).
-- **DRV-25** Copy table: the same choice as Table (or a selected table) as
-  tab-separated text, sent with `clip`.
+- **DRV-25** Copy to clipboard: the same choice as Test steps (or a selected table, which may be
+  a decision table frame, OUT-64) as tab-separated text, sent with `clip`.
+- **DRV-57** Decision table: draws the decision table (CALC-90 to 94, OUT-60 to 64) of
+  the scenarios chosen as for Test steps (DRV-24), below the selection or in view; with
+  scenario notes selected, only those scenarios; with several `@builder` notes selected,
+  one table for each. Nothing is drawn, and the status says why, when the flow has no
+  step with two or more choices ("Cannot draw a decision table: ...") or when there are
+  more than 60 scenarios ("Could not draw: ... pick EP, Pair or Each"). On success the
+  status is "Decision table drawn (N scenarios)" and the view flies to the table.
 - **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the
@@ -143,8 +150,11 @@ the old one.
   - `webview.ts`: opening the panel, the theme (UI-50), messages to the panel.
   - `panelMessages.ts`: messages from the panel (`preview`, `pull`, `target`,
     `template`, `action`) and the live counts of the selected note (DRV-40 to DRV-44).
-  - `actions.ts`: what each button does (Flow, Scenarios, Flow + Scenarios, Table, Copy
-    table, starter note).
+  - `actions.ts`: what each button does (Flow, Scenarios, Flow + Scenarios, Test
+    steps, Decision table, Copy to clipboard, starter note).
   - `drawing.ts`: drawing the flow, the scenario frame and the tables on the board.
+  - `decisionTable.ts` (the decision table of a flow's scenarios) and `decisionBoard.ts`
+    (drawing it as text boxes), used by the Decision table button; `textBox.ts`: the
+    filled text boxes every note and the decision table are made of.
   - `selection.ts`: reading the selection and the board, finding free space.
   A change of behaviour goes in the file of its job; no file may import `index.ts`.

@@ -4,6 +4,13 @@
 
 ### Read this before upgrading
 
+- **The buttons have new names and groups.** **Table** is now **Test steps** (and **Flow +
+  Table** is **Flow + Test steps**), **Copy table** is **Copy to clipboard**, and the
+  buttons sit under the headings **Draw**, **Tables** and **Export**. Their labels end
+  with how many scenarios they use (`Test steps · 28 scenarios`) instead of a long
+  sentence. The frame the Test steps button draws is named `Test steps · …`, not `Test
+  sequence · …`. In the README a row of that table is a **test step** (it was a "test
+  case", which most people use for what we call a scenario).
 - **One starter note.** The Basic, Loop and Levels buttons are replaced by one **Start
   with a template** button: an online-shop checkout (log in or guest, products in a
   loop, shipping, payment) that uses every piece of the syntax.
@@ -18,6 +25,13 @@
 
 ### Added
 
+- **Decision table** button: the decision table of the scenarios of the chosen mode. The
+  steps that decide (two or more choices) are the rows, each scenario is a column under
+  a **Success** (Happy) or **Negative** bar, an X marks the choices a
+  scenario takes. It is drawn as ordinary boxes, so it
+  can be edited on the board, ten scenarios to a frame and at most 60. **Copy to clipboard**
+  copies a selected decision table for a spreadsheet, with the scenario IDs
+  (CALC-90 to 94, OUT-60 to 64, DRV-57).
 - MIT license (`LICENSE`, `package.json`, README): free to use and share, with the
   copyright line kept.
 - README: a table of contents with links to every section, and the starter template as

@@ -12,6 +12,7 @@ import { test } from "node:test";
 import * as driver from "../src/index.ts";
 import { parseFlowText } from "../src/syntax.ts";
 import { fitHeight } from "../src/textBox.ts";
+import { TEMPLATES } from "../src/templates.ts";
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -174,6 +175,35 @@ test("DRV-24: Table: a selected scenario note gives one table, the text gives al
     assert.equal(g.tables().at(-1)!.meta.scenarios, 2);
 });
 
+test("UI-06: the buttons are in three groups under the headings Draw, Tables and Export", () => {
+    const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+    const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="status"'));
+    // headings and buttons, in the order the user sees them
+    const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
+    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "decision", "Export", "copy"]);
+    const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
+    assert.deepEqual(
+        ["flow", "scenarios", "board", "table", "decision", "copy"].map(label),
+        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Decision table", "Copy to clipboard"]
+    );
+    // Flow + Scenarios is the primary button; the three tables and export buttons are full width
+    assert.match(block, /<button id="board" class="primary wide"/);
+    for (const id of ["table", "decision", "copy"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
+});
+
+test("OUT-30: the Test steps frame is named after the button, with the mode when it holds many scenarios", async () => {
+    const h = await drawn();
+    h.select(h.idOf(scenarioNotes(h)[0]));
+    await h.action("table", FLOW);
+    const names = h.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    assert.equal(names.length, 1);
+    assert.ok(names[0].startsWith("Test steps"), names[0]);
+    const g = await drawn();
+    await g.action("table", FLOW, "ep");
+    const many = g.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    assert.match(many[0], /^Test steps · EP · 2 scenarios$/);
+});
+
 test("OUT-01 OUT-30 OUT-31: a table is placed in board coordinates and its columns include their padding", async () => {
     const h = await drawn();
     await h.action("table", FLOW);
@@ -198,7 +228,7 @@ test("DRV-20: a selection wins over the text left in the panel", async () => {
     assert.ok(!clip.text.includes("s4"));
 });
 
-test("DRV-25: Copy table: nothing selected copies every scenario of the mode; a table copies itself", async () => {
+test("DRV-25: Copy to clipboard: nothing selected copies every scenario of the mode; a table copies itself", async () => {
     const h = await drawn();
     await h.action("copy", FLOW);
     assert.equal(h.lastClip().scenarios, 2);
@@ -213,7 +243,7 @@ test("DRV-25: Copy table: nothing selected copies every scenario of the mode; a 
     assert.equal(h.lastClip().text, comp.meta.tsv);
 });
 
-test("DRV-27: Copy table: without a flow or a selection it says so and copies nothing", async () => {
+test("DRV-27: Copy to clipboard: without a flow or a selection it says so and copies nothing", async () => {
     const h = await makeHost();
     await h.action("copy", "");
     assert.equal(h.lastClip(), undefined);
@@ -429,6 +459,110 @@ test("DRV-22: Scenarios on a selected scenario frame draws a new frame in the ch
     assert.ok(!h.find((e) => typeof e.text === "string" && /^Select a sticky note/.test(e.text)).length, "no hint note");
 });
 
+/* ------------------------------- decision table ------------------------------- */
+
+const decisionFrames = (h: Awaited<ReturnType<typeof makeHost>>) => h.frames().filter((f) => f.meta?.e2eDecision);
+const lastStatus = (h: Awaited<ReturnType<typeof makeHost>>) => [...h.toPanel].reverse().find((m) => m.type === "status");
+
+test("DRV-57 OUT-60: Decision table from the paste box draws frames of text boxes and says how many scenarios", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "pair");
+    const frames = decisionFrames(h);
+    assert.equal(frames.length, 1);
+    assert.match(frames[0].name, /^Decision table · Pairwise \(2-wise\) · 10 scenarios$/);
+    assert.equal(lastStatus(h).text, "Decision table drawn (10 scenarios)");
+    assert.ok(!lastStatus(h).bad);
+    assert.ok(h.find((e) => e.type === "shape" && e.text === "Test Scenario 10").length === 1);
+    assert.equal(h.tables().length, 0, "no embedded page");
+    assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
+});
+
+test("DRV-57: with a scenario frame selected, the decision table is of all its scenarios, in the mode it was drawn in", async () => {
+    const h = await makeHost();
+    await h.action("board", FLOW, "min");
+    const frame = h.frames().find((f) => /^Scenarios/.test(f.name))!;
+    h.select(h.idOf(frame));
+    await h.action("decision", "", "all"); // the panel's switch says All: the frame's own mode wins
+    const dt = decisionFrames(h);
+    assert.equal(dt.length, 1);
+    assert.match(dt[0].name, /^Decision table · Each-Choice \(1-wise\) · /);
+    assert.equal(dt[0].meta.scenarios, frame.meta.count);
+});
+
+test("DRV-57: with scenario notes selected, only those scenarios are columns", async () => {
+    const h = await makeHost();
+    await h.action("board", FLOW, "all");
+    const notes = scenarioNotes(h);
+    assert.ok(notes.length >= 2);
+    h.select(h.idOf(notes[0]));
+    await h.action("decision", "", "ep");
+    const dt = decisionFrames(h);
+    assert.equal(dt.length, 1);
+    assert.equal(dt[0].meta.scenarios, 1);
+    assert.equal(h.find((e) => e.type === "shape" && /^Test Scenario \d+$/.test(e.text ?? "")).length, 1);
+});
+
+test("DRV-57: a @builder note selected gives a table for its flow, and two notes give two tables", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "n1", text: FLOW });
+    h.add({ type: "shape", componentType: "rect", x: 400, y: 0, width: 300, height: 100, drawdyElementId: "n2", text: FLOW });
+    h.select("n1");
+    await h.action("decision", "", "all");
+    assert.equal(decisionFrames(h).length, 1);
+    h.select("n1", "n2");
+    await h.action("decision", "", "all");
+    assert.equal(decisionFrames(h).length, 3, "one more for each of the two notes");
+});
+
+test("DRV-57: a flow with no step that decides draws nothing and says why", async () => {
+    const h = await makeHost();
+    await h.action("decision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "ep");
+    assert.equal(decisionFrames(h).length, 0);
+    const s = lastStatus(h);
+    assert.match(s.text, /^Cannot draw a decision table: the flow has no step with two or more choices/);
+    assert.ok(s.bad);
+});
+
+test("DRV-57: more than 60 scenarios draws nothing and names the smaller modes", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "all"); // 113 scenarios
+    assert.equal(decisionFrames(h).length, 0);
+    const s = lastStatus(h);
+    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick EP, Pair or Each$/);
+    assert.ok(s.bad);
+});
+
+test("DRV-57: nothing selected and no text gives the usual hint", async () => {
+    const h = await makeHost();
+    await h.action("decision", "", "ep");
+    assert.equal(decisionFrames(h).length, 0);
+    assert.ok(lastStatus(h).bad);
+});
+
+test("DRV-25 OUT-64 UI-30: a selected decision table is a table: the panel says so and Copy to clipboard copies its text", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "pair");
+    const frame = decisionFrames(h)[0];
+    h.select(h.idOf(frame));
+    const target = await h.lastTarget();
+    assert.equal(target.kind, "table");
+    assert.equal(target.n, 10);
+    await h.action("copy", "");
+    const clip = h.lastClip();
+    assert.equal(clip.scenarios, 10);
+    assert.match(clip.text, /^Condition\tCombination\tTest Scenario 1\t/);
+    assert.equal(clip.text, frame.meta.tsv);
+});
+
+test("OUT-60 OUT-01: the decision table is placed below what is selected, not on top of it", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 100, y: 100, width: 300, height: 100, drawdyElementId: "n1", text: FLOW });
+    h.select("n1");
+    await h.action("decision", "", "all");
+    const f = decisionFrames(h)[0];
+    assert.ok(f.position[1] >= 100 + 100, "the table starts below the note");
+});
+
 /* ------------------------------ the panel page ----------------------------- */
 
 function loadPanel() {
@@ -502,21 +636,21 @@ test("UI-31: panel: which buttons are on for each selection", () => {
     try {
         const row = (kind: string) => {
             p.send({ type: "target", kind, n: 1 });
-            return ["flow", "scenarios", "board", "table", "copy"]
+            return ["flow", "scenarios", "board", "table", "decision", "copy"]
                 .map((id) => (p.els[id].disabled ? "-" : id))
                 .filter((x) => x !== "-")
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("scenarios"), "flow,table,copy");
-        assert.equal(row("frame"), "scenarios,table,copy");
-        assert.equal(row("flows"), "flow,scenarios,board,table,copy");
-        assert.equal(row("flowframe"), "scenarios,board,table,copy");
+        assert.equal(row("scenarios"), "flow,table,decision,copy");
+        assert.equal(row("frame"), "scenarios,table,decision,copy");
+        assert.equal(row("flows"), "flow,scenarios,board,table,decision,copy");
+        assert.equal(row("flowframe"), "scenarios,board,table,decision,copy");
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
-        assert.equal(row("none"), "flow,scenarios,board,table,copy");
+        assert.equal(row("none"), "flow,scenarios,board,table,decision,copy");
     } finally {
         p.restore();
     }
@@ -528,16 +662,22 @@ test("UI-32 UI-33: panel: labels follow the selection and say what will be used"
         p.els.t.value = "x";
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
         p.send({ type: "target", kind: "none", n: 0 });
-        assert.equal(p.els.table.textContent, "Table · all scenarios of mode EP (28)");
-        assert.equal(p.els.copy.textContent, "Copy table · all scenarios of mode EP (28)");
+        assert.equal(p.els.table.textContent, "Test steps · EP · 28 scenarios");
+        assert.equal(p.els.decision.textContent, "Decision table · EP · 28 scenarios");
+        assert.equal(p.els.copy.textContent, "Copy to clipboard · EP · 28 scenarios");
         assert.equal(p.els.flow.textContent, "Flow");
         p.send({ type: "target", kind: "scenarios", n: 2 });
-        assert.equal(p.els.table.textContent, "Table · selected scenarios (2)");
-        assert.equal(p.els.flow.textContent, "Flow + Table");
+        assert.equal(p.els.table.textContent, "Test steps · 2 scenarios");
+        assert.equal(p.els.decision.textContent, "Decision table · 2 scenarios");
+        assert.equal(p.els.flow.textContent, "Flow + Test steps");
         p.send({ type: "target", kind: "frame", n: 28 });
-        assert.equal(p.els.copy.textContent, "Copy table · all scenarios in the frame (28)");
+        assert.equal(p.els.copy.textContent, "Copy to clipboard · 28 scenarios");
+        assert.equal(p.els.decision.textContent, "Decision table · 28 scenarios");
+        p.send({ type: "target", kind: "scenarios", n: 1 });
+        assert.equal(p.els.table.textContent, "Test steps · 1 scenario");
+        assert.equal(p.els.decision.textContent, "Decision table · 1 scenario");
         p.send({ type: "target", kind: "table", n: 1 });
-        assert.equal(p.els.copy.textContent, "Copy table · selected table");
+        assert.equal(p.els.copy.textContent, "Copy to clipboard · selected table");
     } finally {
         p.restore();
     }
@@ -640,9 +780,9 @@ test("UI-14: panel: the clipboard message copies and reports", () => {
 
 test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
     const word = /\b(test )?cases?\b/i;
-    // the files people read ("letter case" is something else; "test case" is defined in the README)
+    // the files people read ("letter case" is something else)
     for (const f of ["../README.md", "../src/templates.ts"]) {
-        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "").replace(/test cases?/gi, ""); // "test case" is a defined term (README: Terms)
+        const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "");
         const hit = text.split("\n").find((l) => word.test(l) && !/^## /.test(l));
         assert.ok(!hit, f + ": " + hit);
     }

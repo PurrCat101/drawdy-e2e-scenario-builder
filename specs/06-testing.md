@@ -16,6 +16,8 @@ packages).
   the formulas (CALC-12, CALC-17, CALC-38).
 - **TEST-04** `test/specs.test.ts`: rule IDs are unique across the specs, every rule ID
   a test names exists, and the spec index lists every spec file.
+- **TEST-31** `test/decision.test.ts`: the decision table (CALC-90 to 94, OUT-60 to 64) on fixed flows;
+  `test/property.test.ts` checks it on flows made by fast-check.
 - **TEST-05** `npm test` lists the test files explicitly (`package.json`): a new test
   file must be added there.
 

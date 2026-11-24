@@ -6,7 +6,7 @@ import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
  * takes any width and height, so each note is sized to fit its text (OUT-50).
  */
 
-export type Tone = "blue" | "pink" | "green" | "orange" | "yellow" | "amber" | "red";
+export type Tone = "blue" | "pink" | "green" | "orange" | "yellow" | "amber" | "red" | "purple" | "violet" | "gray";
 
 /** The colour of the text in every text box. */
 export const TEXT_COLOR = "#000000";
@@ -20,6 +20,9 @@ export const TONES: Record<Tone, { fill: string; ink: string }> = {
     yellow: { fill: "#fef9c3", ink: "#854d0e" },
     amber: { fill: "#fde68a", ink: "#78350f" },
     red: { fill: "#fee2e2", ink: "#991b1b" },
+    purple: { fill: "#ede9fe", ink: "#5b21b6" },
+    violet: { fill: "#c4b5fd", ink: "#4c1d95" },
+    gray: { fill: "#e5e7eb", ink: "#374151" },
 };
 
 /** Width of a character and height of a line, as a share of the font size. */
@@ -50,6 +53,9 @@ export type TextBoxOptions = {
     text: string;
     fontSize: number;
     tone: Tone;
+    /** Default: left, from the top (a note). A label in a grid is centred. */
+    align?: "left" | "center";
+    valign?: "top" | "middle";
     meta?: Record<string, any>;
 };
 
@@ -74,8 +80,8 @@ export function textBox(o: TextBoxOptions): DrawdyElementSchema {
         roughness: 0,
         text: o.text,
         fontSize: o.fontSize,
-        textAlign: "left",
-        textVerticalAlign: "top",
+        textAlign: o.align ?? "left",
+        textVerticalAlign: o.valign ?? "top",
         ...(o.meta ? { meta: o.meta } : {}),
     } as DrawdyElementSchema;
 }

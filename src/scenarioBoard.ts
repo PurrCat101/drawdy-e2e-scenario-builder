@@ -12,7 +12,7 @@ const HEAD = 70;
 const FONT = 13; // a scenario note
 const HEAD_FONT = 14;
 
-const MODE_LABEL: Record<Mode, string> = {
+export const MODE_LABEL: Record<Mode, string> = {
     ep: "Equivalence Partitioning",
     all: "All Paths",
     pair: "Pairwise (2-wise)",

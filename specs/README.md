@@ -6,7 +6,7 @@ fixed to match it (or the spec is changed on purpose, in the same commit).
 
 | File | Covers |
 | --- | --- |
-| [00-glossary.md](00-glossary.md) | The words: flow, step, choice, scenario, test case, loop end… |
+| [00-glossary.md](00-glossary.md) | The words: flow, step, choice, scenario, test step, loop end… |
 | [01-frontend.md](01-frontend.md) | The panel (the extension's window): layout, buttons, what is shown and when |
 | [02-backend.md](02-backend.md) | The driver: lifecycle, messages with the panel, Drawdy commands, what each button does for each selection, data kept on the board, caching |
 | [03-calculation.md](03-calculation.md) | How scenarios are worked out: paths, tags, loops, `distinct`, the 1,000 limit, the modes and what each guarantees, IDs, the flow check |

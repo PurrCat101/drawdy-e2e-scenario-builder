@@ -9,6 +9,7 @@ import type { Cond, Flow } from "../src/flow.ts";
 import { formatFlow, parseFlowText } from "../src/syntax.ts";
 import { generate, pick, singles } from "../src/scenarios.ts";
 import { analyze, clearCache } from "../src/analysis.ts";
+import { buildDecisionTable } from "../src/decisionTable.ts";
 
 const RUNS = Number(process.env.PBT_RUNS ?? 300);
 
@@ -337,6 +338,38 @@ test("CALC-17 (property): in the rounds of a distinct loop, its target step neve
                     }
                 }
             }
+        }),
+        { numRuns: RUNS }
+    );
+});
+
+test("CALC-90 to CALC-92 (property): the decision table has a column for every scenario of the mode, marks only what the path takes", () => {
+    fc.assert(
+        fc.property(small, fc.constantFrom("all", "ep", "pair", "min") as fc.Arbitrary<"all" | "ep" | "pair" | "min">, (flow, mode) => {
+            const list = pick(generate(flow, 1000, 1e9), mode);
+            const dt = buildDecisionTable(flow, list);
+            // CALC-91: a column for each scenario, Happy first
+            assert.equal(dt.columns.length, list.length);
+            const firstNeg = dt.columns.findIndex((c) => c.type === "neg");
+            assert.ok(firstNeg === -1 || dt.columns.slice(firstNeg).every((c) => c.type === "neg"));
+            assert.equal(dt.success, firstNeg === -1 ? dt.columns.length : firstNeg);
+            // CALC-90: the conditions are the steps with two or more choices, in flow order
+            assert.deepEqual(
+                dt.conditions.map((c) => c.step),
+                flow.steps.flatMap((s, i) => (s.conds.length >= 2 ? [i] : []))
+            );
+            const byId = new Map(list.map((s) => [s.id, s]));
+            dt.columns.forEach((col, k) => {
+                const sc = byId.get(col.id)!;
+                const path = sc.path.filter((v) => v.c);
+                // CALC-92: a mark is a choice on the path, and every choice at a condition is marked
+                dt.conditions.forEach((cd, ci) =>
+                    cd.values.forEach((v, vi) => {
+                        const takes = path.some((p) => p.i === cd.step && p.c!.id === v.id);
+                        assert.equal(dt.marks[ci][vi][k], takes, `${col.id} ${v.id}`);
+                    })
+                );
+            });
         }),
         { numRuns: RUNS }
     );

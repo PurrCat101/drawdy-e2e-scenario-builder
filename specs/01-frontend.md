@@ -15,8 +15,10 @@ control: flows are written on the board, not in the panel.
 - **UI-04** The plan line: "Mode X: N scenarios". Above 50 it adds "(a lot; the board
   may get slow. …)", naming only the modes that would draw fewer, fewest first.
 - **UI-05** The mode switch: All, EP (default), Pair, Each.
-- **UI-06** The action buttons: Flow, Scenarios, Flow + Scenarios (primary, full
-  width), Table (full width), Copy table (full width).
+- **UI-06** The action buttons, in three groups, each under a small heading: **Draw**
+  (Flow, Scenarios, Flow + Scenarios, which is primary and full width), **Tables** (Test
+  steps and Decision table, each full width) and **Export** (Copy to clipboard, full
+  width).
 - **UI-07** The status line, right under the buttons.
 - **UI-08** "Start a flow on the board": one Starter note button, "Start with a template",
   and one hint line.
@@ -31,15 +33,15 @@ control: flows are written on the board, not in the panel.
 - **UI-12** The Starter note button sends `template` with its id (`shop`).
 - **UI-13** "Pull from selected note" sends `pull`; the answer (`fill`) puts the text
   in the paste box and unfolds it.
-- **UI-14** Copy table: the driver sends `clip` with the text; the panel copies it
+- **UI-14** Copy to clipboard: the driver sends `clip` with the text; the panel copies it
   (execCommand, then the Clipboard API) and says "Copied N scenario(s). Paste with
   Ctrl+V", or that the browser blocked it.
 
 ## Terminology
 
 - **UI-20** Everything the user reads says "scenario", never "case" (a test checks
-  labels, tooltips, placeholders and messages). "Test case" is allowed only with the
-  meaning of TERM-06.
+  labels, tooltips, placeholders and messages). "Test step" (TERM-06) is the name of a row
+  of the Test steps table.
 - **UI-21** No Thai text in what the user sees.
 
 ## Selection and buttons
@@ -49,21 +51,23 @@ control: flows are written on the board, not in the panel.
   (a scenario frame), `flowframe` (a flow frame), `table`.
 - **UI-31** Which buttons are on:
 
-  | Selection | Flow | Scenarios | Flow + Scenarios | Table | Copy table |
-  | --- | --- | --- | --- | --- | --- |
-  | none, paste box empty | off | off | off | off | off |
-  | none, text in the paste box | on | on | on | on | on |
-  | flows | on | on | on | on | on |
-  | scenarios | on ("Flow + Table") | off | off | on | on |
-  | frame | off | on | off | on | on |
-  | flowframe | off | on | on | on | on |
-  | table | off | off | off | off | on |
+  | Selection | Flow | Scenarios | Flow + Scenarios | Test steps | Decision table | Copy to clipboard |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | none, paste box empty | off | off | off | off | off | off |
+  | none, text in the paste box | on | on | on | on | on | on |
+  | flows | on | on | on | on | on | on |
+  | scenarios | on ("Flow + Test steps") | off | off | on | on | on |
+  | frame | off | on | off | on | on | on |
+  | flowframe | off | on | on | on | on | on |
+  | table (a table or a decision table) | off | off | off | off | off | on |
 
   A button that is off says "Not available for what is selected".
-- **UI-32** With scenario notes selected, the Flow button reads "Flow + Table".
-- **UI-33** The Table and Copy table labels say what they will use: "all scenarios in
-  the frame (N)", "selected scenarios (N)", "selected table", or "all scenarios of mode
-  M (N)" for the paste box.
+- **UI-32** With scenario notes selected, the Flow button reads "Flow + Test steps".
+- **UI-33** The Test steps, Decision table and Copy to clipboard labels end with what
+  they use: ` · N scenarios` (`· 1 scenario` for one) for a scenario frame or selected
+  scenario notes, ` · selected table` (Copy to clipboard only) for a selected table, or
+  ` · M · N scenarios` (the mode and its count) for the paste box. With nothing to use
+  the label is just the name. The box above the buttons says what is selected (UI-02).
 
 ## Counts while writing
 
