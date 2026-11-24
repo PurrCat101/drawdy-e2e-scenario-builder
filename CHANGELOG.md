@@ -2,9 +2,15 @@
 
 ## Unreleased
 
-- `distinct` option for `loop to step N`: the next round offers only choices not
-  taken yet, and a set of picks counts once whatever the order. An "add another
-  item" loop over 3 items now gives 6 pick sets instead of 12 (3 + 3×3).
+- `distinct` option for `loop to step N`: the next round offers only the choices
+  not taken yet at the step it goes back to, and rounds that differ only in order
+  count once. An "add another item" loop over 3 items gives 6 pick sets instead of
+  12 (3 + 3×3). The panel warns when `distinct` does nothing or `max` asks for more
+  rounds than there are choices.
+- A Happy scenario that passes a `[negative]` choice (a retry that then succeeds)
+  says `via negative` in its title.
+- README: a "Writing a flow that tests well" section on test data across steps,
+  one outcome per step, impossible paths, `distinct` and loop defaults.
 - Starter notes: the Basic, Loop and Levels buttons drop a ready-made `@builder`
   note on the board, with the syntax explained in `#` comments, so a flow is
   written on the board instead of in the small panel.

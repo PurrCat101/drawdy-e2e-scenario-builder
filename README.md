@@ -275,6 +275,33 @@ The panel and the scenario frame list problems found in the flow: a step no scen
 can reach, a condition no scenario uses, a `needs` that refers to a tag nobody sets, a
 loop that points forward, duplicate or empty labels.
 
+## Writing a flow that tests well
+
+The tool walks every path the flow allows and copies each step's fields into the
+scenario. It does not know your system, so a few things stay with the writer:
+
+- **Test data must hold on every path through it.** A scenario puts together the
+  `given:` / `data:` of every step and choice it passes. If step 2 says "account
+  lab-user-001" and a choice at step 7 says "account lab-kyc-basic-master", a scenario
+  through both lists two accounts. Write data that fits every path that can reach
+  it, or move it to the choice that decides it (and use `sets` / `needs` to keep
+  paths that do not fit apart).
+- **One choice is one outcome for the whole step.** If the system handles several
+  things one by one (each line of a cart is sent as its own request), a mixed result
+  such as "line 1 succeeds, line 2 is refused" only appears if you write it as its
+  own choice.
+- **Only allow what can really happen.** A choice reachable on paths where it cannot
+  occur makes scenarios nobody can run. For example, a "gave up after the last retry"
+  ending should need the retry first: `- provider down -> loop max 2 [negative, sets
+  retried]` and `- retries used up -> end [needs retried]`.
+- **`distinct` drops the order.** Use it when picking A then B tests the same thing
+  as B then A. If the order matters (the first item fails, the second is checked
+  next), leave it out.
+- **A loop runs once more by default.** `-> loop to step 3` without `max` allows one
+  extra round; the flow diagram shows the limit as `≤1`.
+- **Happy can include a failure on the way.** A scenario that takes a `[negative]`
+  choice and still completes is Happy; its title says `via negative`.
+
 ## Notes
 
 - The flow is kept in the `meta` of the drawn frame, so scenarios can be
