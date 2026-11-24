@@ -255,6 +255,78 @@ The extension points out unknown words with the closest known one, a `loop to st
 step that does not exist, repeated or out-of-order step numbers, a condition with
 no step, a field with a typo, and so on.
 
+## How the scenarios are counted
+
+**All** walks every path the flow allows, from step 1 to where it ends. Here is a
+small flow to count by hand:
+
+```text
+1. Sign in
+- ok
+- failed -> end
+2. Pick an item
+- shirt
+- shoes
+- sold out -> loop to step 2 [negative]
+3. Pay
+- paid
+- declined -> end
+```
+
+```mermaid
+flowchart LR
+    S1["1. Sign in"] -->|"ok · 8 paths"| S2["2. Pick an item"]
+    S1 -->|"failed · 1 path"| E1(["end"])
+    S2 -->|"shirt · 4"| S3["3. Pay"]
+    S2 -->|"shoes · 4"| S3
+    S2 -.->|"sold out ↻ · 4"| S2
+    S3 -->|"paid · 4"| H(["flow complete"])
+    S3 -->|"declined · 4"| E2(["end"])
+```
+
+The number on an arrow is how many of the scenarios use that choice. There are **9**
+scenarios: 4 Happy (they reach the end of step 3) and 5 Negative (they stop on an
+`-> end`).
+
+To check a count yourself, work backwards from the last step. Let *P(step)* be the
+number of ways to finish from that step; a choice adds 1 if it ends the flow, or
+*P(next step)* if it continues:
+
+- Step 3: paid → 1 (flow complete) + declined → 1 (end) = **2**
+- Step 2, after the loop has been used (the `sold out` choice is no longer offered):
+  shirt → 2 + shoes → 2 = **4**
+- Step 2, loop still available: shirt → 2 + shoes → 2 + sold out → 4 = **8**
+- Step 1: ok → 8 + failed → 1 = **9**
+
+What each part of the syntax does to the count:
+
+| In the flow | Effect |
+| --- | --- |
+| A step with several choices | one branch per choice; the branches multiply with the steps after them |
+| A step with no choices | passes through; no effect |
+| `-> end` | that branch stops there and is one Negative scenario, however many steps remain |
+| `-> loop to step N` | goes back and takes that step again. Each use counts against `max` (default 1); once used up, the choice is simply no longer offered, it does not end the scenario |
+| `sets` / `needs` | a choice with `needs` is offered only if the path already carries the tag; a tag stays for the rest of the path. Choices that cannot be offered are cut, together with every scenario through them |
+| `distinct` | on a loop back to a step: the choices already taken at that step are not offered again, and rounds that differ only in order count once |
+
+`sets` / `needs` is what keeps impossible paths out. In this flow, only 2 of the 4
+combinations can happen:
+
+```text
+1. Account
+- level 1 [sets lv1]
+- level 2 [sets lv2]
+2. Buy a premium item
+- allowed [needs lv2]
+- blocked -> end [needs lv1]
+```
+
+Level 1 can only be blocked, level 2 can only be allowed, so there are **2** scenarios
+(1 Happy, 1 Negative) instead of 4.
+
+The other modes pick from these scenarios (see Modes below). They never invent a
+scenario: EP, Pair and Each give a subset of what All lists.
+
 ## Modes
 
 Choose the mode with the panel's switch.

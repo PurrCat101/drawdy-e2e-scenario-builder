@@ -6,6 +6,7 @@
 // All 231 / EP 28 / Pairwise 17 / Each-Choice 11.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/syntax.ts";
 import { generate, pick } from "../src/scenarios.ts";
@@ -543,4 +544,46 @@ test("a happy scenario that passes a [negative] choice says so in its title", ()
         .map((e: any) => e.text.split("\n").find((l: string) => /TS[SN]-/.test(l)));
     assert.equal(titles.filter((x: string) => /via negative/.test(x)).length, 1, titles.join(" / "));
     assert.ok(titles.some((x: string) => /Happy/.test(x) && !/via negative/.test(x)));
+});
+
+/* ------------------- the worked examples in the README --------------------- */
+
+test("README: the worked counting examples are in the README and give the numbers it states", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    const A = `1. Sign in
+- ok
+- failed -> end
+2. Pick an item
+- shirt
+- shoes
+- sold out -> loop to step 2 [negative]
+3. Pay
+- paid
+- declined -> end`;
+    const B = `1. Account
+- level 1 [sets lv1]
+- level 2 [sets lv2]
+2. Buy a premium item
+- allowed [needs lv2]
+- blocked -> end [needs lv1]`;
+    assert.ok(readme.includes(A), "example A is in the README, word for word");
+    assert.ok(readme.includes(B), "example B is in the README, word for word");
+
+    const a = generate(parseFlowText(A).flow);
+    assert.equal(a.list.length, 9);
+    assert.equal(a.list.filter((s) => s.type === "happy").length, 4);
+    assert.equal(a.list.filter((s) => s.type === "neg").length, 5);
+    // the number on each arrow of the diagram: scenarios that use the choice
+    const used: Record<string, number> = {};
+    a.list.forEach((s) => s.path.forEach((v) => v.c && (used[v.c.label] = (used[v.c.label] || 0) + 1)));
+    assert.deepEqual(used, { ok: 8, failed: 1, shirt: 4, shoes: 4, "sold out": 4, paid: 4, declined: 4 });
+    for (const [label, n] of Object.entries(used))
+        assert.ok(
+            readme.includes(`${label} · ${n}`) || readme.includes(`${label} ↻ · ${n}`),
+            `the diagram says "${label} · ${n}"`
+        );
+
+    const b = generate(parseFlowText(B).flow);
+    assert.equal(b.list.length, 2);
+    assert.deepEqual(b.list.map((s) => s.type).sort(), ["happy", "neg"]);
 });
