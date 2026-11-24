@@ -879,3 +879,91 @@ test("CALC-25: a scenario takes the most important P on its path (the lowest num
     assert.equal(pri("y>p"), 3, "only P3 on the path: P3");
     assert.equal(pri("y>q"), 2, "no P at all: P2");
 });
+
+// ---- the search time budget (CALC-22) and the flow check (CALC-13, CALC-61, CALC-62, CALC-66) ----
+
+const BIG_FLOW =
+    Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i + 1}\n- a${i}\n- b${i}\n- c${i}`).join("\n") +
+    "\n8. Last\n- ok\n- late";
+const messages = (text: string) => {
+    const flow = parseFlowText(text).flow;
+    return validate(flow, generate(flow));
+};
+
+test("CALC-22: the search past 1,000 paths has a time budget; when it runs out the result says so and the flow check says what is uncertain", async () => {
+    const { analyze, clearCache, FULL_BUDGET_MS, PREVIEW_BUDGET_MS } = await import("../src/analysis.ts");
+    assert.equal(FULL_BUDGET_MS, 3000);
+    assert.equal(PREVIEW_BUDGET_MS, 300);
+    const flow = parseFlowText(BIG_FLOW).flow;
+    // a budget already used up: the walk is capped, the search stops before it finds anything
+    const out = generate(flow, 1000, -1);
+    assert.ok(out.capped);
+    assert.equal(out.searchComplete, false);
+    assert.equal(out.pairsComplete, false);
+    const msgs = validate(flow, out).map((i) => i.msg);
+    assert.ok(msgs.some((m) => /not in any scenario: the flow is too big to finish the search/.test(m)), msgs.join(" / "));
+    assert.ok(msgs.some((m) => /not every pair \(the search ran out of time\)/.test(m)), msgs.join(" / "));
+    // with its normal budget the same flow finishes
+    const full = generate(flow);
+    assert.equal(full.searchComplete, true);
+    assert.equal(full.pairsComplete, true);
+    // a flow under the limit has no search to run out
+    assert.equal(generate(parseFlowText("1. a\n- x\n- y").flow, 1000, -1).searchComplete, true);
+    // the analysis reports it, and a full-budget press works the flow out again
+    clearCache();
+    assert.equal(analyze(flow, -1).complete, false);
+    assert.equal(analyze(flow, FULL_BUDGET_MS).complete, true);
+});
+
+test("CALC-61: no scenario at all is an error", () => {
+    const res = messages("1. a\n- x [needs z]\n2. b\n- y [sets z]");
+    assert.equal(res[0].lv, "err");
+    assert.match(res[0].msg, /^No scenarios/);
+});
+
+test("CALC-62: a step no scenario reaches is an error, and a step none of whose choices continues is a warning", () => {
+    const res = messages("1. a\n- x -> end\n2. b\n- y");
+    assert.ok(res.some((i) => i.lv === "err" && /2\. b: no scenario reaches this step/.test(i.msg)), JSON.stringify(res));
+    assert.ok(res.some((i) => i.lv === "warn" && /1\. a: no condition continues to the next step/.test(i.msg)), JSON.stringify(res));
+    // the last step is allowed to have no choice that continues
+    assert.ok(!messages("1. a\n- x\n2. b\n- y -> end").some((i) => /no condition continues/.test(i.msg)));
+});
+
+test("CALC-62: a choice without a label is an error, a duplicate label in one step is a warning", () => {
+    const flow = parseFlowText("1. a\n- x\n- y\n2. b\n- ok").flow;
+    flow.steps[0].conds[0].label = "  ";
+    const res = validate(flow, generate(flow));
+    assert.ok(res.some((i) => i.lv === "err" && /1\. a: a condition has no label/.test(i.msg)), JSON.stringify(res));
+    const dup = messages("1. a\n- x\n- x\n2. b\n- ok");
+    assert.ok(dup.some((i) => i.lv === "warn" && /1\. a: duplicate condition "x"/.test(i.msg)), JSON.stringify(dup));
+});
+
+test("CALC-62: a loop to a missing step is an error", () => {
+    const flow = parseFlowText("1. a\n- again -> loop to step 1\n- go\n2. b\n- ok").flow;
+    flow.steps[0].conds.find((c) => c.action === "loop")!.target = "no-such-step";
+    const res = validate(flow, generate(flow));
+    assert.ok(res.some((i) => i.lv === "err" && /again: loops to a missing step/.test(i.msg)), JSON.stringify(res));
+});
+
+test("CALC-62 CALC-13: a loop pointing forward is a warning, and acts as a skip", () => {
+    const flow = parseFlowText("1. a\n- again -> loop to step 2\n- go\n2. b\n- ok").flow;
+    const g = generate(flow);
+    const res = validate(flow, g);
+    assert.ok(res.some((i) => i.lv === "warn" && /again: loop points forward \(acts as a skip\)/.test(i.msg)), JSON.stringify(res));
+    // the skip: the choice is taken once and the path goes on, so no path repeats a step
+    assert.ok(g.list.every((s) => s.path.length === 2 && s.loops <= 1));
+    assert.ok(g.list.some((s) => s.path.some((v) => v.c?.label === "again")));
+});
+
+test("CALC-62: a `needs` tag nobody `sets` is an error", () => {
+    const res = messages("1. a\n- x\n2. b\n- y [needs ghost]\n- ok");
+    assert.ok(res.some((i) => i.lv === "err" && /y: need "ghost" but no condition sets that tag/.test(i.msg)), JSON.stringify(res));
+});
+
+test("CALC-66: errors are listed before warnings", () => {
+    // this flow has both: a step nobody reaches (error) and a step that does not continue (warning)
+    const res = messages("1. a\n- x -> end\n2. b\n- y");
+    assert.ok(res.some((i) => i.lv === "err") && res.some((i) => i.lv === "warn"));
+    const firstWarn = res.findIndex((i) => i.lv === "warn");
+    assert.ok(res.slice(firstWarn).every((i) => i.lv === "warn"), JSON.stringify(res));
+});

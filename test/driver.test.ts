@@ -857,3 +857,103 @@ test("UI-21: no Thai text is left in what the user sees", () => {
     for (const f of ["../editor/panel.html", "../src/index.ts", "../src/syntax.ts", "../src/scenarioBoard.ts", "../src/render.ts", "../README.md"])
         assert.ok(!thai.test(readFileSync(new URL(f, import.meta.url), "utf8")), f);
 });
+
+// ---- the data the driver keeps on the board (DRV-50 to DRV-54) and the busy flag (DRV-28) ----
+
+test("DRV-28: a second press while an action runs answers Busy and draws nothing; the next press works", async () => {
+    const h = await makeHost();
+    // both presses start before the first one can finish
+    await Promise.all([h.action("board", FLOW), h.action("board", FLOW)]);
+    const busy = h.toPanel.filter((m) => m.type === "status" && m.text === "Busy, please wait");
+    assert.equal(busy.length, 1);
+    assert.ok(!busy[0].bad, "Busy is not an error");
+    // drawn once: one flow frame and one scenario frame, not two of each
+    assert.equal(h.frames().length, 2);
+    // the flag is released afterwards
+    await h.action("board", FLOW);
+    assert.equal(h.frames().length, 4);
+});
+
+test("DRV-50: a flow frame holds the flow in meta.e2eFlow; a scenario's own flow frame holds e2eCase and no flow", async () => {
+    const h = await drawn();
+    const flowFrame = h.frames().find((f) => f.meta?.e2eFlow)!;
+    assert.deepEqual(flowFrame.meta.e2eFlow, parseFlowText(FLOW).flow);
+    assert.equal(flowFrame.meta.e2eCase, undefined);
+
+    const before = h.frames().length;
+    h.select(h.idOf(scenarioNotes(h)[0]));
+    await h.action("flow", "");
+    const own = h.frames().slice(before).find((f) => /^E2E Flow · TS[SN]-/.test(f.name))!;
+    assert.equal(own.meta.e2eCase, true);
+    assert.equal(own.meta.e2eFlow, undefined);
+});
+
+test("DRV-51: the flow diagram's parts are tagged: steps, red end boxes, and the green end", async () => {
+    const h = await drawn();
+    const flow = parseFlowText(FLOW).flow;
+    const parts = h.find((e) => e.meta?.kind);
+    const steps = parts.filter((e) => e.meta.kind === "step");
+    assert.deepEqual(steps.map((e) => e.meta.stepId).sort(), flow.steps.map((s) => s.id).sort());
+    // one red end box for the one choice that ends the flow ("bad")
+    const ends = parts.filter((e) => e.meta.kind === "end");
+    const endCond = flow.steps.flatMap((s) => s.conds).filter((c) => c.action === "end");
+    assert.equal(endCond.length, 1);
+    assert.deepEqual(ends.map((e) => e.meta.condId), endCond.map((c) => c.id));
+    assert.equal(parts.filter((e) => e.meta.kind === "end-ok").length, 1);
+});
+
+test("DRV-52: a scenario frame holds e2eScenarios, the mode, how many scenarios it shows, and the flow", async () => {
+    const h = await drawn("all");
+    const frame = h.frames().find((f) => f.meta?.e2eScenarios)!;
+    assert.equal(frame.meta.e2eScenarios, true);
+    assert.equal(frame.meta.mode, "all");
+    assert.equal(frame.meta.count, scenarioNotes(h).length);
+    assert.deepEqual(frame.meta.flow, parseFlowText(FLOW).flow);
+});
+
+test("DRV-53: a scenario note holds its id, its type, and its path as [step index, choice id | null]", async () => {
+    const h = await drawn();
+    const flow = parseFlowText(FLOW).flow;
+    const condIds = new Set(flow.steps.flatMap((s) => s.conds.map((c) => c.id)));
+    const notes = scenarioNotes(h);
+    assert.ok(notes.length >= 2);
+    for (const n of notes) {
+        assert.equal(n.meta.kind, "scenario");
+        assert.match(n.meta.id, /^TS[SN]-\d+$/);
+        assert.equal(n.meta.id.startsWith("TSS") ? "happy" : "neg", n.meta.type);
+        assert.ok(Array.isArray(n.meta.path) && n.meta.path.length > 0);
+        for (const [i, c] of n.meta.path) {
+            assert.ok(Number.isInteger(i) && i >= 0 && i < flow.steps.length);
+            assert.ok(c === null || condIds.has(c), `unknown choice id ${c}`);
+        }
+    }
+});
+
+test("DRV-54: a table holds e2eScenarioTable, how many scenarios it has, and the copy text", async () => {
+    const h = await drawn();
+    await h.action("table", FLOW);
+    const t = h.tables().at(-1)!;
+    assert.equal(t.meta.e2eScenarioTable, true);
+    assert.equal(t.meta.scenarios, 2);
+    assert.equal(typeof t.meta.tsv, "string");
+    assert.ok(t.meta.tsv.length > 0);
+    // Copy to clipboard copies exactly that text
+    h.select(h.idOf(t));
+    await h.action("copy", "");
+    assert.equal(h.lastClip().text, t.meta.tsv);
+});
+
+test("DRV-54: a table from an earlier version (`cases`, or neither) is still read: scenarios ?? cases ?? 1", async () => {
+    for (const [meta, want] of [
+        [{ e2eScenarioTable: true, cases: 3, tsv: "a\tb" }, 3],
+        [{ e2eScenarioTable: true, scenarios: 4, cases: 3, tsv: "a\tb" }, 4],
+        [{ e2eScenarioTable: true, tsv: "a\tb" }, 1],
+    ] as const) {
+        const h = await makeHost();
+        h.add({ id: "old", type: "component", meta });
+        h.select("old");
+        const t = await h.lastTarget();
+        assert.equal(t.kind, "table");
+        assert.equal(t.n, want, JSON.stringify(meta));
+    }
+});
