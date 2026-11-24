@@ -618,3 +618,19 @@ test("a choice that can never be taken says why, and is listed as unreachable", 
     assert.equal(g.unreachable?.length, 1);
     assert.ok(validate(flow, g).some((i) => /y: no path can take this choice/.test(i.msg)));
 });
+
+test("the coverage lines say OK when a mode keeps its promise, and name what is missing when not", async () => {
+    const { coverageLines } = await import("../src/scenarioBoard.ts");
+    const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 2\n- done\n3. pay\n- ok\n- no -> end").flow;
+    const g = generate(flow);
+    for (const mode of ["all", "ep", "pair", "min"] as const) {
+        const lines = coverageLines(pick(g, mode), g, mode);
+        assert.match(lines[0], /^Coverage of \d+ scenarios: choice (\d+)\/\1 \(100%\) · loop end 1\/1 \(100%\) · pair/);
+        assert.match(lines[1], /^OK: every choice, every loop end/, mode);
+    }
+    // a hand-made selection that leaves things out
+    const one = [g.list.find((s) => s.type === "happy" && s.loops === 0)!];
+    const lines = coverageLines(one, g, "min");
+    assert.ok(lines.some((l) => /^MISSING choices: .*"no"/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^MISSING loop ends: "again"/.test(l)), lines.join(" / "));
+});

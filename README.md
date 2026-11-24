@@ -344,8 +344,11 @@ you can compare them.
 ### What each mode guarantees
 
 "Coverage" means something different in each mode, and only All covers every path.
-The header of a scenario frame prints the coverage it measured (choices and pairs,
-as `x/y`), so you do not have to take it on trust.
+The header of a scenario frame prints the coverage it measured against All
+(choices, loop ends and pairs, as `x/y`), then either `OK: every choice … is
+covered` or `MISSING …` with the names of what is left out, so you do not have to
+take it on trust. The panel shows an `ERROR` if any mode ever misses what it promises
+(it should not happen; it is a safety net).
 
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |

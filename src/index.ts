@@ -8,7 +8,7 @@ import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { renderFlow } from "./render";
 import { generate, pick, validate, VIA_NEGATIVE } from "./scenarios";
-import { orderScenarios, renderScenarios } from "./scenarioBoard";
+import { orderScenarios, renderScenarios, coverageLines } from "./scenarioBoard";
 import { ICON_PNG_DATA_URI } from "./iconData";
 import { PANEL_HTML } from "./panelHtml";
 import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
@@ -132,6 +132,12 @@ function previewOf(text: string) {
     if (!flow.steps.length) return { counts: null, steps: 0, issues: reading };
     const gen = generate(flow);
     const ep = pick(gen, "ep").length;
+    // a safety net: each mode must keep its promise; say so loudly if one does not
+    const broken = (["ep", "pair", "min"] as const).flatMap((m) =>
+        coverageLines(pick(gen, m), gen, m)
+            .filter((l) => l.startsWith("MISSING"))
+            .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
+    );
     return {
         steps: flow.steps.length,
         counts: {
@@ -141,6 +147,7 @@ function previewOf(text: string) {
             min: pick(gen, "min").length,
         },
         issues: [
+            ...broken,
             ...reading,
             ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && ep > 30
                 ? ["INFO: EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
