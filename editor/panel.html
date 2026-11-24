@@ -25,7 +25,12 @@
   .chip { background: var(--soft); border-radius: 999px; padding: 3px 10px; font-size: 12px; }
   .chip b { font-weight: 700; }
   .hint { color: var(--mut); font-size: 12px; }
-  .issues { font-size: 12px; color: var(--bad); margin: 2px 0 6px; }
+  .issues { font-size: 12px; margin: 2px 0 6px; }
+  .iss { margin: 2px 0; }
+  .iss.err { color: var(--bad); }
+  .iss.warn { color: var(--dd-status-warning, #b54708); }
+  .iss.info { color: var(--mut); }
+  .issues details summary { color: var(--mut); cursor: pointer; }
   .grp { font-size: 11px; color: var(--mut); margin: 12px 0 4px; letter-spacing: .02em; }
   .tpl { display: flex; gap: 6px; }
   .tpl button { flex: 1; font-weight: 600; }
@@ -125,12 +130,45 @@
   }
   var lastCounts = null;
   var MODE_NAME = { ep: 'EP', all: 'All', pair: 'Pair', min: 'Each' };
+  // one line per issue, coloured by kind; past the first two, the rest fold away so
+  // the buttons stay in view in Drawdy's small window
+  var SHOWN_ISSUES = 2;
+  function issueKind(t) {
+    if (/^ERROR/.test(t)) return 'err';
+    if (/^(TIP|INFO)/.test(t)) return 'info';
+    return 'warn';
+  }
+  function showIssues(list) {
+    var box = $('issues');
+    box.textContent = '';
+    var line = function (t) {
+      var d = document.createElement('div');
+      d.className = 'iss ' + issueKind(t);
+      d.textContent = t;
+      return d;
+    };
+    list.slice(0, SHOWN_ISSUES).forEach(function (t) { box.appendChild(line(t)); });
+    if (list.length > SHOWN_ISSUES) {
+      var more = document.createElement('details');
+      var sum = document.createElement('summary');
+      sum.textContent = (list.length - SHOWN_ISSUES) + ' more';
+      more.appendChild(sum);
+      list.slice(SHOWN_ISSUES).forEach(function (t) { more.appendChild(line(t)); });
+      box.appendChild(more);
+    }
+  }
   function updatePlan() {
     var el = $('plan');
     if (!lastCounts) { el.textContent = ''; el.className = 'plan'; return; }
     var n = lastCounts[mode];
     var many = n > 50;
-    el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' scenarios' + (many ? ' (a lot; the board may get slow. Try EP or Pair)' : '');
+    // suggest only modes that would draw fewer scenarios than the one picked
+    var fewer = ['ep', 'pair', 'min']
+      .filter(function (m) { return m !== mode && lastCounts[m] < n; })
+      .sort(function (a, b) { return lastCounts[a] - lastCounts[b]; })
+      .map(function (m) { return MODE_NAME[m] + ' has ' + lastCounts[m]; });
+    el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' scenarios' +
+      (many ? ' (a lot; the board may get slow' + (fewer.length ? '. ' + fewer.join(', ') : '') + ')' : '');
     el.className = 'plan' + (many ? ' warn' : '');
   }
   var target = { kind: 'none', n: 0 };
@@ -167,7 +205,7 @@
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
     else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = false; } // a table: only copy
-    // a selected case note: the Flow button draws that scenario's flow and its table
+    // a selected scenario note: the Flow button draws that scenario's flow and its table
     $('flow').textContent = k === 'scenarios' ? 'Flow + Table' : 'Flow';
     var why = 'Not available for what is selected';
     ['flow', 'scenarios', 'board', 'table', 'copy'].forEach(function (id) {
@@ -270,7 +308,7 @@
       lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
       updatePlan();
       updateTarget();
-      $('issues').textContent = (m.issues || []).join('  ·  ');
+      showIssues(m.issues || []);
     } else if (m.type === 'counting') {
       // the selected note is being edited: its counts come once the typing stops
       $('counts').style.opacity = '0.5';

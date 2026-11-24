@@ -109,7 +109,7 @@ async function drawn(mode = "ep") {
 const scenarioNotes = (h: Awaited<ReturnType<typeof makeHost>>) =>
     h.find((e) => e.meta?.kind === "scenario");
 
-test("the toolbar button and the panel messages are wired", async () => {
+test("DRV-02 DRV-03: the toolbar button and the panel messages are wired", async () => {
     const h = await makeHost();
     await h.panel({ type: "preview", text: FLOW });
     const counts = h.toPanel.find((m) => m.type === "counts");
@@ -117,7 +117,7 @@ test("the toolbar button and the panel messages are wired", async () => {
     assert.equal(counts.counts.all, 2); // login ok > pay, and login bad
 });
 
-test("Flow + Scenarios draws a flow frame and a scenario frame", async () => {
+test("DRV-21: Flow + Scenarios draws a flow frame and a scenario frame", async () => {
     const h = await drawn();
     const names = h.frames().map((f) => f.name);
     assert.ok(names.some((n) => /^E2E Flow/.test(n)));
@@ -125,7 +125,7 @@ test("Flow + Scenarios draws a flow frame and a scenario frame", async () => {
     assert.equal(scenarioNotes(h).length, 2);
 });
 
-test("Scenarios draws only the scenarios, Flow only the flow", async () => {
+test("DRV-22 DRV-23: Scenarios draws only the scenarios, Flow only the flow", async () => {
     const a = await makeHost();
     await a.action("scenarios", FLOW);
     assert.deepEqual(a.frames().map((f) => f.name.split(" ")[0]), ["Scenarios"]);
@@ -135,7 +135,7 @@ test("Scenarios draws only the scenarios, Flow only the flow", async () => {
     assert.equal(scenarioNotes(b).length, 0);
 });
 
-test("scenario notes: happy first, then negative; each is a flow in the syntax", async () => {
+test("OUT-22 OUT-23: scenario notes: happy first, then negative; each is a flow in the syntax", async () => {
     const h = await drawn();
     const notes = scenarioNotes(h);
     const kinds = notes.map((e) => e.meta.type);
@@ -146,7 +146,7 @@ test("scenario notes: happy first, then negative; each is a flow in the syntax",
     }
 });
 
-test("the panel reports what is selected", async () => {
+test("UI-30: the panel reports what is selected", async () => {
     const h = await drawn();
     assert.equal((await h.lastTarget()).kind, "none");
     h.select(h.idOf(scenarioNotes(h)[0]));
@@ -157,7 +157,7 @@ test("the panel reports what is selected", async () => {
     assert.equal(t.n, 2);
 });
 
-test("Table: a selected scenario note gives one table, the text gives all of them", async () => {
+test("DRV-24: Table: a selected scenario note gives one table, the text gives all of them", async () => {
     const h = await drawn();
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("table", FLOW);
@@ -169,7 +169,7 @@ test("Table: a selected scenario note gives one table, the text gives all of the
     assert.equal(g.tables().at(-1)!.meta.scenarios, 2);
 });
 
-test("a table is placed in board coordinates and its columns include their padding", async () => {
+test("OUT-01 OUT-30 OUT-31: a table is placed in board coordinates and its columns include their padding", async () => {
     const h = await drawn();
     await h.action("table", FLOW);
     const frame = h.frames().find((f) => f.meta?.e2eScenarioTable)!;
@@ -183,7 +183,7 @@ test("a table is placed in board coordinates and its columns include their paddi
     assert.ok(frame.width > comp.width && frame.height > comp.height);
 });
 
-test("a selection wins over the text left in the panel", async () => {
+test("DRV-20: a selection wins over the text left in the panel", async () => {
     const h = await drawn();
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("copy", "s1 > s2 > s3 > s4");
@@ -193,7 +193,7 @@ test("a selection wins over the text left in the panel", async () => {
     assert.ok(!clip.text.includes("s4"));
 });
 
-test("Copy table: nothing selected copies every scenario of the mode; a table copies itself", async () => {
+test("DRV-25: Copy table: nothing selected copies every scenario of the mode; a table copies itself", async () => {
     const h = await drawn();
     await h.action("copy", FLOW);
     assert.equal(h.lastClip().scenarios, 2);
@@ -208,7 +208,7 @@ test("Copy table: nothing selected copies every scenario of the mode; a table co
     assert.equal(h.lastClip().text, comp.meta.tsv);
 });
 
-test("Copy table: without a flow or a selection it says so and copies nothing", async () => {
+test("DRV-27: Copy table: without a flow or a selection it says so and copies nothing", async () => {
     const h = await makeHost();
     await h.action("copy", "");
     assert.equal(h.lastClip(), undefined);
@@ -216,7 +216,7 @@ test("Copy table: without a flow or a selection it says so and copies nothing", 
     assert.ok(status.bad);
 });
 
-test("Flow on a scenario note draws that scenario's flow and its table, and not the other scenarios", async () => {
+test("DRV-23 OUT-24: Flow on a scenario note draws that scenario's flow and its table, and not the other scenarios", async () => {
     const h = await drawn();
     const before = h.frames().length;
     h.select(h.idOf(scenarioNotes(h)[0]));
@@ -227,7 +227,7 @@ test("Flow on a scenario note draws that scenario's flow and its table, and not 
     assert.ok(added.some((f) => f.meta?.e2eScenarioTable));
 });
 
-test("Scenarios and Flow + Scenarios on a scenario note do not draw anything (the panel disables them)", async () => {
+test("UI-31: Scenarios and Flow + Scenarios on a scenario note do not draw anything (the panel disables them)", async () => {
     const h = await drawn();
     h.select(h.idOf(scenarioNotes(h)[0]));
     const before = h.scene.size;
@@ -237,7 +237,7 @@ test("Scenarios and Flow + Scenarios on a scenario note do not draw anything (th
     assert.ok(h.scene.size - before <= 1);
 });
 
-test("mode: the same flow in All gives more scenarios than in EP", async () => {
+test("CALC-30: mode: the same flow in All gives more scenarios than in EP", async () => {
     const flow = "@builder\n1. a\n   - x [variant]\n   - y [variant]\n2. b\n   - p [variant]\n   - q [variant]\n";
     const ep = await makeHost();
     await ep.action("scenarios", flow, "ep");
@@ -247,7 +247,7 @@ test("mode: the same flow in All gives more scenarios than in EP", async () => {
     assert.equal(scenarioNotes(all).length, 4);
 });
 
-test("no limit on the number of scenario notes", async () => {
+test("OUT-22: no limit on the number of scenario notes", async () => {
     // 8 steps of 2 choices: 256 paths in All
     let flow = "@builder\n";
     for (let i = 1; i <= 8; i++) flow += `${i}. s${i}\n   - a${i}\n   - b${i}\n`;
@@ -256,7 +256,7 @@ test("no limit on the number of scenario notes", async () => {
     assert.ok(scenarioNotes(h).length >= 200);
 });
 
-test("a starter note lands on the board as an @builder note that Flow + Scenarios can read", async () => {
+test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that Flow + Scenarios can read", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "loop" });
     const notes = h.find((e) => e.componentType === "sticky-note");
@@ -273,7 +273,7 @@ test("a starter note lands on the board as an @builder note that Flow + Scenario
     assert.ok(scenarioNotes(h).length >= 2);
 });
 
-test("a second starter note goes into free space, not on top of the first", async () => {
+test("OUT-41: a second starter note goes into free space, not on top of the first", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "basic" });
     await h.panel({ type: "template", id: "basic" });
@@ -283,13 +283,13 @@ test("a second starter note goes into free space, not on top of the first", asyn
     assert.ok(!overlap);
 });
 
-test("an unknown starter id adds nothing", async () => {
+test("DRV-30: an unknown starter id adds nothing", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "nope" });
     assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
 });
 
-test("the panel counts the flow note selected on the board, and goes back to the paste box after", async () => {
+test("UI-40 DRV-42 DRV-43: the panel counts the flow note selected on the board, and goes back to the paste box after", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "basic" });
     const note = h.find((e) => e.componentType === "sticky-note")[0];
@@ -315,7 +315,7 @@ test("the panel counts the flow note selected on the board, and goes back to the
     assert.equal(h.toPanel.find((m) => m.type === "counts")?.from, undefined);
 });
 
-test("a flow the panel already counted is not worked out again when a button is pressed", async () => {
+test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out again when a button is pressed", async () => {
     const { clearCache, cacheStats } = await import("../src/analysis.ts");
     const h = await makeHost();
     await h.panel({ type: "template", id: "loop" });
@@ -344,7 +344,7 @@ test("a flow the panel already counted is not worked out again when a button is 
     assert.equal(typeof counts.ms, "number");
 });
 
-test("EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
+test("CALC-32 CALC-82: EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
     const { analyze } = await import("../src/analysis.ts");
     const flow = parseFlowText("1. Pick\n- shirt [variant]\n- shoes [variant]\n2. Pay\n- paid\n- declined -> end").flow;
     const a = analyze(flow);
@@ -352,7 +352,7 @@ test("EP's 'stands for' marks stay on EP: another mode drawn after it has none",
     for (const m of ["all", "pair", "min"] as const) assert.ok(a.pick(m).every((sc) => !sc.covers || !sc.covers.length), m);
 });
 
-test("a quick preview of a huge flow is worked out again in full for a button", async () => {
+test("CALC-81: a quick preview of a huge flow is worked out again in full for a button", async () => {
     const { analyze, clearCache, cacheStats } = await import("../src/analysis.ts");
     const text = Array.from({ length: 10 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}\n- d${i}`).join("\n");
     const flow = parseFlowText(text).flow;
@@ -364,6 +364,20 @@ test("a quick preview of a huge flow is worked out again in full for a button", 
     assert.equal(cacheStats().misses, 2, "the quick answer was not reused for the full one");
     assert.equal(analyze(flow, 0), full, "a full answer serves a quick request too");
     assert.ok(full.counts().all > quick.counts().all);
+});
+
+test("DRV-22: Scenarios on a selected scenario frame draws a new frame in the chosen mode", async () => {
+    const h = await makeHost();
+    await h.action("board", FLOW);
+    const fr = h.frames().find((f) => f.meta?.e2eScenarios)!;
+    const before = h.frames().length;
+    h.select(h.idOf(fr));
+    h.toPanel.length = 0;
+    await h.action("scenarios", "", "all");
+    const made = h.frames().filter((f) => f.meta?.e2eScenarios);
+    assert.equal(h.frames().length, before + 1);
+    assert.equal(made[made.length - 1].meta.mode, "all");
+    assert.ok(!h.find((e) => typeof e.text === "string" && /^Select a sticky note/.test(e.text)).length, "no hint note");
 });
 
 /* ------------------------------ the panel page ----------------------------- */
@@ -405,7 +419,16 @@ function loadPanel() {
     g.document = {
         getElementById: mk,
         querySelectorAll: () => [],
-        createElement: () => ({ textContent: "", appendChild() {} }),
+        createElement: (tag: string) => ({
+            tag,
+            textContent: "",
+            className: "",
+            style: {},
+            children: [] as any[],
+            appendChild(c: any) {
+                this.children.push(c);
+            },
+        }),
         createTextNode: () => ({}),
         execCommand: () => true,
     };
@@ -425,7 +448,7 @@ function loadPanel() {
     return { els, sent, send: (m: any) => onMessage(m), restore };
 }
 
-test("panel: which buttons are on for each selection", () => {
+test("UI-31: panel: which buttons are on for each selection", () => {
     const p = loadPanel();
     try {
         const row = (kind: string) => {
@@ -450,7 +473,7 @@ test("panel: which buttons are on for each selection", () => {
     }
 });
 
-test("panel: labels follow the selection and say what will be used", () => {
+test("UI-32 UI-33: panel: labels follow the selection and say what will be used", () => {
     const p = loadPanel();
     try {
         p.els.t.value = "x";
@@ -471,7 +494,37 @@ test("panel: labels follow the selection and say what will be used", () => {
     }
 });
 
-test("panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
+test("UI-45: issues are one line each, coloured by kind, and past two they fold away", () => {
+    const p = loadPanel();
+    try {
+        p.send({
+            type: "counts",
+            counts: { all: 9, ep: 5, pair: 4, min: 3 },
+            steps: 3,
+            issues: ["ERROR: EP MISSING choices: \"x\"", "TIP: run them all", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
+        });
+        const kids = p.els.issues.children;
+        assert.deepEqual(kids.slice(0, 2).map((d: any) => d.className), ["iss err", "iss info"]);
+        const more = kids[2];
+        assert.equal(more.tag, "details");
+        assert.equal(more.children[0].textContent, "2 more");
+        assert.deepEqual(more.children.slice(1).map((d: any) => d.className), ["iss warn", "iss warn"]);
+    } finally {
+        p.restore();
+    }
+});
+
+test("UI-04: a big mode suggests only modes with fewer scenarios", () => {
+    const p = loadPanel();
+    try {
+        p.send({ type: "counts", counts: { all: 1624, ep: 1201, pair: 64, min: 9 }, steps: 12, issues: [] });
+        assert.equal(p.els.plan.textContent, "Mode EP: 1201 scenarios (a lot; the board may get slow. Each has 9, Pair has 64)");
+    } finally {
+        p.restore();
+    }
+});
+
+test("UI-04: panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
     const p = loadPanel();
     try {
         p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
@@ -482,7 +535,7 @@ test("panel: a lot of scenarios gets a warning, and the mode count follows the s
     }
 });
 
-test("panel: the starter buttons ask the driver for a template; a pulled note opens the paste box", () => {
+test("UI-12 UI-13: panel: the starter buttons ask the driver for a template; a pulled note opens the paste box", () => {
     const p = loadPanel();
     try {
         for (const id of ["basic", "loop", "levels"]) p.els["tpl-" + id].onclick();
@@ -498,7 +551,7 @@ test("panel: the starter buttons ask the driver for a template; a pulled note op
     }
 });
 
-test("panel: counts dim while the note is being typed in, and come back with the next count", () => {
+test("UI-41: panel: counts dim while the note is being typed in, and come back with the next count", () => {
     const p = loadPanel();
     try {
         p.send({ type: "counting" });
@@ -510,7 +563,7 @@ test("panel: counts dim while the note is being typed in, and come back with the
     }
 });
 
-test("panel: counts from a note are labelled, and a recount asks for the paste box's counts", () => {
+test("UI-40 UI-44: panel: counts from a note are labelled, and a recount asks for the paste box's counts", () => {
     const p = loadPanel();
     try {
         p.send({ type: "counts", from: "note", counts: { all: 9, ep: 5, pair: 4, min: 3 }, steps: 3, issues: [] });
@@ -525,7 +578,7 @@ test("panel: counts from a note are labelled, and a recount asks for the paste b
     }
 });
 
-test("panel: the clipboard message copies and reports", () => {
+test("UI-14: panel: the clipboard message copies and reports", () => {
     const p = loadPanel();
     try {
         p.send({ type: "clip", text: "a\tb", scenarios: 2 });
@@ -536,7 +589,7 @@ test("panel: the clipboard message copies and reports", () => {
     }
 });
 
-test("one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
+test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
     const word = /\b(test )?cases?\b/i;
     // the files people read ("letter case" is something else; "test case" is defined in the README)
     for (const f of ["../README.md", "../src/templates.ts"]) {
@@ -566,7 +619,7 @@ test("one word for one thing: the user sees \"scenario\", never \"case\"", async
     for (const t of shown) assert.ok(!word.test(t), t);
 });
 
-test("no Thai text is left in what the user sees", () => {
+test("UI-21: no Thai text is left in what the user sees", () => {
     const thai = /[฀-๿]/;
     for (const f of ["../editor/panel.html", "../src/index.ts", "../src/syntax.ts", "../src/scenarioBoard.ts", "../src/render.ts", "../README.md"])
         assert.ok(!thai.test(readFileSync(new URL(f, import.meta.url), "utf8")), f);

@@ -1,7 +1,7 @@
 {
-    "name": "drawdy-extension-starter",
-    "version": "0.1.0",
-    "description": "Drawdy extension starter template.",
+    "name": "drawdy-e2e-scenario-builder",
+    "version": "0.2.0",
+    "description": "Drawdy extension: write an E2E flow, get its flow diagram and test scenarios.",
     "license": "UNLICENSED",
     "private": true,
     "type": "module",
@@ -12,7 +12,8 @@
         "prebuild": "npm run gen:editor",
         "build": "node build.ts",
         "typecheck": "tsc --noEmit",
-        "test": "node --import ./test/register.mjs --test test/syntax.test.ts test/driver.test.ts test/oracle.test.ts"
+        "spec:coverage": "node scripts/spec-coverage.mjs",
+        "test": "node --import ./test/register.mjs --test test/syntax.test.ts test/driver.test.ts test/oracle.test.ts test/specs.test.ts"
     },
     "devDependencies": {
         "@drawdy/driver-protocol": "^1.5.0",

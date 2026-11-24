@@ -77,11 +77,12 @@ function classify(path: PathItem[]): "happy" | "neg" {
 }
 
 /** Highest P number among the conditions on the path; none set = P2. */
+/** The most important P on the path: the lowest number; none at all = P2 (CALC-25). */
 function priOf(path: PathItem[]): number {
     let m = 0;
     path.forEach((v) => {
         const p = parseInt(v.c?.pri ?? "", 10);
-        if (p > m) m = p;
+        if (p >= 1 && (m === 0 || p < m)) m = p;
     });
     return m || 2;
 }

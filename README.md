@@ -167,7 +167,7 @@ written `→` or `=>`.
 
 | Write | Meaning |
 | --- | --- |
-| `P1` `P2` `P3` | priority of the scenario (no option = P2; a scenario takes the highest number on its path) |
+| `P1` `P2` `P3` | priority of the scenario: a scenario takes the most important (lowest) number on its path, so a path with a P1 choice is P1. Choices without a `P` do not count; no `P` on the whole path = P2 |
 | `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
@@ -474,6 +474,11 @@ scenario. It does not know your system, so a few things stay with the writer:
 
 ## Development
 
+What the extension must do is written in [`specs/`](specs/README.md), one file per
+area (panel, driver, calculation, syntax, board output, testing). The specs are the
+source of truth: a change in behaviour changes the spec in the same commit, and tests
+name the rules they check (`CALC-17`).
+
 ```
 npm run dev        # dev server for "Add extension dev server" in Drawdy
 npm test           # tests: text syntax, scenarios, tables, the buttons (see below)
@@ -482,13 +487,17 @@ npm run gen:editor # rebuild the pages embedded in src/ (runs before dev and bui
 
 ### Tests
 
-`npm test` needs no browser and no extra packages:
+`npm test` needs no browser and no extra packages. GitHub Actions runs the same checks
+(plus the typecheck, the build, and that `src/panelHtml.ts` matches the panel page) on
+every push and pull request:
 
 - `test/syntax.test.ts`: the text syntax, the scenario counts, notes and tables.
 - `test/driver.test.ts`: the driver against a small fake Drawdy host (an in-memory
   scene), and the panel page against a stub DOM. It checks what each button does for
   each kind of selection (scenario note, scenario frame, flow frame, table, `@builder`
   note, nothing), the copy text, where a table is placed, and which buttons are on.
+- `test/specs.test.ts`: the specs themselves: rule IDs are unique and every rule a
+  test names exists. `npm run spec:coverage` lists the rules no test names yet.
 - `test/oracle.test.ts`: the scenario generator against a second, independent
   enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
   pair, and `distinct` against its closed form.
