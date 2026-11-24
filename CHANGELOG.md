@@ -2,55 +2,47 @@
 
 ## Unreleased
 
-- The text in the text boxes the extension draws (the starter note, scenario notes and
-  hints) is always black, not the colour of the border (OUT-50). The flow diagram is
-  unchanged.
+### Read this before upgrading
 
-- MIT license (`LICENSE`, `package.json`, README): free to use and share, with the copyright line kept.
+- **One starter note.** The Basic, Loop and Levels buttons are replaced by one **Start
+  with a template** button: an online-shop checkout (log in or guest, products in a
+  loop, shipping, payment) that uses every piece of the syntax.
+- **Notes the extension draws are text boxes, not sticky notes.** The starter note, the
+  header and scenario notes, hints and errors are filled rectangles with black text,
+  each as tall as its text needs (OUT-50). A flow note you write yourself can still be a
+  sticky note, a text box or plain text: all are read.
+- **The flow diagram uses plain words only**, so it can be shown to people who do not
+  know the syntax: a loop is labelled `up to 2 times` instead of `≤2 · distinct`
+  (OUT-10), and a choice's label stays on one line, with the arrow made long enough for
+  it, instead of wrapping into a narrow box (OUT-12).
 
+### Added
+
+- MIT license (`LICENSE`, `package.json`, README): free to use and share, with the
+  copyright line kept.
 - README: a table of contents with links to every section, and the starter template as
-  the one syntax example (it replaces the two older, different examples), so the README
-  and **Start with a template** teach the same thing (SYN-41). A test keeps the README's
-  copy equal to the template and checks that every contents link has a heading.
+  the one syntax example (it replaces two older, different examples). A test keeps the
+  README's copy equal to the template and checks that every contents link has a heading
+  (SYN-41).
+- The starter note has an expected result with a real value (a price, a status, an error
+  code) on every step and choice, and concrete test data (account `user_001`, cards,
+  addresses), so it can be turned into automated tests as it is. Choices only some paths
+  can take say so in their name (`Express (members only)`), and Payment failed is not
+  offered on a cash on delivery path (SYN-41).
+- Property-based tests (fast-check, `test/property.test.ts`): each mode keeps the
+  coverage it promises (CALC-30, 33, 34, 36), a loop is taken at most `max` times and a
+  distinct loop never repeats a choice in its rounds (CALC-17). Checked by breaking the
+  code on purpose: the tests fail.
 
-- Notes the extension draws (the starter note, the header and scenario notes, hints and
-  errors) are now filled text boxes instead of sticky notes, because a sticky note
-  cannot be resized freely. Each box is as tall as its text needs (OUT-50). Flow notes
-  you write yourself can still be sticky notes or text boxes: both are read.
-
-- Flow diagram: a choice's label stays on one line and the arrow is made long enough
-  for it, instead of wrapping the label into a narrow box where it was hard to tell
-  which step it belonged to (OUT-12).
-
-- The flow diagram uses plain words only: a loop is labelled `up to 2 times` instead of
-  `≤2 · distinct`, so the diagram can be shown to people who do not know the syntax
-  (OUT-10). In the starter note the choices that only some paths can take say so in
-  their name (`Express (members only)`, `Cash on delivery (guests only)`).
-
-- The starter note now has an expected result with a real value (a price, a status, an
-  error code) on every step and choice, and concrete test data (account `user_001`,
-  cards, addresses), so it can be turned into automated tests as it is. Payment failed
-  is not offered on a cash on delivery path (SYN-41).
-
-- One starter note: "Start with a template" replaces the Basic, Loop and Levels buttons.
-  The note is an online-shop checkout (log in or guest, products in a loop, shipping,
-  payment) that uses every piece of the syntax.
-- More property-based tests: each mode keeps the coverage it promises (CALC-30, 33,
-  34, 36), a loop is taken at most `max` times (CALC-17), and a distinct loop never
-  repeats a choice in its rounds (CALC-17). Checked by breaking the code on purpose: the
-  tests fail.
+### Fixed
 
 - **`\[` in a choice's label** is a plain `[`, so a label can contain a `[` without it
   being read as the start of the options (SYN-13). Before, `- Pay [visa` lost its name.
-  `formatFlow` writes `\[` where it is needed, and the property test now covers labels
-  with `[`, `]` and `\` in them. Nothing changes for labels without a `[`.
-
-- Property-based tests (fast-check, `test/property.test.ts`). They found two small
-  bugs, both fixed:
-  - A choice named like options, such as `Pay [visa]`, lost its name when the flow was
-    written back with `formatFlow` and read again. `formatFlow` now adds an empty `[]`.
-  - Pairwise picked no scenario for a flow without choices (EP and Each picked one).
-    All modes now pick at least one scenario when the flow has a path (CALC-83).
+  Nothing changes for labels without a `[`.
+- A choice named like options, such as `Pay [visa]`, lost its name when the flow was
+  written back with `formatFlow` and read again. `formatFlow` now adds an empty `[]`.
+- Pairwise picked no scenario for a flow without choices (EP and Each picked one). All
+  modes now pick at least one scenario when the flow has a path (CALC-83).
 
 ## 0.2.0
 
