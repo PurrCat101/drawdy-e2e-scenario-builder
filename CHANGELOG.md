@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`\[` in a choice's label** is a plain `[`, so a label can contain a `[` without it
+  being read as the start of the options (SYN-13). Before, `- Pay [visa` lost its name.
+  `formatFlow` writes `\[` where it is needed, and the property test now covers labels
+  with `[`, `]` and `\` in them. Nothing changes for labels without a `[`.
+
 - Property-based tests (fast-check, `test/property.test.ts`). They found two small
   bugs, both fixed:
   - A choice named like options, such as `Pay [visa]`, lost its name when the flow was

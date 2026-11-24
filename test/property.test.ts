@@ -17,11 +17,10 @@ const RUNS = Number(process.env.PBT_RUNS ?? 300);
 /** Names and labels: plain words, Thai, and text that looks like syntax. */
 const word = fc.oneof(
     { weight: 6, arbitrary: fc.constantFrom("Login", "Pay", "ok", "failed", "เลือกสินค้า", "ชำระเงิน", "a b", "x") },
-    { weight: 2, arbitrary: fc.constantFrom("1. fake", "- dash", "[P1]", "Pay [visa]", "a (b|c)", "# not a comment", "\\back", "given: x", "@title t") },
-    { weight: 2, arbitrary: fc.string({ minLength: 1, maxLength: 12 }) }
-).map((s) => s.replace(/\s+/g, " ").trim() || "x")
-    // an unclosed "[" cannot be told from the start of the options (SYN-13): not written
-    .filter((s) => !/\[[^\]]*$/.test(s));
+    { weight: 2, arbitrary: fc.constantFrom("1. fake", "- dash", "[P1]", "Pay [visa]", "a [b", "[", "a\\[b", "x [ y [z]", "a (b|c)", "# not a comment", "\\back", "given: x", "@title t") },
+    { weight: 2, arbitrary: fc.string({ minLength: 1, maxLength: 12 }) },
+    { weight: 2, arbitrary: fc.array(fc.constantFrom("[", "]", "\\", "a", " "), { minLength: 1, maxLength: 8 }).map((x) => x.join("")) }
+).map((s) => s.replace(/\s+/g, " ").trim() || "x");
 
 const tag = fc.constantFrom("t1", "t2", "t3");
 const literal = fc.tuple(fc.boolean(), tag).map(([not, t]) => (not ? "!" : "") + t);
@@ -238,4 +237,20 @@ test("CALC-83: a flow without choices still gets one scenario in every mode", ()
     const flow: Flow = { steps: [{ id: "s0", name: "Open", conds: [] }, { id: "s1", name: "Close", conds: [] }] };
     const g = generate(flow, 1000, 1e9);
     for (const mode of ["all", "ep", "pair", "min"] as const) assert.equal(pick(g, mode).length, 1, mode);
+});
+
+test("SYN-13: \\[ in a choice's label is a plain [, not the start of the options", () => {
+    const r = parseFlowText("@builder\n1. A\n   - Pay \\[visa [P1]\n   - ok\n");
+    assert.equal(r.flow.steps[0].conds[0].label, "Pay [visa");
+    assert.equal(r.flow.steps[0].conds[0].pri, "1");
+    assert.deepEqual(r.warnings, []);
+});
+
+test("SYN-40: a label with an unclosed [ is written with \\[ and read back whole", () => {
+    const flow: Flow = {
+        steps: [{ id: "s0", name: "A", conds: [{ id: "s0c0", label: "a [b", neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "1", variant: false }] }],
+    };
+    const text = formatFlow(flow);
+    assert.match(text, /- a \\\[b \[P1\]/);
+    assert.equal(parseFlowText(text).flow.steps[0].conds[0].label, "a [b");
 });

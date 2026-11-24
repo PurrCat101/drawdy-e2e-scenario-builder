@@ -39,8 +39,7 @@ packages).
   and lets fast-check make the flows. A failing property is shrunk to the smallest
   flow that still fails and printed with its seed; that flow is then kept as a plain
   example in the same file. `PBT_RUNS` sets the runs per property (default 300; use
-  5000 or more before a release). Labels with an unclosed `[` are not generated: the
-  reader cannot tell them from the start of the options (SYN-13).
+  5000 or more before a release). Labels are generated with `[`, `]` and `\` in them.
 
 ## Mutation checks
 
