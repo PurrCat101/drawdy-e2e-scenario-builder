@@ -21,6 +21,12 @@ export type Cond = {
     pri: string;
     /** does not multiply with other scenarios (collapsed by EP) */
     variant: boolean;
+    /**
+     * loop: on the next round, the steps it goes back over offer only the choices
+     * not taken yet, and an earlier pick counts once whatever the order
+     * (pick A then B = pick B then A). Ends and loops there stay available.
+     */
+    distinct?: boolean;
     /** test data, expected result, setup and requirement id (all optional) */
     data?: string;
     exp?: string;

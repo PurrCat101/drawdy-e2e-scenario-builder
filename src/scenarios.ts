@@ -79,7 +79,11 @@ export function generate(flow: Flow, limit = 1000): Generated {
         i: number,
         path: PathItem[],
         usage: Record<string, number>,
-        tags: Tags
+        tags: Tags,
+        /** per step: the index of the last "next" choice taken there on this path */
+        last: Record<number, number> = {},
+        /** steps a `distinct` loop went back over: they offer only later choices */
+        dist: Record<number, 1> = {}
     ) {
         if (out.length >= limit) {
             capped = true;
@@ -91,11 +95,15 @@ export function generate(flow: Flow, limit = 1000): Generated {
         }
         const s = steps[i];
         if (!s.conds.length) {
-            walk(i + 1, path.concat([{ i, c: null }]), usage, tags);
+            walk(i + 1, path.concat([{ i, c: null }]), usage, tags, last, dist);
             return;
         }
-        for (const c of s.conds) {
+        for (let k = 0; k < s.conds.length; k++) {
+            const c = s.conds[k];
             if (!needOk(c, tags)) continue;
+            // a distinct round: no choice taken before, and in list order only, so a
+            // set of picks is walked once (A then B, never B then A as well)
+            if (c.action === "next" && dist[i] && k <= (last[i] ?? -1)) continue;
             const p = path.concat([{ i, c }]);
             const nt = withTags(tags, c);
             if (c.action === "end") {
@@ -110,10 +118,15 @@ export function generate(flow: Flow, limit = 1000): Generated {
                 const u = usage[c.id] || 0;
                 const t = c.target ? idx[c.target] : undefined;
                 if (u >= (c.max || 1) || t === undefined) continue;
-                walk(t, p, { ...usage, [c.id]: u + 1 }, nt);
+                let d = dist;
+                if (c.distinct && t < i) {
+                    d = { ...dist };
+                    for (let j = t; j < i; j++) d[j] = 1;
+                }
+                walk(t, p, { ...usage, [c.id]: u + 1 }, nt, last, d);
                 continue;
             }
-            walk(i + 1, p, usage, nt);
+            walk(i + 1, p, usage, nt, { ...last, [i]: k }, dist);
         }
     }
     walk(0, [], {}, {});

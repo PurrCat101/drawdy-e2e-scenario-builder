@@ -427,3 +427,52 @@ test("starter templates: the comments do not change the flow", () => {
         );
     }
 });
+
+/* ------------------------------ distinct loops ----------------------------- */
+
+const SHOP = (opts: string) => `1. Sign in
+- ok
+2. Pick
+- A
+- B
+- C
+- sold out -> end
+3. More?
+- again -> loop to step 2 max 2${opts}
+- done
+4. Pay
+- paid`;
+
+const picks = (text: string) =>
+    generate(parseFlowText(text).flow)
+        .list.filter((s) => s.type === "happy")
+        .map((s) => s.path.filter((v) => v.i === 1 && v.c).map((v) => v.c!.label).join("+"));
+
+test("distinct loop: no choice twice, and a set of picks only once whatever the order", () => {
+    // plain loop: 3 + 3*3 + 3*3*3 ordered picks, repeats included
+    assert.equal(picks(SHOP("")).length, 3 + 9 + 27);
+    const d = picks(SHOP(" [distinct]"));
+    // distinct: subsets of {A,B,C} of size 1..3 = 3 + 3 + 1
+    assert.deepEqual([...d].sort(), ["A", "A+B", "A+B+C", "A+C", "B", "B+C", "C"]);
+});
+
+test("distinct loop: an end at the step it goes back to stays available every round", () => {
+    const flow = parseFlowText(SHOP(" [distinct]")).flow;
+    const ends = generate(flow).list.filter(
+        (s) => s.type === "neg" && s.path[s.path.length - 1].c!.label === "sold out"
+    );
+    // sold out on round 1, after 1 pick (3 ways), after 2 picks (3 ways)
+    assert.equal(ends.length, 1 + 3 + 3);
+});
+
+test("distinct: read, written back, and warned about when not on a loop", () => {
+    const r = parseFlowText(SHOP(" [P2, distinct]"));
+    assert.deepEqual(r.warnings, []);
+    const again = r.flow.steps[2].conds[0];
+    assert.equal(again.distinct, true);
+    assert.match(formatFlow(r.flow), /-> loop to step 2 max 2 \[P2, distinct\]/);
+    const bad = parseFlowText("1. a\n- x [distinct]\n- y -> end [distinct]");
+    assert.equal(bad.warnings.length, 2);
+    assert.ok(bad.warnings.every((w) => /distinct only works with loop/.test(w)));
+    assert.ok(bad.flow.steps[0].conds.every((c) => !c.distinct));
+});
