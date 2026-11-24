@@ -163,3 +163,6 @@ check), `src/analysis.ts` (remembering results).
 - **CALC-81** A remembered result is used when it is complete, or when it had at
   least the requested search budget; otherwise it is worked out again.
 - **CALC-82** Cached results are shared: nothing may change them after they are made.
+- **CALC-83** Every mode picks at least one scenario when All has one. A flow without
+  choices has nothing to cover, but still has its one path: Pairwise picks the first
+  Happy scenario (the first scenario if none is Happy), as EP and Each do.

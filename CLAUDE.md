@@ -9,3 +9,5 @@
 - A new test file must be added to the `test` script in `package.json`.
 - User-facing text says "scenario", never "case" (`specs/01-frontend.md`, UI-20).
 - Run `npm test` before committing; `npm run build` builds the `.drawdyx`.
+- A failing property test (`test/property.test.ts`) is shrunk by fast-check: keep the
+  printed smallest flow as a plain example test next to it (TEST-12).

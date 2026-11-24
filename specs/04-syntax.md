@@ -64,6 +64,8 @@ The README's "Text syntax" is the user's guide to the same rules.
 ## Writing back
 
 - **SYN-40** `formatFlow` writes a flow in the block form so that reading it back
-  gives the same flow and the same scenario counts.
+  gives the same flow and the same scenario counts. A choice whose label ends in
+  `[...]` and has no options gets an empty `[]` after it, so the label is not read as
+  options. A label with an unclosed `[` cannot be written back (SYN-13).
 - **SYN-41** Starter notes (OUT-40) read without any warning and give scenarios; their
   `#` lines explain the syntax and do not change the flow.

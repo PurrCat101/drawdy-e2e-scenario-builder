@@ -598,6 +598,8 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             if (c.tags) o.push("sets " + c.tags.split(",").filter(Boolean).join(" "));
             if (c.need) o.push("needs " + needToWords(c.need));
             if (o.length) line += " [" + o.join(", ") + "]";
+            // a label ending in [..] would be read as its options: an empty [] ends it
+            else if (/\]\s*$/.test(line)) line += " []";
             out.push(line);
             field("     ", "given", c.pre);
             field("     ", "data", c.data);
