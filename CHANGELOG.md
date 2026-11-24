@@ -2,6 +2,9 @@
 
 ## 0.2.0
 
+- The driver's `src/index.ts` (934 lines) is split into `host`, `webview`,
+  `panelMessages`, `actions`, `drawing` and `selection`. No behaviour change.
+
 ### Read this before upgrading
 
 - **Scenario IDs look different.** They come from the path itself (`TSS-04821`), not

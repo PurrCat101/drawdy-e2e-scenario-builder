@@ -1,6 +1,7 @@
 # 02 · Backend (the driver)
 
-The driver is the extension's code that Drawdy runs (`src/index.ts`, built to
+The driver is the extension's code that Drawdy runs (`src/index.ts` starts it; the rest is split by job:
+`host`, `webview`, `panelMessages`, `actions`, `drawing`, `selection`; built to
 `main.js`). It talks to Drawdy through commands and to the panel through messages.
 There is no server: nothing leaves the user's browser.
 
