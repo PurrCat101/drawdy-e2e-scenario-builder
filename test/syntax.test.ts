@@ -634,3 +634,19 @@ test("the coverage lines say OK when a mode keeps its promise, and name what is 
     assert.ok(lines.some((l) => /^MISSING choices: .*"no"/.test(l)), lines.join(" / "));
     assert.ok(lines.some((l) => /^MISSING loop ends: "again"/.test(l)), lines.join(" / "));
 });
+
+test("requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
+    const { requirementLines } = await import("../src/scenarioBoard.ts");
+    const flow = parseFlowText("1. Sign in\n   req: R-1\n- ok\n- bad -> end\n  req: R-2\n2. Pay\n   req: R-3, R-4\n- paid").flow;
+    const g = generate(flow);
+    const lines = requirementLines(g.list, flow);
+    assert.equal(lines[0], "Requirements: 4/4 covered");
+    assert.ok(lines.some((l) => /^  R-1 → TS[SN]-\d+, TS[SN]-\d+$/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^  R-2 → TSN-\d+$/.test(l)), lines.join(" / "));
+    assert.ok(lines.some((l) => /^  R-4 → TSS-\d+$/.test(l)), lines.join(" / "));
+    // only the negative scenario: R-3 and R-4 are not covered
+    const neg = requirementLines(g.list.filter((s) => s.type === "neg"), flow);
+    assert.equal(neg[0], "Requirements: 2/4 covered");
+    assert.equal(neg[neg.length - 1], "MISSING requirements: R-3, R-4");
+    assert.deepEqual(requirementLines(g.list, parseFlowText("1. a\n- b").flow), []);
+});

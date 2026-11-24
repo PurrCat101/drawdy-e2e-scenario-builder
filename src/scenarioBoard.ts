@@ -93,6 +93,46 @@ export function coverageLines(shown: Scenario[], gen: Generated, mode: Mode): st
     return out;
 }
 
+/**
+ * Traceability: for every `req:` in the flow (on a step or a choice), the shown
+ * scenarios that pass it. A step's req counts for every scenario through that step,
+ * a choice's req for every scenario that takes the choice.
+ */
+export function requirementLines(shown: Scenario[], flow: Flow): string[] {
+    const split = (r?: string) =>
+        String(r || "")
+            .split(/[,;]/)
+            .map((x) => x.trim())
+            .filter(Boolean);
+    const order: string[] = [];
+    const note = (r: string) => order.includes(r) || order.push(r);
+    flow.steps.forEach((st) => {
+        split(st.req).forEach(note);
+        st.conds.forEach((c) => split(c.req).forEach(note));
+    });
+    if (!order.length) return [];
+    const by = new Map<string, string[]>(order.map((r) => [r, []]));
+    for (const sc of orderScenarios(shown)) {
+        const reqs = new Set<string>();
+        sc.path.forEach((v) => {
+            split(flow.steps[v.i]?.req).forEach((r) => reqs.add(r));
+            if (v.c) split(v.c.req).forEach((r) => reqs.add(r));
+        });
+        reqs.forEach((r) => by.get(r)?.push(sc.id));
+    }
+    const missing = order.filter((r) => !by.get(r)!.length);
+    const out = [`Requirements: ${order.length - missing.length}/${order.length} covered`];
+    const LIST = 12;
+    order.slice(0, LIST).forEach((r) => {
+        const ids = by.get(r)!;
+        if (ids.length)
+            out.push(`  ${r} → ${ids.slice(0, 6).join(", ")}${ids.length > 6 ? ` … (${ids.length})` : ""}`);
+    });
+    if (order.length > LIST) out.push(`  … and ${order.length - LIST} more`);
+    if (missing.length) out.push(`MISSING requirements: ${missing.join(", ")}`);
+    return out;
+}
+
 /** Happy scenarios first, then negative; each group by priority (P1 first), then id. */
 export function orderScenarios(list: Scenario[]): Scenario[] {
     return [...list].sort(
@@ -132,6 +172,7 @@ export function renderScenarios(opts: {
         `${shown.length} of ${gen.list.length} paths · ${happy} happy · ${shown.length - happy} negative`,
         `All ${counts.all} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
         ...coverageLines(shown, gen, mode),
+        ...requirementLines(shown, flow),
         ...(!flow.steps.some((st) => st.conds.some((c) => c.variant)) && counts.ep > 30
             ? ["", "EP is close to All because no condition has [variant] (EP only groups conditions marked variant). Add [variant], or pick the Pair / Each mode."]
             : []),

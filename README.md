@@ -136,7 +136,7 @@ The words are English; the labels you write can be in any language.
 | `@title name` | the title of the drawn frame |
 | `1.` or `1)` (a number) | a **step**. The number is how `loop to step` refers to it |
 | `-` (also `*`, `•`) | a **condition** of the step above |
-| `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read |
+| `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read. Several requirement ids go on one line, separated by commas. The scenario frame header lists each requirement with the scenarios that pass it (a step's `req` counts for every scenario through the step, a choice's for every scenario that takes it) and names any requirement the chosen mode leaves out |
 | `#` or `//` | a comment (ignored) |
 
 A field belongs to the step if it comes before the step's first condition, and to
