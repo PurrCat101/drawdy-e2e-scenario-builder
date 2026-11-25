@@ -187,7 +187,7 @@
       line = 'A scenario frame is selected → all its scenarios (' + n + ')';
       tail = ' · ' + sc(n);
     } else if (k === 'scenarios') {
-      line = n + ' scenario note(s) selected → Flow + Test steps draws the scenario flow and its test steps';
+      line = n + ' scenario note(s) selected → Flow + Test steps draws the scenario flow and its test steps, Flow only draws just the flow';
       tail = ' · ' + sc(n);
     } else if (k === 'table') {
       line = 'A table is selected → Copy to clipboard copies that table';
@@ -211,19 +211,22 @@
     var ok = { flow: true, scenarios: true, board: true, table: true, decision: true, copy: true, copydecision: true };
     var have = hasText();
     if (k === 'none') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = ok.copy = ok.copydecision = have; }
-    else if (k === 'scenarios') { ok.scenarios = false; ok.board = false; }          // a scenario note: its flow, table or copy
+    else if (k === 'scenarios') { ok.scenarios = false; }          // a scenario note: its flow (alone or with its table), table or copy
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
     else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = ok.copydecision = false; } // a table: only copy
     // a selected scenario note: the Flow button draws that scenario's flow and its table
     $('flow').textContent = k === 'scenarios' ? 'Flow + Test steps' : 'Flow';
+    // and the button that would draw new scenarios (off here) draws just the flow, no test steps
+    $('board').textContent = k === 'scenarios' ? 'Flow only' : 'Flow + Scenarios';
     var why = 'Not available for what is selected';
     ['flow', 'scenarios', 'board', 'table', 'decision', 'copy', 'copydecision'].forEach(function (id) {
       var b = $(id);
       b.disabled = !ok[id];
-      if (!ok[id]) b.setAttribute('data-title', b.getAttribute('data-title') || b.title);
-      b.title = ok[id] ? (b.getAttribute('data-title') || b.title) : why;
+      if (!b.getAttribute('data-title')) b.setAttribute('data-title', b.title);
+      b.title = ok[id] ? b.getAttribute('data-title') : why;
     });
+    if (k === 'scenarios') $('board').title = 'Draw only the flow of the selected scenario, without its test steps';
     el.textContent = line;
     el.className = 'target' + (sel ? ' sel' : '');
     tb.textContent = tl;
@@ -262,7 +265,9 @@
   ['board', 'flow', 'scenarios', 'table', 'decision', 'copy', 'copydecision'].forEach(function (id) {
     $(id).onclick = function () {
       setStatus('Working...');
-      send({ type: 'action', action: id, text: $('t').value, mode: mode });
+      // with scenario notes selected the Flow + Scenarios button reads "Flow only" and draws just the flow
+      var action = id === 'board' && target.kind === 'scenarios' ? 'flowonly' : id;
+      send({ type: 'action', action: action, text: $('t').value, mode: mode });
     };
   });
 

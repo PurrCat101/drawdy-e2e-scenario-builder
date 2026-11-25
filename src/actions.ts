@@ -370,7 +370,7 @@ function describeSel(sel: Picked[]): string {
  *  - a note with the flow text   -> that flow, under the note
  *  - a scenario note (TSS-/TSN-) -> the flow of just that scenario, next to its frame
  */
-export async function actionFlow(sel: Picked[]) {
+export async function actionFlow(sel: Picked[], withTable = true) {
     const items = sel.filter(
         (p) =>
             p.meta?.kind === "scenario" ||
@@ -447,7 +447,7 @@ export async function actionFlow(sel: Picked[]) {
         const box = await drawFlow(sub, p, { name, success, at });
         if (box) last = box.id;
         // a case note: the flow of that case, and under it the table of that case
-        if (box && isScenario) await drawScenarioTable(sub, name ?? "E2E Flow", box);
+        if (box && isScenario && withTable) await drawScenarioTable(sub, name ?? "E2E Flow", box);
     }
     if (last) {
         await run("command:camera:fly-to-elements", {

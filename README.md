@@ -108,7 +108,7 @@ of scenarios.
 | --- | --- |
 | **Flow** | The flow diagram only. With a scenario note selected it reads **Flow + Test steps**: the flow of that scenario, and under it its test steps |
 | **Scenarios** | The scenario notes of the chosen mode, without the diagram |
-| **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover |
+| **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover. With a scenario note (or a decision table's column head) selected it reads **Flow only**: just the flow of that scenario, without its test steps |
 | **Test steps** | The test steps of each scenario, in order, as tables: one row per test step (step, condition, setup, test data, expected result) |
 | **Decision table** | A decision table of the same scenarios: the steps that decide as rows, each scenario as a column. See [Decision table](#decision-table) |
 | **Copy to clipboard** | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
@@ -124,7 +124,7 @@ labels follow it (they end with how many scenarios they use), and buttons that d
 | --- | --- | --- | --- | --- |
 | nothing, with a flow in the text box | on | on | on | all scenarios of the mode |
 | nothing, text box empty | off | off | off | off |
-| a scenario note (`TSS-…` / `TSN-…`) | **Flow + Test steps**: that scenario | off | off | only the selected scenarios |
+| a scenario note (`TSS-…` / `TSN-…`) or a decision table's column head | **Flow + Test steps**: that scenario | off | **Flow only**: just that scenario's flow | only the selected scenarios |
 | a scenario frame | off | on (scenarios again, chosen mode) | off | all scenarios in the frame |
 | a drawn flow frame | off | on (new scenarios) | on | scenarios of the chosen mode |
 | a note that starts with `@builder` | on | on | on | its scenarios |

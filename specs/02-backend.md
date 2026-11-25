@@ -72,7 +72,7 @@ There is no server: nothing leaves the user's browser.
   chosen mode from the flow stored on the frame.
 - **DRV-23** Flow: paste box text or `@builder` notes → the flow diagram only; scenario
   notes → for each, the flow of that scenario next to its frame, and its table
-  under it.
+  under it (Flow only draws the flow without the table, DRV-60).
 - **DRV-24** Test steps: the test step tables of the first of these that applies:
   1. a selected scenario frame → all its scenarios, in the mode it was drawn in;
   2. selected scenario notes → those scenarios (from the flow stored on their frame);
@@ -107,6 +107,10 @@ There is no server: nothing leaves the user's browser.
   not keep its flow (a table drawn by an older version) gives no scenario: Test steps,
   Copy and Decision table say the scenarios no longer know their flow (Test steps and
   Copy add that the table is to be drawn again), and Flow draws only the red hint (DRV-27).
+- **DRV-60** Flow only: the panel sends `flowonly` when the Flow + Scenarios button reads
+  "Flow only" (UI-34). For each selected scenario note it draws the flow of that scenario
+  next to its frame, as Flow does (DRV-23), and nothing under it: no Test steps table. The
+  status is "Done". A scenario that cannot be read gets the same red hint as with Flow.
 - **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the
