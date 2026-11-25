@@ -11,9 +11,9 @@
 //   blocks   one step per block (any line starting with a number is a step)
 //              @builder
 //              1. Open the site
-//                 given: the shop is up
+//                 setup: the shop is up
 //                 data: user a
-//                 then: login dialog closes
+//                 expect: login dialog closes
 //                 - Login ok [P1]
 //                 - Login failed -> end [P2]
 //              2. Pick an item
@@ -23,7 +23,7 @@
 //
 // Nothing depends on indentation (a sticky note may not keep it): a line is
 // recognised by how it starts. `1.` a step, `-` a condition, `name:` a field
-// (given / data / then / req; `setup` and `expect` are older names, still read).
+// (setup / data / expect / req; `given` and `then` are second names, read the same: SYN-19).
 
 import type { Cond, Flow, Mode, Step } from "./flow";
 
@@ -210,15 +210,15 @@ export function parseFlowText(text: string, opts: ParseOptions = {}): ParseResul
 
 type FieldKey = "data" | "exp" | "pre" | "req";
 
-/** the field names, exactly as written in the text */
+/** the field names, exactly as written in the text; the first of each is the one written back (SYN-19) */
 const FIELD_KEYS: Record<string, FieldKey> = {
-    given: "pre", // setup / precondition (Gherkin's word)
+    setup: "pre", // what is to be in place before the test
     data: "data",
-    then: "exp", // expected result (Gherkin's word)
+    expect: "exp", // the expected result
     req: "req",
-    // older names, still read
-    setup: "pre",
-    expect: "exp",
+    // second names (Gherkin's words), read the same; the syntax is not Gherkin
+    given: "pre",
+    then: "exp",
 };
 
 /** `needs:` / `sets:` on a choice: not text, so they are kept apart from FIELD_KEYS (SYN-17) */
@@ -620,9 +620,9 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
 
     flow.steps.forEach((s, i) => {
         out.push(`${i + 1}. ${oneLine(s.name)}`);
-        field("   ", "given", s.pre);
+        field("   ", "setup", s.pre);
         field("   ", "data", s.data);
-        field("   ", "then", s.exp);
+        field("   ", "expect", s.exp);
         field("   ", "req", s.req);
         for (const c of s.conds) {
             let line = "   - " + escapeBracket(oneLine(c.label));
@@ -644,9 +644,9 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             // sets / needs are fields, before the other fields (SYN-17, SYN-40)
             if (c.need) out.push("     needs: " + needToWords(c.need));
             if (c.tags) out.push("     sets: " + c.tags.split(",").filter(Boolean).join(" "));
-            field("     ", "given", c.pre);
+            field("     ", "setup", c.pre);
             field("     ", "data", c.data);
-            field("     ", "then", c.exp);
+            field("     ", "expect", c.exp);
             field("     ", "req", c.req);
         }
     });

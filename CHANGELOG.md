@@ -17,6 +17,14 @@
   `Test Scenario 1, 2…`, the IDs of the scenario notes of the same mode. A table split
   over several frames is named `Scenarios 1 to 10 of N`, and the copied text has the IDs
   as its head row, without the separate `Scenario ID` row (OUT-61, OUT-64).
+- **`setup:` and `expect:` are the field names; `given:` and `then:` still work.** The two
+  are Gherkin's words, but the syntax is not Gherkin (no `When`, no `And`), so the
+  fields are now named for what they hold and for the columns of the Test steps table.
+  Notes you wrote with `given:` / `then:` read exactly as before, and you can keep typing
+  them. What the extension writes back, and the starter template, use `setup:` and
+  `expect:`, so a note read and written back by the extension changes its spelling. A
+  field written twice, under either name, keeps both texts. The README has a new
+  Fields section (SYN-19).
 
 ### Added
 

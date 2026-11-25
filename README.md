@@ -21,6 +21,7 @@ panel's paste box, or in any note, sticky note or text box, that starts with `@b
   - [What is drawn](#what-is-drawn)
 - [Text syntax](#text-syntax)
   - [Lines](#lines)
+  - [Fields](#fields)
   - [What a condition does](#what-a-condition-does)
   - [Options](#options)
   - [The one-line form](#the-one-line-form)
@@ -45,30 +46,30 @@ panel's paste box, or in any note, sticky note or text box, that starts with `@b
 
 1. Authentication
    req: R-01
-   given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
+   setup: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
    - Log in [P1]
      sets: user
      data: username user_001, password Passw0rd!
-     then: 200 OK, the header shows "user_001", a session token is issued
+     expect: 200 OK, the header shows "user_001", a session token is issued
    - Continue as guest [P2]
      sets: guest
      data: no account, email guest@example.com
-     then: 200 OK, the header shows "Guest", no session token
+     expect: 200 OK, the header shows "Guest", no session token
 2. Select Products
    req: R-02
-   given: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
+   setup: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
    - Shirt [variant]
      data: SKU-001, quantity 1
-     then: the product page shows price 20.00
+     expect: the product page shows price 20.00
    - Shoes [variant]
      data: SKU-002, quantity 1
-     then: the product page shows price 50.00
+     expect: the product page shows price 50.00
 3. Add to Shopping Cart
    - Added [P1]
-     then: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
+     expect: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
    - Out of stock -> end [negative]
-     given: the stock of the product is 0
-     then: 409 OUT_OF_STOCK, the cart item count does not change
+     setup: the stock of the product is 0
+     expect: 409 OUT_OF_STOCK, the cart item count does not change
 ```
 
 The first three steps of the starter template (**Start with a template** drops all of it on the board). The whole text is under [Text syntax](#text-syntax).
@@ -79,7 +80,7 @@ The first three steps of the starter template (**Start with a template** drops a
 | --- | --- |
 | **Flow** | The whole business flow you write: steps, each with its choices |
 | **Scenario** | One path through the flow, from the first step to where it ends: several test steps in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-001` (happy) and `TSN-001` (negative): see "Scenario IDs" below |
-| **Test step** | One step of a scenario with the choice taken there, and its setup (`given:`), test data (`data:`) and expected result (`then:`). It is one row of a Test steps table |
+| **Test step** | One step of a scenario with the choice taken there, and its setup (`setup:`), test data (`data:`) and expected result (`expect:`). It is one row of a Test steps table |
 
 So a scenario is a chain of test steps, and the number the panel shows is the number
 of scenarios.
@@ -143,7 +144,7 @@ in the panel does not need the marker.)
   `TSS-…` (success) and `TSN-…` (negative), running numbers from 001.
 - Each scenario note is itself written in the flow syntax (`@builder`, a
   `@title TSS-001 · Happy · P1`, the steps and choices of that scenario with their
-  `given:` / `data:` / `then:`), so it can be selected and read back.
+  `setup:` / `data:` / `expect:`), so it can be selected and read back.
 - A lot of scenarios is laid out in more columns, so the frame stays about as wide as
   it is tall. There is no limit on the number of notes, but the panel warns when a
   mode makes more than 50.
@@ -168,8 +169,9 @@ This is the starter template, the note that **Start with a template** drops on t
 # 1. Step           a step: a number, then its name
 # - choice          a choice at that step (a step may have many)
 # [P1] [P2] [P3]    priority: the lowest P on a scenario is its priority
-# given: data: then:  setup, test data, expected result (before a choice = the step)
-#                   then: is a value to assert (a number, status or code), never just "works"
+# setup: data: expect:  the setup, the test data, the expected result (before a choice = the step)
+#                   expect: is a value to assert (a number, status or code), never just "works"
+#                   given: and then: are read the same, as setup: and expect:
 # req: R-01         a requirement id, on a step or a choice
 # -> end            the flow stops here: a negative scenario
 # -> loop to step 2 max 2   go back to step 2, at most 2 rounds
@@ -182,79 +184,79 @@ This is the starter template, the note that **Start with a template** drops on t
 
 1. Authentication
    req: R-01
-   given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
+   setup: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
    - Log in [P1]
      sets: user
      data: username user_001, password Passw0rd!
-     then: 200 OK, the header shows "user_001", a session token is issued
+     expect: 200 OK, the header shows "user_001", a session token is issued
    - Continue as guest [P2]
      sets: guest
      data: no account, email guest@example.com
-     then: 200 OK, the header shows "Guest", no session token
+     expect: 200 OK, the header shows "Guest", no session token
 2. Select Products
    req: R-02
-   given: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
+   setup: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
    - Shirt [variant]
      data: SKU-001, quantity 1
-     then: the product page shows price 20.00
+     expect: the product page shows price 20.00
    - Shoes [variant]
      data: SKU-002, quantity 1
-     then: the product page shows price 50.00
+     expect: the product page shows price 50.00
 3. Add to Shopping Cart
    - Added [P1]
-     then: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
+     expect: 201 Created, the cart item count goes up by 1, the cart line shows the SKU and its price
    - Out of stock -> end [negative]
-     given: the stock of the product is 0
-     then: 409 OUT_OF_STOCK, the cart item count does not change
+     setup: the stock of the product is 0
+     expect: 409 OUT_OF_STOCK, the cart item count does not change
 4. Calculate Total
-   then: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
+   expect: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
 5. More product?
    - Add another product -> loop to step 2 max 2 [distinct]
-     then: the product list opens again, the cart item count is still 1 after round 1
+     expect: the product list opens again, the cart item count is still 1 after round 1
    - No more product [P1]
-     then: the page moves to shipping, the cart item count is unchanged (1 or 2)
+     expect: the page moves to shipping, the cart item count is unchanged (1 or 2)
 6. Select Shipping Methods
    - Standard [P1]
-     then: the shipping method is Standard, the fee is 5.00
+     expect: the shipping method is Standard, the fee is 5.00
    - Express (members only) [P2]
      needs: user
-     then: the shipping method is Express, the fee is 12.00
+     expect: the shipping method is Express, the fee is 12.00
 7. Add shipping Charge
    data: weight 1 kg
    - Charge added [P1]
-     then: the shipping charge equals the fee of the method: 5.00 (Standard) or 12.00 (Express)
+     expect: the shipping charge equals the fee of the method: 5.00 (Standard) or 12.00 (Express)
    - Free shipping (members only) [P2]
      needs: user
      data: promo code FREESHIP
-     then: the shipping charge is 0.00 and the order total equals the subtotal
+     expect: the shipping charge is 0.00 and the order total equals the subtotal
 8. Enter Shipping Info
    - Use saved address (members only)
      needs: user
      data: address id addr_001, 12 Main St, Springfield, 12345
-     then: the shipping address is 12 Main St, Springfield, 12345
+     expect: the shipping address is 12 Main St, Springfield, 12345
    - Type a new address [P1]
      data: 99 Oak Ave, Austin, TX, 73301
-     then: the address check returns valid, the shipping address is 99 Oak Ave, Austin, TX, 73301
+     expect: the address check returns valid, the shipping address is 99 Oak Ave, Austin, TX, 73301
 9. Select Payment Methods
    - Saved card (members only)
      needs: user
      data: the card saved on user_001, ending 4242
-     then: the payment method shows "Visa ending 4242"
+     expect: the payment method shows "Visa ending 4242"
    - New card [P1]
      data: card 4111 1111 1111 1111, expiry 12/30, CVV 123
-     then: the payment method shows "Visa ending 1111"
+     expect: the payment method shows "Visa ending 1111"
    - Cash on delivery (guests only)
      needs: !user
      sets: cod
-     then: the payment method is COD, the amount due on delivery is the order total
+     expect: the payment method is COD, the amount due on delivery is the order total
 10. Verify Credit Info Complete?
    req: R-03
    - Payment succeeded [P1]
-     then: the order status is CONFIRMED, a receipt email with the order number and the total is sent
+     expect: the order status is CONFIRMED, a receipt email with the order number and the total is sent
    - Payment failed -> end [P2]
      needs: !cod
      data: test card 4000 0000 0000 0002
-     then: the gateway returns CARD_DECLINED, the order status stays PENDING_PAYMENT, the amount charged is 0.00
+     expect: the gateway returns CARD_DECLINED, the order status stays PENDING_PAYMENT, the amount charged is 0.00
 ```
 
 ### Lines
@@ -265,7 +267,7 @@ This is the starter template, the note that **Start with a template** drops on t
 | `@title name` | the title of the drawn frame |
 | `1.` or `1)` (a number) | a **step**. The number is how `loop to step` refers to it |
 | `-` (also `*`, `•`) | a **condition** of the step above |
-| `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read. Several requirement ids go on one line, separated by commas. The scenario frame header lists each requirement with the scenarios that pass it (a step's `req` counts for every scenario through the step, a choice's for every scenario that takes it) and names any requirement the chosen mode leaves out |
+| `setup:` `data:` `expect:` `req:` | a **field**: setup (what must be in place before the test), test data, expected result, requirement id. `given:` and `then:` are read as `setup:` and `expect:`. See [Fields](#fields). Several requirement ids go on one line, separated by commas. The scenario frame header lists each requirement with the scenarios that pass it (a step's `req` counts for every scenario through the step, a choice's for every scenario that takes it) and names any requirement the chosen mode leaves out |
 | `needs:` `sets:` | a **condition field** of a choice: the tags a path must already have to take it, and the tags it adds. Written on lines of their own under the choice, one line each (see [Options](#options)). Not for a step |
 | `#` or `//` | a comment (ignored) |
 
@@ -274,6 +276,32 @@ the last condition above it otherwise. A value can go on over the next lines;
 start such a line with `\` if it would look like a step, a condition or a field
 (`\- not a condition`). Blank lines are fine anywhere. **Indentation is never
 needed**: a note may not keep it, so a line is told apart by how it starts.
+
+### Fields
+
+A field is a line `name: text` under a step or a choice. There are four:
+
+| Field | Holds | Also read as |
+| --- | --- | --- |
+| `setup:` | what must be in place before the test, that the earlier steps did not already put there | `given:` |
+| `data:` | the test data | |
+| `expect:` | the expected result: a value to assert (a number, a status, a code) | `then:` |
+| `req:` | requirement ids | |
+
+Write only what is needed. In the Test steps table a row shows the `setup:` of its step
+and then the one of its choice, and the earlier steps of the scenario are the rows above it,
+so the normal path needs no `setup:` on its choice. Put a `setup:` on a choice only when it
+needs something different, such as `setup: the stock of the product is 0` on `Out of stock`.
+A `setup:` on the step applies to all its choices.
+
+`given:` and `then:` are Gherkin’s words and are read exactly like `setup:` and `expect:`,
+but the syntax is not Gherkin: there is no `When` or `And` (the action is the choice itself) and no
+`Feature`, and the scenarios are not written by hand but made from every path of the flow. The
+extension writes the first names (`setup:`, `expect:`) back, whichever you typed. A field written
+twice on one step or choice, under either name, keeps both texts, one after the other.
+
+`setup:` is not `needs:`. `setup:` is text for the person who runs the test; `needs:` is a
+condition the extension checks to decide which paths exist (see [Options](#options)).
 
 ### What a condition does
 
@@ -598,7 +626,7 @@ The tool walks every path the flow allows and copies each step's fields into the
 scenario. It does not know your system, so a few things stay with the writer:
 
 - **Test data must hold on every path through it.** A scenario puts together the
-  `given:` / `data:` of every step and choice it passes. If step 2 says "account
+  `setup:` / `data:` of every step and choice it passes. If step 2 says "account
   test-user-001" and a choice at step 7 says "account test-user-premium", a scenario
   through both lists two accounts. Write data that fits every path that can reach
   it, or move it to the choice that decides it (and use `sets` / `needs` to keep
@@ -668,7 +696,7 @@ release, check by hand in Drawdy (about five minutes):
 
 1. Add the dev server, allow the permissions, click the extension's button: the
    panel opens in English.
-2. Type a flow with `given:` / `data:` / `then:`: the counts and the "Mode EP: N
+2. Type a flow with `setup:` / `data:` / `expect:`: the counts and the "Mode EP: N
    scenarios" line appear; a typo shows `Line N: ...`.
 3. **Flow + Scenarios**: a flow frame and a scenario frame appear, happy scenarios first.
 4. Select one scenario note: the line says "1 scenario note(s) selected", **Flow** reads

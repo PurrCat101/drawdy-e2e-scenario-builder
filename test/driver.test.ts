@@ -148,7 +148,7 @@ test("OUT-22 OUT-23: scenario notes: happy first, then negative; each is a flow 
     assert.equal(kinds.indexOf("neg"), kinds.lastIndexOf("happy") + 1);
     for (const e of notes) {
         assert.match(e.text, /^@builder\n@title TS[SN]-\d+ · /);
-        assert.ok(e.text.includes("then:") || e.text.includes("- "));
+        assert.ok(e.text.includes("expect:") || e.text.includes("- "));
     }
 });
 

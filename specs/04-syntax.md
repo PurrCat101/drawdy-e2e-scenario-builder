@@ -22,7 +22,7 @@ The README's "Text syntax" is the user's guide to the same rules.
   | --- | --- |
   | a number and `.` or `)` | a step; the number is how loops refer to it |
   | `-`, `*`, `•`, `–` and a space | a choice of the step above |
-  | `given:` `data:` `then:` `req:` (also `setup:` = given, `expect:` = then) | a field |
+  | `setup:` `data:` `expect:` `req:` (also `given:` = setup, `then:` = expect) | a field (SYN-19) |
   | `needs:` `sets:` (also `need:` and `set:`) | a field of a choice that is a path condition or a tag, not text (SYN-17) |
   | `#` or `//` | a comment |
   | `\` | a continuation line that would otherwise look like one of the above |
@@ -56,6 +56,17 @@ The README's "Text syntax" is the user's guide to the same rules.
   step above ("needs: must be under a choice"); one with no value; one given twice on a
   choice, or both as a field and in `[ ]` ("needs is given twice"). When given twice,
   the field is used over the bracket, and the later field over the earlier.
+- **SYN-19** The text fields are `setup:` (what is to be in place before the test),
+  `data:` (test data) and `expect:` (the expected result), and `req:` (requirement ids).
+  `setup:` and `expect:` have a second name each, `given:` and `then:`, read exactly
+  the same: they are Gherkin's words, but the syntax is not Gherkin (there is no `when`
+  or `And`; the action is the choice itself). The names are read in any letter case.
+  A field written twice on one step or choice, under either name, keeps both texts, one
+  after the other, in the order written. `setup:` is not `needs:`: `setup:` is text for
+  the person who runs the test, `needs:` is a condition the extension checks (SYN-17).
+  A step's `setup:` applies to all its choices: a row of the Test steps table shows the
+  step's `setup:` and then the choice's (OUT-31). A `setup:` is only needed where
+  something must be in place that is not already said above it.
 
 ## One-line form
 
@@ -84,13 +95,14 @@ The README's "Text syntax" is the user's guide to the same rules.
   `[...]` and has no options gets an empty `[]` after it, so the label is not read as
   options. A `[` with no `]` after it, or after a backslash, is written `\[` (SYN-13).
   A choice's `needs` and `sets` are written as `needs:` and `sets:` fields under it
-  (in that order), not in the brackets (SYN-17), before its `given:` field; `P`, `variant`, `negative`
-  and `distinct` stay in the brackets.
+  (in that order), not in the brackets (SYN-17), before its `setup:` field; `P`, `variant`,
+  `negative` and `distinct` stay in the brackets. The text fields are written under their
+  first names, `setup:`, `data:`, `expect:` and `req:`, whichever name was read (SYN-19).
 - **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
   every kind of choice and field the syntax has (a distinct loop with max, an end, a
   variant, sets, needs with or and not, a req); its
   `#` lines explain the syntax and do not change the flow. Every step has an expected
-  result (`then:`), on the step or on each of its choices, written as a value to assert
+  result (`expect:`), on the step or on each of its choices, written as a value to assert
   (a number, a status, a code), and the test data is concrete (such as `user_001`), so
   the note can be turned into automated tests as it is. The README's syntax example is
   this note's text, word for word, so the README and the extension teach the same
