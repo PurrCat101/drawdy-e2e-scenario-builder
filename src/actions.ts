@@ -3,7 +3,7 @@ import { hasMarker, parseFlowText } from "./syntax";
 import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { analyze } from "./analysis";
 import { MODE_LABEL, orderScenarios } from "./scenarioBoard";
-import { buildDecisionTable, MAX_DECISION_SCENARIOS } from "./decisionTable";
+import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./decisionTable";
 import { renderDecisionTables } from "./decisionBoard";
 import type { Scenario } from "./scenarios";
 import { scenarioFlow, scenarioFromText, pathFails } from "./scenarioFlow";
@@ -210,6 +210,26 @@ export async function copyAction(text: string, uiMode: Mode): Promise<string> {
     return "";
 }
 
+/**
+ * Copy decision table: the text of the decision table (CALC-90 to 94) of the scenarios
+ * chosen as for the Decision table button, without drawing it and without the limit of
+ * MAX_DECISION_SCENARIOS (DRV-58). One long row of scenarios, for a spreadsheet.
+ */
+export async function copyDecisionAction(text: string, uiMode: Mode): Promise<string> {
+    const got = await collectDecision(text, uiMode);
+    if (typeof got === "string") return got;
+    const parts: string[] = [];
+    let n = 0;
+    for (const src of got) {
+        const dt = buildDecisionTable(src.flow, src.scenarios);
+        if (!dt.conditions.length) return "Cannot copy a decision table: the flow has no step with two or more choices";
+        parts.push(decisionToTsv(dt));
+        n += dt.columns.length;
+    }
+    await toPanel({ type: "clip", text: parts.join("\n\n"), scenarios: n });
+    return "";
+}
+
 /** A flow and the scenarios to make a decision table of, with where to draw it. */
 type DecisionSource = { flow: Flow; scenarios: Scenario[]; mode: Mode; anchor: Box };
 
@@ -263,7 +283,7 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
         const dt = buildDecisionTable(src.flow, src.scenarios);
         if (!dt.conditions.length) return "Cannot draw a decision table: the flow has no step with two or more choices";
         if (dt.columns.length > MAX_DECISION_SCENARIOS)
-            return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each`;
+            return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each, or press Copy decision table`;
         const name = `Decision table · ${MODE_LABEL[src.mode]}`;
         const size = renderDecisionTables({ table: dt, name, origin: [0, 0], generateId });
         const origin = findFree(await occupiedRects(), src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);

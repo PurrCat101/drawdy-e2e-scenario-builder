@@ -110,6 +110,7 @@ of scenarios.
 | **Test steps** | The test steps of each scenario, in order, as tables: one row per test step (step, condition, setup, test data, expected result) |
 | **Decision table** | A decision table of the same scenarios: the steps that decide as rows, each scenario as a column. See [Decision table](#decision-table) |
 | **Copy to clipboard** | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
+| **Copy decision table** | Copies the decision table of the same scenarios, without drawing it and with no limit on scenarios: one long row of scenarios, so you can freeze the first two columns in the spreadsheet |
 
 ### What the buttons use
 
@@ -117,7 +118,7 @@ A selection on the board wins over the text left in the panel. The panel says wh
 the buttons will use ("The buttons below will use ..."), the **Test steps**, **Decision table** and **Copy to clipboard**
 labels follow it (they end with how many scenarios they use), and buttons that do not fit the selection are greyed out.
 
-| Selected on the board | Flow | Scenarios | Flow + Scenarios | Test steps / Decision table / Copy to clipboard |
+| Selected on the board | Flow | Scenarios | Flow + Scenarios | Test steps / Decision table / Copy to clipboard / Copy decision table |
 | --- | --- | --- | --- | --- |
 | nothing, with a flow in the text box | on | on | on | all scenarios of the mode |
 | nothing, text box empty | off | off | off | off |
@@ -125,7 +126,7 @@ labels follow it (they end with how many scenarios they use), and buttons that d
 | a scenario frame | off | on (scenarios again, chosen mode) | off | all scenarios in the frame |
 | a drawn flow frame | off | on (new scenarios) | on | scenarios of the chosen mode |
 | a note that starts with `@builder` | on | on | on | its scenarios |
-| a table or a decision table | off | off | off | **Copy to clipboard** copies that table |
+| a table or a decision table | off | off | off | **Copy to clipboard** copies that table; the rest are off |
 
 **Only notes that start with `@builder` are read.** Any other note is left
 alone, so the extension never spends time on notes that are not flows. (The text box
@@ -552,11 +553,17 @@ How to read it:
   not cover.
 
 A frame holds up to 10 scenarios; more are drawn in more frames, one under the other. A
-decision table is made for at most 60 scenarios: pick EP, Pair or Each for a bigger flow.
+decision table is drawn for at most 60 scenarios: pick EP, Pair or Each for a bigger flow,
+or press **Copy decision table** to get it as text for a spreadsheet with no limit.
 A flow with no step that has two or more choices has no decision table.
 
 Select a decision table and press **Copy to clipboard** to copy it for a spreadsheet: the same
 rows, a Group row and a Scenario ID row.
+
+**Copy decision table** gives that text straight from the flow, a scenario frame or selected
+scenario notes, without drawing anything. Past 60 scenarios (All Paths of a big flow) it
+is the way to get the table: paste it into a spreadsheet and freeze the first two columns
+(Condition, Combination) so the scenarios scroll sideways.
 
 ## Writing a flow that tests well
 

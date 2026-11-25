@@ -29,7 +29,7 @@ There is no server: nothing leaves the user's browser.
   | `target` | | what is selected? (polled every 1.2 s) |
   | `pull` | | send me the selected `@builder` note's text |
   | `template` | `id` | drop a starter note |
-  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `decision`, `copy` (Copy to clipboard) |
+  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
 
 - **DRV-11** Driver → panel:
 
@@ -87,8 +87,17 @@ There is no server: nothing leaves the user's browser.
   scenario notes selected, only those scenarios; with several `@builder` notes selected,
   one table for each. Nothing is drawn, and the status says why, when the flow has no
   step with two or more choices ("Cannot draw a decision table: ...") or when there are
-  more than 60 scenarios ("Could not draw: ... pick EP, Pair or Each"). On success the
+  more than 60 scenarios ("Could not draw: ... pick EP, Pair or Each, or press Copy decision
+  table"). On success the
   status is "Decision table drawn (N scenarios)" and the view flies to the table.
+- **DRV-58** Copy decision table: sends `clip` with the text of the decision table (OUT-64)
+  of the scenarios chosen as for the Decision table button (DRV-57), and draws nothing.
+  There is no limit on the number of scenarios (the 60 of DRV-57 is a limit of drawing):
+  every scenario is one more column in one long row, so a spreadsheet can freeze the first
+  two columns. With several `@builder` notes selected the tables follow each other,
+  separated by an empty line. A flow with no step that decides copies nothing and says
+  "Cannot copy a decision table: ...". A selected table is not a source (UI-31): Copy to
+  clipboard copies it.
 - **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the

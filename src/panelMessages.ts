@@ -11,6 +11,7 @@ import {
     actionFlow,
     addTemplateNote,
     copyAction,
+    copyDecisionAction,
     decisionAction,
     drawFromText,
     tableAction,
@@ -182,6 +183,8 @@ export async function onPanelMessage(m: any) {
             status = await decisionAction(text, uiMode);
         } else if (m.action === "copy") {
             status = await copyAction(text, uiMode);
+        } else if (m.action === "copydecision") {
+            status = await copyDecisionAction(text, uiMode);
             if (!status) return; // the panel reports the result itself
         } else if (text && !usable) {
             status = await drawFromText(

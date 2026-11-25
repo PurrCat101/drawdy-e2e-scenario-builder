@@ -17,8 +17,8 @@ control: flows are written on the board, not in the panel.
 - **UI-05** The mode switch: All, EP (default), Pair, Each.
 - **UI-06** The action buttons, in three groups, each under a small heading: **Draw**
   (Flow, Scenarios, Flow + Scenarios, which is primary and full width), **Tables** (Test
-  steps and Decision table, each full width) and **Export** (Copy to clipboard, full
-  width).
+  steps and Decision table, each full width) and **Export** (Copy to clipboard and
+  Copy decision table, each full width).
 - **UI-07** The status line, right under the buttons.
 - **UI-08** "Start a flow on the board": one Starter note button, "Start with a template",
   and one hint line.
@@ -51,21 +51,21 @@ control: flows are written on the board, not in the panel.
   (a scenario frame), `flowframe` (a flow frame), `table`.
 - **UI-31** Which buttons are on:
 
-  | Selection | Flow | Scenarios | Flow + Scenarios | Test steps | Decision table | Copy to clipboard |
-  | --- | --- | --- | --- | --- | --- | --- |
-  | none, paste box empty | off | off | off | off | off | off |
-  | none, text in the paste box | on | on | on | on | on | on |
-  | flows | on | on | on | on | on | on |
-  | scenarios | on ("Flow + Test steps") | off | off | on | on | on |
-  | frame | off | on | off | on | on | on |
-  | flowframe | off | on | on | on | on | on |
-  | table (a table or a decision table) | off | off | off | off | off | on |
+  | Selection | Flow | Scenarios | Flow + Scenarios | Test steps | Decision table | Copy to clipboard | Copy decision table |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | none, paste box empty | off | off | off | off | off | off | off |
+  | none, text in the paste box | on | on | on | on | on | on | on |
+  | flows | on | on | on | on | on | on | on |
+  | scenarios | on ("Flow + Test steps") | off | off | on | on | on | on |
+  | frame | off | on | off | on | on | on | on |
+  | flowframe | off | on | on | on | on | on | on |
+  | table (a table or a decision table) | off | off | off | off | off | on | off |
 
   A button that is off says "Not available for what is selected".
 - **UI-32** With scenario notes selected, the Flow button reads "Flow + Test steps".
-- **UI-33** The Test steps, Decision table and Copy to clipboard labels end with what
-  they use: ` · N scenarios` (`· 1 scenario` for one) for a scenario frame or selected
-  scenario notes, ` · selected table` (Copy to clipboard only) for a selected table, or
+- **UI-33** The Test steps, Decision table, Copy to clipboard and Copy decision table
+  labels end with what they use: ` · N scenarios` (`· 1 scenario` for one) for a scenario
+  frame or selected scenario notes, ` · selected table` (Copy to clipboard only) for a selected table, or
   ` · M · N scenarios` (the mode and its count) for the paste box. With nothing to use
   the label is just the name. The box above the buttons says what is selected (UI-02).
 

@@ -180,15 +180,15 @@ test("UI-06: the buttons are in three groups under the headings Draw, Tables and
     const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="status"'));
     // headings and buttons, in the order the user sees them
     const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "decision", "Export", "copy"]);
+    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "decision", "Export", "copy", "copydecision"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
     assert.deepEqual(
-        ["flow", "scenarios", "board", "table", "decision", "copy"].map(label),
-        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Decision table", "Copy to clipboard"]
+        ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"].map(label),
+        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Decision table", "Copy to clipboard", "Copy decision table"]
     );
     // Flow + Scenarios is the primary button; the three tables and export buttons are full width
     assert.match(block, /<button id="board" class="primary wide"/);
-    for (const id of ["table", "decision", "copy"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
+    for (const id of ["table", "decision", "copy", "copydecision"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
 });
 
 test("OUT-30: the Test steps frame is named after the button, with the mode when it holds many scenarios", async () => {
@@ -528,7 +528,49 @@ test("DRV-57: more than 60 scenarios draws nothing and names the smaller modes",
     await h.action("decision", TEMPLATES[0].text, "all"); // 113 scenarios
     assert.equal(decisionFrames(h).length, 0);
     const s = lastStatus(h);
-    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick EP, Pair or Each$/);
+    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick EP, Pair or Each, or press Copy decision table$/);
+    assert.ok(s.bad);
+});
+
+test("DRV-58: Copy decision table copies the text of the table the Decision table button draws, and draws nothing", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "pair");
+    const drawn = decisionFrames(h)[0].meta.tsv;
+    const before = decisionFrames(h).length;
+    await h.action("copydecision", TEMPLATES[0].text, "pair");
+    const clip = h.lastClip();
+    assert.equal(clip.text, drawn);
+    assert.equal(clip.scenarios, 10);
+    assert.equal(decisionFrames(h).length, before, "nothing is drawn");
+});
+
+test("DRV-58: Copy decision table has no limit of 60: every scenario is one more column in one row", async () => {
+    const h = await makeHost();
+    await h.action("copydecision", TEMPLATES[0].text, "all"); // more than 60 scenarios, which Decision table refuses
+    const clip = h.lastClip();
+    assert.ok(clip.scenarios > 60, `${clip.scenarios} scenarios`);
+    const rows = clip.text.split("\n").map((r: string) => r.split("\t"));
+    assert.deepEqual(rows[0].slice(0, 3), ["Condition", "Combination", "Test Scenario 1"]);
+    assert.equal(rows[0].length, 2 + clip.scenarios);
+    assert.ok(rows.every((r: string[]) => r.length === rows[0].length), "every row is as wide as the head");
+    assert.equal(rows[2][1], "Scenario ID");
+    assert.equal(new Set(rows[2].slice(2)).size, clip.scenarios, "each column has its own ID");
+});
+
+test("DRV-58: Copy decision table with a scenario frame selected uses that frame's scenarios", async () => {
+    const h = await makeHost();
+    await h.action("scenarios", TEMPLATES[0].text, "pair");
+    const frame = h.find((e) => e.type === "frame" && e.meta?.e2eScenarios)[0];
+    h.select(h.idOf(frame));
+    await h.action("copydecision", "", "ep");
+    assert.equal(h.lastClip().scenarios, frame.meta.count);
+});
+
+test("DRV-58: Copy decision table says why when the flow has no step that decides, and copies nothing", async () => {
+    const h = await makeHost();
+    await h.action("copydecision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "ep");
+    const s = lastStatus(h);
+    assert.match(s.text, /^Cannot copy a decision table: the flow has no step with two or more choices/);
     assert.ok(s.bad);
 });
 
@@ -636,21 +678,21 @@ test("UI-31: panel: which buttons are on for each selection", () => {
     try {
         const row = (kind: string) => {
             p.send({ type: "target", kind, n: 1 });
-            return ["flow", "scenarios", "board", "table", "decision", "copy"]
+            return ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"]
                 .map((id) => (p.els[id].disabled ? "-" : id))
                 .filter((x) => x !== "-")
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("scenarios"), "flow,table,decision,copy");
-        assert.equal(row("frame"), "scenarios,table,decision,copy");
-        assert.equal(row("flows"), "flow,scenarios,board,table,decision,copy");
-        assert.equal(row("flowframe"), "scenarios,board,table,decision,copy");
+        assert.equal(row("scenarios"), "flow,table,decision,copy,copydecision");
+        assert.equal(row("frame"), "scenarios,table,decision,copy,copydecision");
+        assert.equal(row("flows"), "flow,scenarios,board,table,decision,copy,copydecision");
+        assert.equal(row("flowframe"), "scenarios,board,table,decision,copy,copydecision");
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
-        assert.equal(row("none"), "flow,scenarios,board,table,decision,copy");
+        assert.equal(row("none"), "flow,scenarios,board,table,decision,copy,copydecision");
     } finally {
         p.restore();
     }
@@ -664,6 +706,7 @@ test("UI-32 UI-33: panel: labels follow the selection and say what will be used"
         p.send({ type: "target", kind: "none", n: 0 });
         assert.equal(p.els.table.textContent, "Test steps · EP · 28 scenarios");
         assert.equal(p.els.decision.textContent, "Decision table · EP · 28 scenarios");
+        assert.equal(p.els.copydecision.textContent, "Copy decision table · EP · 28 scenarios");
         assert.equal(p.els.copy.textContent, "Copy to clipboard · EP · 28 scenarios");
         assert.equal(p.els.flow.textContent, "Flow");
         p.send({ type: "target", kind: "scenarios", n: 2 });
@@ -676,6 +719,7 @@ test("UI-32 UI-33: panel: labels follow the selection and say what will be used"
         p.send({ type: "target", kind: "scenarios", n: 1 });
         assert.equal(p.els.table.textContent, "Test steps · 1 scenario");
         assert.equal(p.els.decision.textContent, "Decision table · 1 scenario");
+        assert.equal(p.els.copydecision.textContent, "Copy decision table · 1 scenario");
         p.send({ type: "target", kind: "table", n: 1 });
         assert.equal(p.els.copy.textContent, "Copy to clipboard · selected table");
     } finally {
