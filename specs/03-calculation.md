@@ -178,7 +178,8 @@ mode. Drawing it is OUT-60 and the rules after it.
 - **CALC-91** The columns are the scenarios of the chosen mode, Happy first, then
   Negative, each by priority and then ID (OUT-22). Column k is named `Test Scenario k`.
   A Happy scenario belongs to the group **Success**, a Negative one to
-  **Negative**.
+  **Negative**. The ID of each column is drawn under its name (OUT-61), and the notes of
+  the Scenarios frame are in the same order (OUT-65).
 - **CALC-92** A value is marked for a scenario when the scenario takes that choice at
   least once on its path (a loop that takes two choices at one step marks both). A
   step the scenario never reaches has no mark for it.

@@ -524,6 +524,7 @@ the decision table is:
 
 | Condition | Combinations | Test Scenario 1 | Test Scenario 2 | Test Scenario 3 | Test Scenario 4 |
 | --- | --- | --- | --- | --- | --- |
+| Scenario ID | | TSS-… | TSS-… | TSN-… | TSN-… |
 | | | **Success** | | **Negative** | |
 | 1. Sign in | ok | X | X | X | |
 | | failed | | | | X |
@@ -540,7 +541,9 @@ How to read it:
 - **Columns.** The scenarios of the mode, Happy ones first under a green **Success** bar
   (they complete the flow, even through a `[negative]` choice), then the Negative ones
   under a red **Negative** bar (they end at a `-> end`). They are named Test Scenario
-  1, 2, …; the scenario IDs are not drawn, they are in the copied text.
+  1, 2, …, and the scenario ID (`TSS-…` or `TSN-…`) is under each name. Look for the
+  same ID on the scenario notes to find the note of a column, then select it and press
+  **Flow** or **Test steps**.
 - **X.** The scenario takes that choice. A loop marks every choice it takes at the step
   (here Test Scenario 1 takes `shoes` and then `sold out`). A scenario that never
   reaches a step has no X for it.
