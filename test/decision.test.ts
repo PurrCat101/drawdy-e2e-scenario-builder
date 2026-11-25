@@ -8,6 +8,7 @@ import { generate, pick } from "../src/scenarios.ts";
 import { buildDecisionTable, columnName, decisionToTsv } from "../src/decisionTable.ts";
 import { TEMPLATES } from "../src/templates.ts";
 import { renderDecisionTables } from "../src/decisionBoard.ts";
+import { renderScenarios } from "../src/scenarioBoard.ts";
 import { textRows } from "../src/textBox.ts";
 
 const FLOW = `@builder
@@ -146,7 +147,7 @@ test("OUT-60: a decision table is plain text boxes with a fill and black text, i
     assert.deepEqual(frames[0].position, [100, 200]);
 });
 
-test("OUT-61: Success and Negative bars, a box Test Scenario k for each column, no scenario IDs, at most 10 columns a frame", () => {
+test("OUT-61: Success and Negative bars, a box Test Scenario k for each column, at most 10 columns a frame", () => {
     const { dt, frames, boxes, els } = draw(TEMPLATES[0].text, "ep");
     const n = dt.columns.length;
     assert.ok(n > 10, "the template makes more than 10 scenarios in EP");
@@ -164,8 +165,36 @@ test("OUT-61: Success and Negative bars, a box Test Scenario k for each column, 
         heads.filter((h) => h.frameId === b.frameId && h.x >= b.x && h.x + h.width <= b.x + b.width && h.y > b.y);
     for (const b of successBars) assert.ok(headOf(b).every((h) => dt.columns[Number(h.text.slice(14)) - 1].type === "happy"));
     for (const b of altBars) assert.ok(headOf(b).every((h) => dt.columns[Number(h.text.slice(14)) - 1].type === "neg"));
-    // the IDs are not on the board
-    assert.ok(!els.some((e) => typeof e.text === "string" && /TS[SN]-\d{3,}/.test(e.text)));
+});
+
+test("OUT-61: the scenario ID is drawn under every Test Scenario k, in the same column", () => {
+    const { dt, boxes } = draw(TEMPLATES[0].text, "ep");
+    const heads = boxes.filter((b) => /^Test Scenario \d+$/.test(b.text));
+    const idBoxes = boxes.filter((b) => /^TS[SN]-\d{5}$/.test(b.text));
+    assert.equal(idBoxes.length, dt.columns.length, "one ID box for every column");
+    heads.forEach((h, k) => {
+        const id = idBoxes.find((b) => b.frameId === h.frameId && b.x === h.x);
+        assert.ok(id, `no ID under ${h.text}`);
+        assert.equal(id.text, dt.columns[k].id, `${h.text} shows the ID of its own column`);
+        assert.ok(id.y >= h.y + h.height, `${h.text}: the ID is not below the head`);
+        assert.equal(id.width, h.width);
+    });
+});
+
+test("OUT-65: column k of the decision table and note k of the Scenarios frame are the same scenario", () => {
+    for (const [text, mode] of [[FLOW, "all"], [TEMPLATES[0].text, "ep"], [TEMPLATES[0].text, "pair"], [TEMPLATES[0].text, "min"]] as const) {
+        const flow = parseFlowText(text).flow;
+        const gen = generate(flow);
+        const shown = pick(gen, mode);
+        let n = 0;
+        const id = () => `i${n++}`;
+        const board = renderScenarios({
+            flow, mode, shown, gen, counts: { all: 1, ep: 1, pair: 1, min: 1 }, issues: [], origin: [0, 0], generateId: id,
+        });
+        const noteIds = (board.elements as any[]).filter((e) => e.meta && e.meta.kind === "scenario").map((e) => e.meta.id);
+        const dt = buildDecisionTable(flow, shown);
+        assert.deepEqual(dt.columns.map((c) => c.id), noteIds, `${mode}: the columns and the notes are in the same order`);
+    }
 });
 
 test("OUT-62: a box for each condition and value, and an X where a scenario takes it", () => {

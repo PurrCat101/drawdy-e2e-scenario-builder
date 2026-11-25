@@ -99,7 +99,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   `Decision table · <mode name> · N scenarios`, placed like the other drawings (OUT-01).
 - **OUT-61** The top has a green bar `Success` over the Happy columns and a red bar
   `Negative` over the Negative scenarios, then a box `Test Scenario k` for each column
-  (the scenario IDs are not drawn; they are in the copied text, OUT-64). At most 10
+  and, right under it, a grey box with the scenario's ID (`TSS-…` or `TSN-…`, font 12),
+  as wide as the head, so a column is found on the board by its ID (OUT-65). At most 10
   columns go in one frame: more are drawn in more frames, one under the other, named
   `Decision table · <mode name> · Test Scenario a to b of N`.
 - **OUT-62** Down the left, a box `<n>. <step name>` for each condition, with a grey box
@@ -112,3 +113,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   copies it, DRV-25): the row `Condition, Combination, Test Scenario 1…`, a `Group` row
   (`Success` or `Negative`), a `Scenario ID` row and the value rows with an `X`. A value
   with a tab, a quote or a line break is quoted.
+- **OUT-65** Column k of a decision table and note k of the Scenarios frame drawn for the
+  same selection and mode are the same scenario: both are in the order of OUT-22 and
+  show the same ID. The ID is the same in every mode (CALC-50), so a scenario read off
+  the decision table is found on the board by it, and selecting its note gives its Flow
+  and Test steps (OUT-24).

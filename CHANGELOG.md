@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The decision table shows each scenario's ID (`TSS-…` / `TSN-…`) under its `Test Scenario k`
+  head, so a column is found on the board by the ID on the scenario note, and selecting
+  that note gives its Flow and Test steps (OUT-61, OUT-65).
+
 ## 0.3.0
 
 ### Read this before upgrading

@@ -14,6 +14,7 @@ const COL_W = 150; // wide enough for "Test Scenario 12" on one line
 const GAP = 8;
 const CHIP_H = 34;
 const BAR_H = 28;
+const ID_H = 28;
 const X_W = 48;
 const X_H = 28;
 const ROW_GAP = 6;
@@ -86,7 +87,11 @@ export function renderDecisionTables(opts: {
         for (let k = a; k < b; k++) chip(colX(k), y, COL_W, CHIP_H, columnName(k), "violet", "center");
         chip(xLabel, y, LABEL_W, CHIP_H, "Condition", "purple");
         chip(xCombo, y, COMBO_W, CHIP_H, "Combinations", "gray");
-        y += CHIP_H + 18;
+        y += CHIP_H + GAP;
+        // OUT-61: the scenario ID under each head, to find the note on the board by it
+        for (let k = a; k < b; k++) chip(colX(k), y, COL_W, ID_H, t.columns[k].id, "gray", "center", 12);
+        chip(xLabel, y, LABEL_W + GAP + COMBO_W, ID_H, "Scenario ID", "gray");
+        y += ID_H + 18;
 
         for (const g of groups) {
             const labelH = Math.max(CHIP_H, fitHeight(g.title, LABEL_W, FONT));
