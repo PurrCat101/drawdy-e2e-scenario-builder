@@ -30,17 +30,19 @@ const SHOP = `@builder
 # [distinct]        on a loop: a round offers only choices not picked yet
 # [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
-# [sets x]          this choice tags the path with x
-# [needs x]         a choice only a path with tag x can take (and, or, not / !)
+# needs: x          a choice only a path with tag x can take (and, or, not / !)
+# sets: x           this choice tags the path with x
 # Delete the comments and the steps you do not need.
 
 1. Authentication
    req: R-01
    given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
-   - Log in [P1, sets user]
+   - Log in [P1]
+     sets: user
      data: username user_001, password Passw0rd!
      then: 200 OK, the header shows "user_001", a session token is issued
-   - Continue as guest [P2, sets guest]
+   - Continue as guest [P2]
+     sets: guest
      data: no account, email guest@example.com
      then: 200 OK, the header shows "Guest", no session token
 2. Select Products
@@ -68,36 +70,43 @@ const SHOP = `@builder
 6. Select Shipping Methods
    - Standard [P1]
      then: the shipping method is Standard, the fee is 5.00
-   - Express (members only) [P2, needs user]
+   - Express (members only) [P2]
+     needs: user
      then: the shipping method is Express, the fee is 12.00
 7. Add shipping Charge
    data: weight 1 kg
    - Charge added [P1]
      then: the shipping charge equals the fee of the method: 5.00 (Standard) or 12.00 (Express)
-   - Free shipping (members only) [P2, needs user]
+   - Free shipping (members only) [P2]
+     needs: user
      data: promo code FREESHIP
      then: the shipping charge is 0.00 and the order total equals the subtotal
 8. Enter Shipping Info
-   - Use saved address (members only) [needs user]
+   - Use saved address (members only)
+     needs: user
      data: address id addr_001, 12 Main St, Springfield, 12345
      then: the shipping address is 12 Main St, Springfield, 12345
    - Type a new address [P1]
      data: 99 Oak Ave, Austin, TX, 73301
      then: the address check returns valid, the shipping address is 99 Oak Ave, Austin, TX, 73301
 9. Select Payment Methods
-   - Saved card (members only) [needs user]
+   - Saved card (members only)
+     needs: user
      data: the card saved on user_001, ending 4242
      then: the payment method shows "Visa ending 4242"
    - New card [P1]
      data: card 4111 1111 1111 1111, expiry 12/30, CVV 123
      then: the payment method shows "Visa ending 1111"
-   - Cash on delivery (guests only) [needs !user, sets cod]
+   - Cash on delivery (guests only)
+     needs: !user
+     sets: cod
      then: the payment method is COD, the amount due on delivery is the order total
 10. Verify Credit Info Complete?
    req: R-03
    - Payment succeeded [P1]
      then: the order status is CONFIRMED, a receipt email with the order number and the total is sent
-   - Payment failed -> end [P2, needs !cod]
+   - Payment failed -> end [P2]
+     needs: !cod
      data: test card 4000 0000 0000 0002
      then: the gateway returns CARD_DECLINED, the order status stays PENDING_PAYMENT, the amount charged is 0.00
 `;

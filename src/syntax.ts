@@ -221,7 +221,15 @@ const FIELD_KEYS: Record<string, FieldKey> = {
     expect: "exp",
 };
 
-const BRACKET_WORDS = ["variant", "negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
+/** `needs:` / `sets:` on a choice: not text, so they are kept apart from FIELD_KEYS (SYN-17) */
+const COND_FIELD_KEYS: Record<string, "need" | "tags"> = {
+    needs: "need",
+    need: "need",
+    sets: "tags",
+    set: "tags",
+};
+
+const BRACKET_WORDS =["variant", "negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
 
 /** `-> end`, `-> loop`, `-> loop to step 3 max 2`, `-> next` at the end of a condition line */
 /**
@@ -318,6 +326,21 @@ function parseBlocks(
         // name: a field of the step (before its first condition) or of the last condition
         const fm = t.match(/^([A-Za-z]{2,12})\s*:\s*(.*)$/);
         if (fm) {
+            // needs: / sets: belong to a choice only, and are one line (SYN-17, SYN-18)
+            const ck = COND_FIELD_KEYS[fm[1].toLowerCase()];
+            if (ck) {
+                open = null;
+                const name = ck === "need" ? "needs" : "sets";
+                const value = fm[2].trim();
+                const parsed = ck === "need" ? needFromWords(value) : tagsFromWords(value);
+                if (!curCond) warn(ln, `${name}: must be under a choice`);
+                else if (!parsed) warn(ln, `${name}: has no value`);
+                else {
+                    if (curCond[ck]) warn(ln, `${name} is given twice (the later one is used)`);
+                    curCond[ck] = parsed;
+                }
+                continue;
+            }
             const key = FIELD_KEYS[fm[1].toLowerCase()];
             if (key) {
                 const owner = curCond ?? cur;
@@ -329,7 +352,7 @@ function parseBlocks(
                 append(open, fm[2].trim());
                 continue;
             }
-            const near = suggest(fm[1], Object.keys(FIELD_KEYS));
+            const near = suggest(fm[1], [...Object.keys(FIELD_KEYS), "needs", "sets"]);
             if (near) {
                 warn(ln, `Unknown field "${fm[1]}:" (did you mean ${near}:?)`);
                 open = null;
@@ -554,7 +577,10 @@ function parseCompact(
 
 /* ----------------------------- writing it back ----------------------------- */
 
-const FIELD_START = new RegExp("^(" + Object.keys(FIELD_KEYS).join("|") + ")\\s*:", "i");
+const FIELD_START = new RegExp(
+    "^(" + [...Object.keys(FIELD_KEYS), ...Object.keys(COND_FIELD_KEYS)].join("|") + ")\\s*:",
+    "i"
+);
 
 /**
  * A label for a choice line: a `[` that has no `]` after it would be read as the start
@@ -611,12 +637,13 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             if (c.variant) o.push("variant");
             if (c.neg && c.action !== "end") o.push("negative");
             if (c.distinct) o.push("distinct");
-            if (c.tags) o.push("sets " + c.tags.split(",").filter(Boolean).join(" "));
-            if (c.need) o.push("needs " + needToWords(c.need));
             if (o.length) line += " [" + o.join(", ") + "]";
             // a label ending in [..] would be read as its options: an empty [] ends it
             else if (/\]\s*$/.test(line)) line += " []";
             out.push(line);
+            // sets / needs are fields, before the other fields (SYN-17, SYN-40)
+            if (c.need) out.push("     needs: " + needToWords(c.need));
+            if (c.tags) out.push("     sets: " + c.tags.split(",").filter(Boolean).join(" "));
             field("     ", "given", c.pre);
             field("     ", "data", c.data);
             field("     ", "then", c.exp);

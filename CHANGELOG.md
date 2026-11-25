@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- **`needs:` and `sets:` lines under a choice.** A rule such as `needs: user and lv1 or
+  premium` is now a line of its own instead of the end of the choice's line, so the
+  label stays easy to read. The bracket spelling (`[needs user, sets cod]`) still works
+  and gives the same scenarios. Both on one choice: the line wins, with a warning.
+  `needs:` and `sets:` on a step, with no value, or given twice are reported with their
+  line (SYN-17, SYN-18). The starter template and the text the extension writes back use
+  the new lines (SYN-40).
 - **Copy decision table** button (Export): copies the decision table as text for a spreadsheet,
   without drawing it and without the limit of 60 scenarios, one long row of scenarios so
   the first two columns can be frozen (DRV-58). **Decision table** still draws at most 60.

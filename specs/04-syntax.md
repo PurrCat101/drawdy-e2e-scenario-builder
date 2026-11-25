@@ -23,6 +23,7 @@ The README's "Text syntax" is the user's guide to the same rules.
   | a number and `.` or `)` | a step; the number is how loops refer to it |
   | `-`, `*`, `•`, `–` and a space | a choice of the step above |
   | `given:` `data:` `then:` `req:` (also `setup:` = given, `expect:` = then) | a field |
+  | `needs:` `sets:` (also `need:` and `set:`) | a field of a choice that is a path condition or a tag, not text (SYN-17) |
   | `#` or `//` | a comment |
   | `\` | a continuation line that would otherwise look like one of the above |
 
@@ -37,12 +38,24 @@ The README's "Text syntax" is the user's guide to the same rules.
   `P2` `P3`, `variant`, `negative` (or `neg`), `distinct`, `sets a b`, `needs …` with
   `and`, `or`, `not`/`!`. To use a `[` in a label, write `\[`: it is read as a plain
   `[`, never as the start of the options (a `\` before any other character is kept as
-  it is).
+  it is). `sets` and `needs` can also be written as fields on their own lines (SYN-17);
+  the bracket spelling stays readable.
 - **SYN-14** `-> end` makes a choice negative by itself.
 - **SYN-15** `distinct` is kept only on a loop; elsewhere it gives the warning
   "distinct only works with loop to step N" and is dropped.
 - **SYN-16** The block form is used when any line starts with a number or a bullet;
   otherwise the text is read as the one-line form (SYN-20).
+- **SYN-17** `needs: …` and `sets: …` on a line of their own under a choice mean exactly
+  what `[needs …]` and `[sets …]` mean (same words: `and`, `or`, `not`/`!`; tags
+  separated by spaces or commas), so a flow gives the same scenarios whichever
+  spelling is used. The value is the rest of that one line: a following line that is
+  not a step, choice, field or comment is not part of it. The names are read in any
+  letter case; `need:` and `set:` are accepted like `[need …]` and `[set …]`.
+- **SYN-18** `needs:` and `sets:` are never read on a step, only on a choice. Reported
+  with the line, and the rest is read on: one before the step's first choice or with no
+  step above ("needs: must be under a choice"); one with no value; one given twice on a
+  choice, or both as a field and in `[ ]` ("needs is given twice"). When given twice,
+  the field is used over the bracket, and the later field over the earlier.
 
 ## One-line form
 
@@ -61,7 +74,8 @@ The README's "Text syntax" is the user's guide to the same rules.
   close), a step without a name, a repeated or out-of-order step number, a choice or
   field with no step above, a loop to a missing step, `loop to step` without a number,
   an unreadable action (kept as part of the label), a choice without a name, `max`
-  outside a loop, `distinct` outside a loop, an unreadable line.
+  outside a loop, `distinct` outside a loop, an unreadable line, and the `needs:` /
+  `sets:` cases of SYN-18.
 
 ## Writing back
 
@@ -69,6 +83,9 @@ The README's "Text syntax" is the user's guide to the same rules.
   gives the same flow and the same scenario counts. A choice whose label ends in
   `[...]` and has no options gets an empty `[]` after it, so the label is not read as
   options. A `[` with no `]` after it, or after a backslash, is written `\[` (SYN-13).
+  A choice's `needs` and `sets` are written as `needs:` and `sets:` fields under it
+  (in that order), not in the brackets (SYN-17), before its `given:` field; `P`, `variant`, `negative`
+  and `distinct` stay in the brackets.
 - **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
   every kind of choice and field the syntax has (a distinct loop with max, an end, a
   variant, sets, needs with or and not, a req); its
