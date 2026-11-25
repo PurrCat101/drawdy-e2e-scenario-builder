@@ -46,10 +46,12 @@ panel's paste box, or in any note, sticky note or text box, that starts with `@b
 1. Authentication
    req: R-01
    given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
-   - Log in [P1, sets user]
+   - Log in [P1]
+     sets: user
      data: username user_001, password Passw0rd!
      then: 200 OK, the header shows "user_001", a session token is issued
-   - Continue as guest [P2, sets guest]
+   - Continue as guest [P2]
+     sets: guest
      data: no account, email guest@example.com
      then: 200 OK, the header shows "Guest", no session token
 2. Select Products
@@ -174,17 +176,19 @@ This is the starter template, the note that **Start with a template** drops on t
 # [distinct]        on a loop: a round offers only choices not picked yet
 # [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
-# [sets x]          this choice tags the path with x
-# [needs x]         a choice only a path with tag x can take (and, or, not / !)
+# needs: x          a choice only a path with tag x can take (and, or, not / !)
+# sets: x           this choice tags the path with x
 # Delete the comments and the steps you do not need.
 
 1. Authentication
    req: R-01
    given: the shop is up, the shipping fee table is Standard 5.00 and Express 12.00
-   - Log in [P1, sets user]
+   - Log in [P1]
+     sets: user
      data: username user_001, password Passw0rd!
      then: 200 OK, the header shows "user_001", a session token is issued
-   - Continue as guest [P2, sets guest]
+   - Continue as guest [P2]
+     sets: guest
      data: no account, email guest@example.com
      then: 200 OK, the header shows "Guest", no session token
 2. Select Products
@@ -212,36 +216,43 @@ This is the starter template, the note that **Start with a template** drops on t
 6. Select Shipping Methods
    - Standard [P1]
      then: the shipping method is Standard, the fee is 5.00
-   - Express (members only) [P2, needs user]
+   - Express (members only) [P2]
+     needs: user
      then: the shipping method is Express, the fee is 12.00
 7. Add shipping Charge
    data: weight 1 kg
    - Charge added [P1]
      then: the shipping charge equals the fee of the method: 5.00 (Standard) or 12.00 (Express)
-   - Free shipping (members only) [P2, needs user]
+   - Free shipping (members only) [P2]
+     needs: user
      data: promo code FREESHIP
      then: the shipping charge is 0.00 and the order total equals the subtotal
 8. Enter Shipping Info
-   - Use saved address (members only) [needs user]
+   - Use saved address (members only)
+     needs: user
      data: address id addr_001, 12 Main St, Springfield, 12345
      then: the shipping address is 12 Main St, Springfield, 12345
    - Type a new address [P1]
      data: 99 Oak Ave, Austin, TX, 73301
      then: the address check returns valid, the shipping address is 99 Oak Ave, Austin, TX, 73301
 9. Select Payment Methods
-   - Saved card (members only) [needs user]
+   - Saved card (members only)
+     needs: user
      data: the card saved on user_001, ending 4242
      then: the payment method shows "Visa ending 4242"
    - New card [P1]
      data: card 4111 1111 1111 1111, expiry 12/30, CVV 123
      then: the payment method shows "Visa ending 1111"
-   - Cash on delivery (guests only) [needs !user, sets cod]
+   - Cash on delivery (guests only)
+     needs: !user
+     sets: cod
      then: the payment method is COD, the amount due on delivery is the order total
 10. Verify Credit Info Complete?
    req: R-03
    - Payment succeeded [P1]
      then: the order status is CONFIRMED, a receipt email with the order number and the total is sent
-   - Payment failed -> end [P2, needs !cod]
+   - Payment failed -> end [P2]
+     needs: !cod
      data: test card 4000 0000 0000 0002
      then: the gateway returns CARD_DECLINED, the order status stays PENDING_PAYMENT, the amount charged is 0.00
 ```
@@ -255,6 +266,7 @@ This is the starter template, the note that **Start with a template** drops on t
 | `1.` or `1)` (a number) | a **step**. The number is how `loop to step` refers to it |
 | `-` (also `*`, `•`) | a **condition** of the step above |
 | `given:` `data:` `then:` `req:` | a **field**: setup (precondition), test data, expected result, requirement id. The older names `setup:` and `expect:` are still read. Several requirement ids go on one line, separated by commas. The scenario frame header lists each requirement with the scenarios that pass it (a step's `req` counts for every scenario through the step, a choice's for every scenario that takes it) and names any requirement the chosen mode leaves out |
+| `needs:` `sets:` | a **condition field** of a choice: the tags a path must already have to take it, and the tags it adds. Written on lines of their own under the choice, one line each (see [Options](#options)). Not for a step |
 | `#` or `//` | a comment (ignored) |
 
 A field belongs to the step if it comes before the step's first condition, and to
@@ -280,7 +292,7 @@ written `→` or `=>`.
 
 ### Options
 
-Optional, in square brackets at the end of a condition, separated by commas.
+Optional, in square brackets at the end of a condition, separated by commas. `sets` and `needs` are better as lines of their own under the choice (`sets: lv1`, `needs: lv1 and premium`), so a long rule does not push the label out of sight; the bracket spelling `[sets lv1, needs premium]` still works and gives the same scenarios. If both are written on one choice, the line wins and the extension warns.
 
 | Write | Meaning |
 | --- | --- |
@@ -288,8 +300,8 @@ Optional, in square brackets at the end of a condition, separated by commas.
 | `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
-| `sets lv1` | marks the path with a tag (several: `sets lv1 lv2`) |
-| `needs lv1 and premium` | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !premium or lv2` and `needs premium and lv1` |
+| `sets lv1` (or the line `sets: lv1`) | marks the path with a tag (several: `sets lv1 lv2`) |
+| `needs lv1 and premium` (or the line `needs: lv1 and premium`) | only reachable if the path already has these tags. Words: `and`, `or`, `not` (or `!`). `or` binds tighter than `and`, and there are no brackets: `needs !premium or lv2` and `needs premium and lv1` |
 
 ### The one-line form
 

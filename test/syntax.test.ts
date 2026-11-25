@@ -262,6 +262,94 @@ test("SYN-40: the compact form is written out in the blocks form", () => {
     assert.deepEqual(shape(back.flow), shape(flow));
 });
 
+const SPELLED_IN_BRACKETS = `@builder
+1. Sign in
+   - Log in [P1, sets user lv1]
+   - Guest [sets guest]
+2. Pay
+   - Saved card [needs user and lv1 or premium]
+   - Cash [needs !user, sets cod]
+   - New card [P1]
+`;
+const SPELLED_AS_FIELDS = `@builder
+1. Sign in
+   - Log in [P1]
+     sets: user lv1
+   - Guest
+     sets: guest
+2. Pay
+   - Saved card
+     needs: user and lv1 or premium
+   - Cash
+     needs: !user
+     sets: cod
+   - New card [P1]
+`;
+
+test("SYN-17: needs: and sets: fields give the same flow and scenarios as the bracket spelling", () => {
+    const a = parseFlowText(SPELLED_IN_BRACKETS);
+    const b = parseFlowText(SPELLED_AS_FIELDS);
+    assert.deepEqual(a.warnings, []);
+    assert.deepEqual(b.warnings, []);
+    assert.deepEqual(shape(b.flow), shape(a.flow));
+    assert.deepEqual(counts(b.flow), counts(a.flow));
+    const cash = b.flow.steps[1].conds[1];
+    assert.equal(cash.need, "!user");
+    assert.equal(cash.tags, "cod");
+    assert.equal(b.flow.steps[1].conds[0].need, "user,lv1|premium");
+});
+
+test("SYN-17: field names in any case, need: and set: accepted, tags split by spaces or commas, one line only", () => {
+    const r = parseFlowText("@builder\n1. a\n   - x\n     SETS: p, q r\n2. b\n   - y\n     Need: p\n     set: z\n     data: d");
+    assert.deepEqual(r.warnings, []);
+    assert.equal(r.flow.steps[0].conds[0].tags, "p,q,r");
+    assert.equal(r.flow.steps[1].conds[0].need, "p");
+    assert.equal(r.flow.steps[1].conds[0].tags, "z");
+    // a line after needs: is not part of it
+    const w = parseFlowText("@builder\n1. a\n   - x\n     needs: p\n     and more words");
+    assert.equal(w.flow.steps[0].conds[0].need, "p");
+    assert.match(w.warnings.join("\n"), /Cannot read this line/);
+});
+
+test("SYN-18: needs: / sets: on a step, with no value, or given twice are reported with their line", () => {
+    const onStep = parseFlowText("@builder\n1. a\n   needs: p\n   - x");
+    assert.deepEqual(onStep.warnings, ["Line 3: needs: must be under a choice"]);
+    assert.ok(!onStep.flow.steps[0].conds[0].need, "the need on a step is ignored");
+
+    const empty = parseFlowText("@builder\n1. a\n   - x\n     sets:");
+    assert.deepEqual(empty.warnings, ["Line 4: sets: has no value"]);
+
+    const twice = parseFlowText("@builder\n1. a\n   - x [needs p]\n     needs: q");
+    assert.deepEqual(twice.warnings, ["Line 4: needs is given twice (the later one is used)"]);
+    assert.equal(twice.flow.steps[0].conds[0].need, "q", "the field wins over the bracket");
+
+    const two = parseFlowText("@builder\n1. a\n   - x\n     sets: p\n     sets: q");
+    assert.match(two.warnings.join("\n"), /Line 5: sets is given twice/);
+    assert.equal(two.flow.steps[0].conds[0].tags, "q", "the later field wins");
+});
+
+test("SYN-31: a typo in needs: / sets: gets a did-you-mean", () => {
+    const r = parseFlowText("@builder\n1. a\n   - x\n     nedes: p");
+    assert.match(r.warnings.join("\n"), /Unknown field "nedes:" \(did you mean needs:\?\)/);
+});
+
+test("SYN-40 SYN-17: sets / needs are written as fields before given:, the rest stays in the brackets", () => {
+    const first = parseFlowText(SPELLED_IN_BRACKETS);
+    const text = formatFlow(first.flow);
+    assert.match(text, /- Cash\n     needs: !user\n     sets: cod\n/);
+    assert.match(text, /- Log in \[P1\]\n     sets: user lv1\n/);
+    assert.doesNotMatch(text, /\[[^\]]*(sets|needs)/, "no sets or needs left in a bracket");
+    const again = parseFlowText(text);
+    assert.deepEqual(again.warnings, []);
+    assert.deepEqual(shape(again.flow), shape(first.flow));
+    assert.deepEqual(counts(again.flow), counts(first.flow));
+    // a choice with sets/needs and its own fields: sets/needs come first and the fields keep their text
+    const withFields = parseFlowText("@builder\n1. a\n   - x [P2]\n     data: d1\n     needs: p\n     then: t1\n2. b\n   - p1 [sets p]");
+    const out = formatFlow(withFields.flow);
+    assert.ok(out.indexOf("needs: p") < out.indexOf("data: d1"), "needs: is written before data:");
+    assert.deepEqual(shape(parseFlowText(out).flow), shape(withFields.flow));
+});
+
 test("SYN-40: fields survive writing, including lines that look like structure", () => {
     const src = `@builder
 1. Pay
