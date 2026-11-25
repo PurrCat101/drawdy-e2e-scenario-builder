@@ -118,14 +118,14 @@ check), `src/analysis.ts` (remembering results).
 
 - **CALC-50** An ID is `TSS-` (Happy) or `TSN-` (Negative) and a running number of at
   least three digits (`TSS-001`, `TSN-001`; past 999 the number just grows).
-- **CALC-51** (removed) The number was a hash of the scenario's description (0.2.0 to
-  0.3.0); it is now a running number (CALC-55).
+- **CALC-51** (removed) The number was a hash of the scenario's description (0.2.0);
+  it is now a running number (CALC-55).
 - **CALC-52** (removed) A clash of hashed numbers moved the later description to the next
   free number; running numbers never clash.
 - **CALC-53** (removed) An ID changed only when its own path changed; running numbers
   can move when the flow gains or loses a scenario (CALC-56).
 - **CALC-54** Any `TSS-`/`TSN-` number is read back (older boards used `TSS-001` or, in
-  0.2.0 to 0.3.0, five digits such as `TSS-04821`).
+  0.2.0, five digits such as `TSS-04821`).
 - **CALC-55** The numbers are given after the list is sorted (CALC-42), one count per
   prefix: the first Happy scenario of the list is `TSS-001`, the next `TSS-002`, and
   the first Negative one is `TSN-001`. So 3 Happy and 2 Negative scenarios are
