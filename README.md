@@ -501,7 +501,7 @@ loop that points forward, duplicate or empty labels.
 
 The **Decision table** button turns the scenarios of the chosen mode into a decision
 table: the steps that decide are the rows and each scenario is a column. It takes the
-same scenarios as **Table**, so select a scenario frame, some scenario notes, a
+same scenarios as **Test steps**, so select a scenario frame, some scenario notes, a
 `@builder` note or a flow frame, or write the flow in the paste box.
 
 For this flow, in the Each-Choice mode:
