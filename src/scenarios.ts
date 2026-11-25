@@ -8,7 +8,7 @@ export type PathItem = { i: number; c: Cond | null };
 export type Scenario = {
     /** 1-based order in the full (unfiltered) list */
     n: number;
-    /** TSS-04821 (success) / TSN-00317 (negative): stable, see stableIds */
+    /** TSS-001 (success) / TSN-001 (negative): running numbers of the list it is in, see renumber */
     id: string;
     path: PathItem[];
     type: "happy" | "neg";
@@ -142,36 +142,19 @@ function orderFreeKey(path: PathItem[], idx: Record<string, number>): string {
 }
 
 /**
- * Scenario IDs that do not move when the flow changes elsewhere: the number comes
- * from a hash of what the scenario does (step names and the choices taken, in
- * order), so adding a choice, reordering lines or adding a step that a scenario does
- * not pass leaves its ID alone. Renaming a step or a choice it passes gives it a new
- * ID, as it is then a different test. Five digits; on a clash, the scenario whose
- * description sorts later moves to the next free number.
+ * Scenario IDs in running order: `TSS-001`, `TSS-002`... for Happy and `TSN-001`...
+ * for Negative, each counted in the order of `list`. A mode numbers the scenarios it
+ * picks, so the biggest ID of a mode is its count (5 picked: at most `TSS-003` and
+ * `TSN-002` for 3 Happy and 2 Negative). The same flow and mode always give the same
+ * IDs; a flow that gains a scenario can move the IDs after it. Three digits at least
+ * (`TSS-1000` past 999). Returns copies; `n` (the place in All) is kept.
  */
-function stableIds(paths: PathItem[][], steps: Step[]): string[] {
-    const describe = (p: PathItem[]) =>
-        p.map((v) => `${steps[v.i].name.trim().toLowerCase()}=${v.c ? v.c.label.trim().toLowerCase() : ""}`).join("\u241e");
-    const hash = (str: string) => {
-        let h = 0x811c9dc5;
-        for (let i = 0; i < str.length; i++) {
-            h ^= str.charCodeAt(i);
-            h = Math.imul(h, 0x01000193) >>> 0;
-        }
-        return h % 100000;
-    };
-    const keys = paths.map((p) => ({ p, d: describe(p) }));
-    const order = keys.map((k, i) => i).sort((a, b) => (keys[a].d < keys[b].d ? -1 : keys[a].d > keys[b].d ? 1 : a - b));
-    const used = { happy: new Set<number>(), neg: new Set<number>() };
-    const out: string[] = new Array(paths.length);
-    for (const i of order) {
-        const type = classify(keys[i].p);
-        let n = hash(keys[i].d);
-        while (used[type].has(n)) n = (n + 1) % 100000;
-        used[type].add(n);
-        out[i] = (type === "happy" ? "TSS-" : "TSN-") + String(n).padStart(5, "0");
-    }
-    return out;
+function renumber(list: Scenario[]): Scenario[] {
+    const count = { happy: 0, neg: 0 };
+    return list.map((sc) => ({
+        ...sc,
+        id: (sc.type === "happy" ? "TSS-" : "TSN-") + String(++count[sc.type]).padStart(3, "0"),
+    }));
 }
 
 /**
@@ -416,15 +399,16 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
     // no loops first, then the longest path first (happy path is case 1)
     out.sort((a, b) => loopN(a) - loopN(b) || b.length - a.length);
 
-    const ids = stableIds(out, steps);
-    const list: Scenario[] = out.map((path, k) => ({
-        n: k + 1,
-        id: ids[k],
-        path,
-        type: classify(path),
-        loops: loopN(path),
-        pri: priOf(path),
-    }));
+    const list: Scenario[] = renumber(
+        out.map((path, k) => ({
+            n: k + 1,
+            id: "",
+            path,
+            type: classify(path),
+            loops: loopN(path),
+            pri: priOf(path),
+        }))
+    );
     if (!capped) {
         const used = new Set<string>();
         out.forEach((p) => p.forEach((v) => v.c && used.add(v.c.id)));
@@ -658,11 +642,11 @@ export function pick(g: Generated, mode: Mode): Scenario[] {
         case "all":
             return g.list;
         case "pair":
-            return pairwise(g.list);
+            return renumber(pairwise(g.list));
         case "min":
-            return minimal(g.list);
+            return renumber(minimal(g.list));
         default:
-            return dedupe(g.list);
+            return renumber(dedupe(g.list));
     }
 }
 

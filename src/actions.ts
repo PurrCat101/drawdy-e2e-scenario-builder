@@ -248,10 +248,12 @@ async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSour
         const fr = first.frameId ? (await readElements([first.frameId]))[0] : undefined;
         const flow = fr?.meta?.flow as Flow | undefined;
         if (!flow?.steps?.length) return "Could not draw: the selected scenario notes no longer know their flow";
+        // a note's ID counts within the mode its frame was drawn with (CALC-57)
+        const mode = (fr?.meta?.mode as Mode) ?? uiMode;
         const ids = new Set(scenarioNotes.filter((p) => p.frameId === first.frameId).map((p) => String(p.meta.id)));
-        const scenarios = analyze(flow).gen.list.filter((s) => ids.has(s.id));
+        const scenarios = analyze(flow).pick(mode).filter((s) => ids.has(s.id));
         if (!scenarios.length) return "Could not draw: the selected scenarios are not in the flow any more";
-        return [{ flow, scenarios, mode: (fr?.meta?.mode as Mode) ?? uiMode, anchor: first }];
+        return [{ flow, scenarios, mode, anchor: first }];
     }
     if (flowNotes.length) {
         const out: DecisionSource[] = [];
@@ -377,7 +379,7 @@ export async function actionFlow(sel: Picked[]) {
     }
     let last: string | null = null;
     for (const p of items) {
-        // a scenario note: its own title (@title TSS-04821 · ...) or the older TSS-001 header
+        // a scenario note: its own title (@title TSS-001 · ...) or the older TSS-04821 header
         const parsed = p.meta?.kind === "scenario" || !hasMarker(p.text) ? null : parseFlowText(p.text);
         const scenarioId = parsed?.title.match(/^(TS[SN]-\d+)/)?.[1];
         const isScenario = p.meta?.kind === "scenario" || !!scenarioId || /^\s*TS[SN]-\d+/.test(p.text);

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseFlowText } from "../src/syntax.ts";
 import { generate, pick } from "../src/scenarios.ts";
-import { buildDecisionTable, columnName, decisionToTsv } from "../src/decisionTable.ts";
+import { buildDecisionTable, decisionToTsv } from "../src/decisionTable.ts";
 import { TEMPLATES } from "../src/templates.ts";
 import { renderDecisionTables } from "../src/decisionBoard.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
@@ -53,15 +53,19 @@ test("CALC-90: the starter template has a condition for every step with two or m
     assert.ok(dt.conditions.length >= 8);
 });
 
-test("CALC-91: Happy scenarios are the first columns (Success), then Negative; columns are Test Scenario k", () => {
+test("CALC-91 CALC-57: Happy scenarios are the first columns (Success), then Negative; a column is named by its scenario ID", () => {
     const { dt, list } = table(FLOW);
     assert.equal(dt.columns.length, list.length);
     const types = dt.columns.map((c) => c.type);
     const firstNeg = types.indexOf("neg");
     assert.ok(firstNeg > 0 && types.slice(0, firstNeg).every((t) => t === "happy") && types.slice(firstNeg).every((t) => t === "neg"));
     assert.equal(dt.success, firstNeg);
-    assert.equal(columnName(0), "Test Scenario 1");
-    assert.equal(columnName(11), "Test Scenario 12");
+    const ids = dt.columns.map((c) => c.id);
+    assert.equal(ids[0], "TSS-001");
+    assert.equal(ids[firstNeg], "TSN-001");
+    // the IDs of the mode's own list: running numbers, so the biggest is the count
+    assert.equal(ids[firstNeg - 1], "TSS-" + String(firstNeg).padStart(3, "0"));
+    assert.equal(ids[ids.length - 1], "TSN-" + String(ids.length - firstNeg).padStart(3, "0"));
 });
 
 test("CALC-92: a value is marked when the scenario takes the choice; a step it never reaches has no mark", () => {
@@ -96,14 +100,15 @@ test("CALC-91: the modes give their own scenarios as columns", () => {
     assert.ok(all >= ep && ep >= min && min >= 1);
 });
 
-test("CALC-92: the TSV has the groups, the scenario IDs and the X marks", () => {
+test("CALC-92 OUT-64: the TSV has the scenario IDs as heads, the groups and the X marks", () => {
     const { dt } = table(FLOW, "min");
     const rows = decisionToTsv(dt).split("\n").map((r) => r.split("\t"));
-    assert.deepEqual(rows[0].slice(0, 3), ["Condition", "Combination", "Test Scenario 1"]);
+    assert.deepEqual(rows[0].slice(0, 2), ["Condition", "Combination"]);
+    assert.deepEqual(rows[0].slice(2), dt.columns.map((c) => c.id));
+    assert.equal(rows[0][2], "TSS-001");
     assert.ok(!rows[0].includes("Expected"), "no Expected column");
     assert.deepEqual(rows[1].slice(0, 2), ["", "Group"]);
     assert.equal(rows[1][2], "Success");
-    assert.deepEqual(rows[2].slice(2), dt.columns.map((c) => c.id));
     const login = rows.find((r) => r[0] === "1. Login")!;
     assert.equal(login[1], "ok");
     assert.ok(!rows.some((r) => r[0] === "Result"), "there are no result rows");
@@ -143,19 +148,19 @@ test("OUT-60: a decision table is plain text boxes with a fill and black text, i
         assert.equal(b.textColor, "#000000", "black text: " + b.text);
         assert.ok(b.fillColor && b.fillColor !== b.textColor);
     }
-    assert.match(frames[0].name, /^Decision table · All Paths · (\d+ scenarios|Test Scenario 1 to \d+ of \d+)$/);
+    assert.match(frames[0].name, /^Decision table · All Paths · (\d+ scenarios|Scenarios 1 to \d+ of \d+)$/);
     assert.deepEqual(frames[0].position, [100, 200]);
 });
 
-test("OUT-61: Success and Negative bars, a box Test Scenario k for each column, at most 10 columns a frame", () => {
-    const { dt, frames, boxes, els } = draw(TEMPLATES[0].text, "ep");
+test("OUT-61: Success and Negative bars, a box named by the scenario ID for each column, at most 10 columns a frame", () => {
+    const { dt, frames, boxes } = draw(TEMPLATES[0].text, "ep");
     const n = dt.columns.length;
     assert.ok(n > 10, "the template makes more than 10 scenarios in EP");
     assert.equal(frames.length, Math.ceil(n / 10));
-    frames.slice(0, -1).forEach((f) => assert.match(f.name, /Test Scenario \d+ to \d+ of \d+$/));
-    // a box for every column, named Test Scenario k, once
-    const heads = boxes.filter((b) => /^Test Scenario \d+$/.test(b.text));
-    assert.deepEqual(heads.map((b) => b.text), dt.columns.map((_, k) => columnName(k)));
+    frames.slice(0, -1).forEach((f) => assert.match(f.name, /Scenarios \d+ to \d+ of \d+$/));
+    // a box for every column, named by its scenario ID, once
+    const heads = boxes.filter((b) => /^TS[SN]-\d{3,}$/.test(b.text));
+    assert.deepEqual(heads.map((b) => b.text), dt.columns.map((c) => c.id));
     // a bar over the Happy columns, and one over the Negative ones, in the frames that have them
     const successBars = boxes.filter((b) => b.text === "Success");
     const altBars = boxes.filter((b) => b.text === "Negative");
@@ -163,22 +168,8 @@ test("OUT-61: Success and Negative bars, a box Test Scenario k for each column, 
     assert.ok(successBars.every((b) => b.fillColor === "#dcfce7") && altBars.every((b) => b.fillColor === "#fee2e2"));
     const headOf = (b: any) =>
         heads.filter((h) => h.frameId === b.frameId && h.x >= b.x && h.x + h.width <= b.x + b.width && h.y > b.y);
-    for (const b of successBars) assert.ok(headOf(b).every((h) => dt.columns[Number(h.text.slice(14)) - 1].type === "happy"));
-    for (const b of altBars) assert.ok(headOf(b).every((h) => dt.columns[Number(h.text.slice(14)) - 1].type === "neg"));
-});
-
-test("OUT-61: the scenario ID is drawn under every Test Scenario k, in the same column", () => {
-    const { dt, boxes } = draw(TEMPLATES[0].text, "ep");
-    const heads = boxes.filter((b) => /^Test Scenario \d+$/.test(b.text));
-    const idBoxes = boxes.filter((b) => /^TS[SN]-\d{5}$/.test(b.text));
-    assert.equal(idBoxes.length, dt.columns.length, "one ID box for every column");
-    heads.forEach((h, k) => {
-        const id = idBoxes.find((b) => b.frameId === h.frameId && b.x === h.x);
-        assert.ok(id, `no ID under ${h.text}`);
-        assert.equal(id.text, dt.columns[k].id, `${h.text} shows the ID of its own column`);
-        assert.ok(id.y >= h.y + h.height, `${h.text}: the ID is not below the head`);
-        assert.equal(id.width, h.width);
-    });
+    for (const b of successBars) assert.ok(headOf(b).every((h) => h.text.startsWith("TSS-")));
+    for (const b of altBars) assert.ok(headOf(b).every((h) => h.text.startsWith("TSN-")));
 });
 
 test("OUT-65: column k of the decision table and note k of the Scenarios frame are the same scenario", () => {
@@ -206,7 +197,7 @@ test("OUT-62: a box for each condition and value, and an X where a scenario take
     // one X for every mark, in the column of its scenario
     const marks = dt.marks.flat(2).filter(Boolean).length;
     assert.equal(boxes.filter((b) => b.text === "X").length, marks);
-    const heads = boxes.filter((b) => /^Test Scenario \d+$/.test(b.text));
+    const heads = boxes.filter((b) => /^TS[SN]-\d{3,}$/.test(b.text));
     for (const x of boxes.filter((b) => b.text === "X")) {
         const col = heads.find((h) => x.x >= h.x && x.x + x.width <= h.x + h.width);
         assert.ok(col, "an X sits under a column head");

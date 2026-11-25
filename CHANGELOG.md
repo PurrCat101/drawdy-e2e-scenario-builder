@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Read this before upgrading
+
+- **Scenario IDs are running numbers again.** Happy scenarios are `TSS-001`,
+  `TSS-002`... and Negative ones `TSN-001`, `TSN-002`..., counted in the order the board
+  lists them, instead of the five-digit hash (`TSS-04821`) of 0.2.0 and 0.3.0. The same
+  flow always gives the same IDs, but a flow that gains or loses a scenario moves the
+  IDs after it, so check an ID you kept in a ticket after you regenerate. IDs from the
+  hash still read on old boards (CALC-50, 55, 56; CALC-51 to 53 are removed).
+- **Each mode numbers its own scenarios.** EP, Pair and Each count from `001` over what
+  they pick, so 3 Happy and 2 Negative scenarios end at `TSS-003` and `TSN-002`. The same
+  scenario can have another ID in another mode (CALC-57).
+- **The Decision table is headed by the scenario IDs** (`TSS-001`, `TSN-001`) instead of
+  `Test Scenario 1, 2…`, the IDs of the scenario notes of the same mode. A table split
+  over several frames is named `Scenarios 1 to 10 of N`, and the copied text has the IDs
+  as its head row, without the separate `Scenario ID` row (OUT-61, OUT-64).
+
 ### Added
 
 - **`needs:` and `sets:` lines under a choice.** A rule such as `needs: user and lv1 or
@@ -14,9 +30,9 @@
 - **Copy decision table** button (Export): copies the decision table as text for a spreadsheet,
   without drawing it and without the limit of 60 scenarios, one long row of scenarios so
   the first two columns can be frozen (DRV-58). **Decision table** still draws at most 60.
-- The decision table shows each scenario's ID (`TSS-…` / `TSN-…`) under its `Test Scenario k`
-  head, so a column is found on the board by the ID on the scenario note, and selecting
-  that note gives its Flow and Test steps (OUT-61, OUT-65).
+- A decision table column is found on the board by the ID on the scenario note: column k
+  and note k of the same mode are the same scenario with the same ID, and selecting that
+  note gives its Flow and Test steps (OUT-65).
 
 ## 0.3.0
 

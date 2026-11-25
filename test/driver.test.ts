@@ -472,7 +472,8 @@ test("DRV-57 OUT-60: Decision table from the paste box draws frames of text boxe
     assert.match(frames[0].name, /^Decision table · Pairwise \(2-wise\) · 10 scenarios$/);
     assert.equal(lastStatus(h).text, "Decision table drawn (10 scenarios)");
     assert.ok(!lastStatus(h).bad);
-    assert.ok(h.find((e) => e.type === "shape" && e.text === "Test Scenario 10").length === 1);
+    assert.equal(h.find((e) => e.type === "shape" && /^TS[SN]-\d{3}$/.test(e.text ?? "")).length, 10, "a box with the ID for each column");
+    assert.equal(h.find((e) => e.type === "shape" && e.text === "TSS-001").length, 1);
     assert.equal(h.tables().length, 0, "no embedded page");
     assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
 });
@@ -499,7 +500,9 @@ test("DRV-57: with scenario notes selected, only those scenarios are columns", a
     const dt = decisionFrames(h);
     assert.equal(dt.length, 1);
     assert.equal(dt[0].meta.scenarios, 1);
-    assert.equal(h.find((e) => e.type === "shape" && /^Test Scenario \d+$/.test(e.text ?? "")).length, 1);
+    // the column is named by the ID the note shows (CALC-57), though the panel's switch says EP
+    const heads = h.find((e) => e.type === "shape" && /^TS[SN]-\d{3}$/.test(e.text ?? ""));
+    assert.deepEqual(heads.map((e) => e.text), [String(notes[0].meta.id)]);
 });
 
 test("DRV-57: a @builder note selected gives a table for its flow, and two notes give two tables", async () => {
@@ -550,11 +553,12 @@ test("DRV-58: Copy decision table has no limit of 60: every scenario is one more
     const clip = h.lastClip();
     assert.ok(clip.scenarios > 60, `${clip.scenarios} scenarios`);
     const rows = clip.text.split("\n").map((r: string) => r.split("\t"));
-    assert.deepEqual(rows[0].slice(0, 3), ["Condition", "Combination", "Test Scenario 1"]);
+    // the head row is the scenario IDs (OUT-64), each column with its own
+    assert.deepEqual(rows[0].slice(0, 3), ["Condition", "Combination", "TSS-001"]);
     assert.equal(rows[0].length, 2 + clip.scenarios);
     assert.ok(rows.every((r: string[]) => r.length === rows[0].length), "every row is as wide as the head");
-    assert.equal(rows[2][1], "Scenario ID");
-    assert.equal(new Set(rows[2].slice(2)).size, clip.scenarios, "each column has its own ID");
+    assert.equal(rows[1][1], "Group");
+    assert.equal(new Set(rows[0].slice(2)).size, clip.scenarios, "each column has its own ID");
 });
 
 test("DRV-58: Copy decision table with a scenario frame selected uses that frame's scenarios", async () => {
@@ -592,7 +596,7 @@ test("DRV-25 OUT-64 UI-30: a selected decision table is a table: the panel says 
     await h.action("copy", "");
     const clip = h.lastClip();
     assert.equal(clip.scenarios, 10);
-    assert.match(clip.text, /^Condition\tCombination\tTest Scenario 1\t/);
+    assert.match(clip.text, /^Condition\tCombination\tTSS-001\t/);
     assert.equal(clip.text, frame.meta.tsv);
 });
 

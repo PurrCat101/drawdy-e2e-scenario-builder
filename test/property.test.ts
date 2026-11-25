@@ -138,23 +138,42 @@ test("SYN-40 (property): writing a flow and reading it back gives the same flow"
 const small = flowOf(4, true);
 const ids = (xs: { id: string }[]) => xs.map((s) => s.id);
 
-test("CALC-50, CALC-51 (property): scenario IDs are unique, well formed and the same on every run", () => {
+test("CALC-50, CALC-55, CALC-56 (property): scenario IDs are unique, run 1, 2, 3 per prefix and are the same on every run", () => {
     fc.assert(
         fc.property(small, (flow) => {
             const a = generate(flow, 1000, 1e9);
             const b = generate(flow, 1000, 1e9);
             assert.deepEqual(ids(a.list), ids(b.list));
             assert.equal(new Set(ids(a.list)).size, a.list.length, "IDs must be unique");
+            const count = { happy: 0, neg: 0 };
             for (const s of a.list) {
-                assert.match(s.id, /^TS[SN]-\d{5}$/);
-                assert.equal(s.id.startsWith(s.type === "happy" ? "TSS" : "TSN"), true);
+                count[s.type]++;
+                const prefix = s.type === "happy" ? "TSS" : "TSN";
+                assert.equal(s.id, `${prefix}-${String(count[s.type]).padStart(3, "0")}`);
             }
         }),
         { numRuns: RUNS }
     );
 });
 
-test("CALC-53 (property): text a scenario does not walk by (data, expected, setup, requirement) never changes an ID", () => {
+test("CALC-57 (property): every mode numbers the scenarios it picks 1, 2, 3 per prefix, so its biggest ID is its count", () => {
+    fc.assert(
+        fc.property(small, (flow) => {
+            const g = generate(flow, 1000, 1e9);
+            for (const mode of ["all", "ep", "pair", "min"] as const) {
+                const got = pick(g, mode);
+                const count = { happy: 0, neg: 0 };
+                for (const s of got) {
+                    count[s.type]++;
+                    assert.equal(s.id, `${s.type === "happy" ? "TSS" : "TSN"}-${String(count[s.type]).padStart(3, "0")}`, mode);
+                }
+            }
+        }),
+        { numRuns: RUNS }
+    );
+});
+
+test("CALC-56 (property): text a scenario does not walk by (data, expected, setup, requirement) never changes an ID", () => {
     fc.assert(
         fc.property(small, (flow) => {
             const bare: Flow = {
@@ -177,11 +196,12 @@ test("CALC-30, CALC-83 (property): every mode picks only scenarios of All Paths,
     fc.assert(
         fc.property(small, (flow) => {
             const g = generate(flow, 1000, 1e9);
-            const all = new Set(ids(g.list));
+            // a mode numbers its own scenarios (CALC-57): compare by `n`, the place in All
+            const all = new Set(g.list.map((s) => s.n));
             for (const mode of ["all", "ep", "pair", "min"] as const) {
-                const got = ids(pick(g, mode));
+                const got = pick(g, mode).map((s) => s.n);
                 assert.equal(new Set(got).size, got.length, `${mode}: a scenario twice`);
-                for (const id of got) assert.ok(all.has(id), `${mode}: ${id} is not in All Paths`);
+                for (const n of got) assert.ok(all.has(n), `${mode}: #${n} is not in All Paths`);
                 if (g.list.length) assert.ok(got.length > 0, `${mode}: nothing picked`);
                 assert.ok(got.length <= g.list.length, `${mode}: more than All Paths`);
             }

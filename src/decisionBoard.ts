@@ -3,18 +3,17 @@
 // in an embedded page, they can be edited on the board (OUT-60 and the rules after it).
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import { columnName, decisionToTsv, type DecisionTable } from "./decisionTable";
+import { decisionToTsv, type DecisionTable } from "./decisionTable";
 import { fitHeight, textBox, type Tone } from "./textBox";
 
 const FONT = 13;
 const PAD = 40;
 const LABEL_W = 230;
 const COMBO_W = 270;
-const COL_W = 150; // wide enough for "Test Scenario 12" on one line
+const COL_W = 110; // wide enough for "TSS-1000" on one line
 const GAP = 8;
 const CHIP_H = 34;
 const BAR_H = 28;
-const ID_H = 28;
 const X_W = 48;
 const X_H = 28;
 const ROW_GAP = 6;
@@ -34,7 +33,7 @@ type Group = { title: string; tone: Tone; rows: { text: string; marks: boolean[]
 
 export function renderDecisionTables(opts: {
     table: DecisionTable;
-    /** the name of the frames, before ` · N scenarios` or ` · Test Scenario a to b of N` */
+    /** the name of the frames, before ` · N scenarios` or ` · Scenarios a to b of N` */
     name: string;
     origin: [number, number];
     generateId: () => string;
@@ -84,14 +83,10 @@ export function renderDecisionTables(opts: {
         bar(a, Math.min(b, t.success), "Success", "green");
         bar(Math.max(a, t.success), b, "Negative", "red");
         y += BAR_H + GAP;
-        for (let k = a; k < b; k++) chip(colX(k), y, COL_W, CHIP_H, columnName(k), "violet", "center");
+        for (let k = a; k < b; k++) chip(colX(k), y, COL_W, CHIP_H, t.columns[k].id, "violet", "center");
         chip(xLabel, y, LABEL_W, CHIP_H, "Condition", "purple");
         chip(xCombo, y, COMBO_W, CHIP_H, "Combinations", "gray");
-        y += CHIP_H + GAP;
-        // OUT-61: the scenario ID under each head, to find the note on the board by it
-        for (let k = a; k < b; k++) chip(colX(k), y, COL_W, ID_H, t.columns[k].id, "gray", "center", 12);
-        chip(xLabel, y, LABEL_W + GAP + COMBO_W, ID_H, "Scenario ID", "gray");
-        y += ID_H + 18;
+        y += CHIP_H + 18;
 
         for (const g of groups) {
             const labelH = Math.max(CHIP_H, fitHeight(g.title, LABEL_W, FONT));
@@ -111,7 +106,7 @@ export function renderDecisionTables(opts: {
         const frameW = PAD * 2 + innerW;
 
         const frameH = y - GROUP_GAP + PAD - y0;
-        const range = chunks.length > 1 ? ` · ${columnName(a)} to ${b} of ${n}` : ` · ${n} scenarios`;
+        const range = chunks.length > 1 ? ` · Scenarios ${a + 1} to ${b} of ${n}` : ` · ${n} scenarios`;
         elements.push({
             type: "frame",
             drawdyElementId: frameId,

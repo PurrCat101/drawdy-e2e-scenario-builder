@@ -78,7 +78,7 @@ The first three steps of the starter template (**Start with a template** drops a
 | Word | Means |
 | --- | --- |
 | **Flow** | The whole business flow you write: steps, each with its choices |
-| **Scenario** | One path through the flow, from the first step to where it ends: several test steps in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-04821` (happy) and `TSN-00317` (negative): see "Scenario IDs" below |
+| **Scenario** | One path through the flow, from the first step to where it ends: several test steps in a row. It is **Happy** when it completes the flow (loops included) and **Negative** when it ends early. IDs are `TSS-001` (happy) and `TSN-001` (negative): see "Scenario IDs" below |
 | **Test step** | One step of a scenario with the choice taken there, and its setup (`given:`), test data (`data:`) and expected result (`then:`). It is one row of a Test steps table |
 
 So a scenario is a chain of test steps, and the number the panel shows is the number
@@ -140,9 +140,9 @@ in the panel does not need the marker.)
   nothing is selected. If something is already there, the result moves down.
 - Scenario notes are text boxes filled with a colour: green = happy path, pink = negative, orange = loop. Each is as tall as its text needs.
   They are ordered happy scenarios first, then negative, each by priority. IDs are
-  `TSS-…` (success) and `TSN-…` (negative), five digits.
+  `TSS-…` (success) and `TSN-…` (negative), running numbers from 001.
 - Each scenario note is itself written in the flow syntax (`@builder`, a
-  `@title TSS-04821 · Happy · P1`, the steps and choices of that scenario with their
+  `@title TSS-001 · Happy · P1`, the steps and choices of that scenario with their
   `given:` / `data:` / `then:`), so it can be selected and read back.
 - A lot of scenarios is laid out in more columns, so the frame stays about as wide as
   it is tall. There is no limit on the number of notes, but the panel warns when a
@@ -333,20 +333,26 @@ no step, a field with a typo, and so on.
 
 ## Scenario IDs
 
-A scenario's number comes from what it does: the names of the steps it passes and the
-choices it takes, in order (letter case and spaces around them do not count). So the ID
-does not move when you change the flow somewhere the scenario does not go: add a
-choice, add a step it never reaches, put lines in another order. That lets you keep the
-IDs in a test management tool and regenerate the board later.
+Scenarios are numbered in the order the board lists them (Happy first, then by
+priority): the Happy ones are `TSS-001`, `TSS-002`, `TSS-003`..., the Negative ones
+`TSN-001`, `TSN-002`... With 3 Happy and 2 Negative scenarios you get `TSS-001` to
+`TSS-003` and `TSN-001`, `TSN-002`.
 
-A scenario does get a new ID when it changes: renaming a step or a choice it passes,
-or adding a step in its way, makes it a different test. The numbers are not in order
-and have gaps; the board lists scenarios in their own order (Happy first, then by
-priority). If two scenarios would get the same number, the one whose description
-sorts later takes the next free number.
+Each mode numbers what it picks. The scenarios of EP, Pair or Each count again from
+`001`, so the biggest ID of a mode is its count: Each-Choice with 5 scenarios, 3 Happy
+and 2 Negative, ends at `TSS-003` and `TSN-002`, however many All has. The scenario
+notes, the tables, the copied text and the decision table of one mode all use these IDs,
+so an ID traces back from any of them. The same scenario can have another ID in another
+mode, so name the mode when you quote an ID.
 
-Boards drawn by earlier versions show `TSS-001`-style IDs; they still work, as does
-any `TSS-`/`TSN-` number.
+The same flow always gives the same IDs. When you change the flow and a scenario is
+added or removed, the IDs after it move: a new scenario in the middle of the Happy list
+turns the old `TSS-003` into `TSS-004`. So when a ticket or a test management tool
+refers to an ID, regenerate and check the scenario it points to before you trust the
+number.
+
+Boards drawn by earlier versions show `TSS-04821`-style IDs (0.2.0 and 0.3.0); they
+still work, as does any `TSS-`/`TSN-` number.
 
 ## How the scenarios are counted
 
@@ -535,9 +541,8 @@ For this flow, in the Each-Choice mode:
 
 the decision table is:
 
-| Condition | Combinations | Test Scenario 1 | Test Scenario 2 | Test Scenario 3 | Test Scenario 4 |
+| Condition | Combinations | TSS-001 | TSS-002 | TSN-001 | TSN-002 |
 | --- | --- | --- | --- | --- | --- |
-| Scenario ID | | TSS-… | TSS-… | TSN-… | TSN-… |
 | | | **Success** | | **Negative** | |
 | 1. Sign in | ok | X | X | X | |
 | | failed | | | | X |
@@ -553,12 +558,12 @@ How to read it:
   in the Combinations column. A step with one choice or none is left out.
 - **Columns.** The scenarios of the mode, Happy ones first under a green **Success** bar
   (they complete the flow, even through a `[negative]` choice), then the Negative ones
-  under a red **Negative** bar (they end at a `-> end`). They are named Test Scenario
-  1, 2, …, and the scenario ID (`TSS-…` or `TSN-…`) is under each name. Look for the
-  same ID on the scenario notes to find the note of a column, then select it and press
-  **Flow** or **Test steps**.
+  under a red **Negative** bar (they end at a `-> end`). Each column is headed by the
+  scenario's ID, the same one the scenario note of that mode shows (see
+  [Scenario IDs](#scenario-ids)), so a column is found on the board by its ID and traces
+  back to its note and its test steps.
 - **X.** The scenario takes that choice. A loop marks every choice it takes at the step
-  (here Test Scenario 1 takes `shoes` and then `sold out`). A scenario that never
+  (here `TSS-001` takes `shoes` and then `sold out`). A scenario that never
   reaches a step has no X for it.
 - **Boxes.** The table is made of ordinary boxes on the board, not an embedded page, so
   you can move them, add a column, or add a note for a combination the requirement does
@@ -570,7 +575,7 @@ or press **Copy decision table** to get it as text for a spreadsheet with no lim
 A flow with no step that has two or more choices has no decision table.
 
 Select a decision table and press **Copy to clipboard** to copy it for a spreadsheet: the same
-rows, a Group row and a Scenario ID row.
+rows, with the scenario IDs as the column heads and a Group row under them.
 
 **Copy decision table** gives that text straight from the flow, a scenario frame or selected
 scenario notes, without drawing anything. Past 60 scenarios (All Paths of a big flow) it
@@ -666,8 +671,8 @@ release, check by hand in Drawdy (about five minutes):
 7. Select the scenario frame and press **Decision table**: a frame of boxes appears under
    it, a green **Success** bar over the happy scenarios and a red **Negative** bar over
    the others, and an X where a scenario takes a choice. The boxes can be moved and edited. Select
-   the frame and press **Copy to clipboard**: pasted into a spreadsheet it has a **Group**
-   row and a **Scenario ID** row.
+   the frame and press **Copy to clipboard**: pasted into a spreadsheet it has the scenario
+   IDs as heads and a **Group** row.
 8. Press **Start with a template**: a yellow note that starts with `@builder` appears in
    view and the camera flies to it; a second press puts the next note below the first,
    not on top. Select a note and press **Flow + Scenarios**: a
