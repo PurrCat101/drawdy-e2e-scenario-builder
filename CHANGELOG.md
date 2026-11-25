@@ -33,6 +33,10 @@
 - A decision table column is found on the board by the ID on the scenario note: column k
   and note k of the same mode are the same scenario with the same ID, and selecting that
   note gives its Flow and Test steps (OUT-65).
+- **Flow only.** With a scenario note or a decision table's column head selected, the
+  **Flow + Scenarios** button, which had nothing to draw there and was greyed out, now reads
+  **Flow only** and draws just the flow of the selected scenario, without its test steps.
+  **Flow** keeps reading **Flow + Test steps** (UI-34, DRV-60).
 - **A decision table's column heads trace back.** Select a head (`TSS-001`) and press
   **Flow**, **Test steps**, **Copy to clipboard** or **Decision table**: it works like a
   scenario note. The table keeps the flow and the mode it was made from, and each head

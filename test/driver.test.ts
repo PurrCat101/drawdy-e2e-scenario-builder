@@ -262,7 +262,38 @@ test("DRV-23 OUT-24: Flow on a scenario note draws that scenario's flow and its 
     assert.ok(added.some((f) => f.meta?.e2eScenarioTable));
 });
 
-test("UI-31: Scenarios and Flow + Scenarios on a scenario note do not draw anything (the panel disables them)", async () => {
+test("DRV-60 UI-34: Flow only on a scenario note draws its flow and no test steps table", async () => {
+    const h = await drawn();
+    const before = h.frames().length;
+    h.select(h.idOf(scenarioNotes(h)[0]));
+    await h.action("flowonly", "");
+    const added = h.frames().slice(before);
+    assert.equal(added.length, 1, "just the flow");
+    assert.match(added[0].name, /^E2E Flow · TS[SN]-/);
+    assert.ok(h.frames().every((f) => !f.meta?.e2eScenarioTable), "no Test steps table");
+    assert.equal(lastStatus(h).text, "Done");
+    // Flow still draws the table as well, for the same selection
+    await h.action("flow", "");
+    assert.ok(h.frames().some((f) => f.meta?.e2eScenarioTable));
+});
+
+test("DRV-60: Flow only works on a column head of a decision table too, with the flow of its own table", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "n1", text: FLOW });
+    h.select("n1");
+    await h.action("decision", "", "all");
+    const frame = decisionFrames(h)[0];
+    h.scene.get("n1")!.text = "@builder\n1. Other\n   - x\n   - y\n";
+    const head = h.find((e) => e.meta?.kind === "scenario" && e.frameId === h.idOf(frame))[0];
+    h.select(h.idOf(head));
+    const before = h.frames().length;
+    await h.action("flowonly", "");
+    assert.equal(h.frames().length - before, 1);
+    assert.ok(h.find((e) => e.meta?.kind === "step").some((e) => /Login|Pay/.test(String(e.text))));
+    assert.ok(h.frames().every((f) => !f.meta?.e2eScenarioTable));
+});
+
+test("UI-31: Scenarios on a scenario note does not draw anything (the panel disables it)", async () => {
     const h = await drawn();
     h.select(h.idOf(scenarioNotes(h)[0]));
     const before = h.scene.size;
@@ -784,7 +815,7 @@ test("UI-31: panel: which buttons are on for each selection", () => {
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("scenarios"), "flow,table,decision,copy,copydecision");
+        assert.equal(row("scenarios"), "flow,board,table,decision,copy,copydecision"); // board reads "Flow only" (UI-34)
         assert.equal(row("frame"), "scenarios,table,decision,copy,copydecision");
         assert.equal(row("flows"), "flow,scenarios,board,table,decision,copy,copydecision");
         assert.equal(row("flowframe"), "scenarios,board,table,decision,copy,copydecision");
@@ -793,6 +824,37 @@ test("UI-31: panel: which buttons are on for each selection", () => {
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
         assert.equal(row("none"), "flow,scenarios,board,table,decision,copy,copydecision");
+    } finally {
+        p.restore();
+    }
+});
+
+test("UI-34 DRV-60: panel: with scenario notes selected Flow + Scenarios reads Flow only and sends flowonly", () => {
+    const p = loadPanel();
+    try {
+        p.send({ type: "target", kind: "none", n: 0 });
+        assert.equal(p.els.board.textContent, "Flow + Scenarios");
+        p.send({ type: "target", kind: "scenarios", n: 2 });
+        assert.equal(p.els.board.textContent, "Flow only");
+        assert.equal(p.els.board.disabled, false);
+        assert.match(p.els.board.title, /only the flow/);
+        assert.match(p.els.target.textContent, /Flow only draws just the flow/);
+        p.sent.length = 0;
+        p.els.board.onclick();
+        assert.equal(p.sent.at(-1).action, "flowonly");
+        // the Flow button keeps its own action
+        p.els.flow.onclick();
+        assert.equal(p.sent.at(-1).action, "flow");
+        // another selection: the old label and action are back
+        p.send({ type: "target", kind: "flows", n: 1 });
+        assert.equal(p.els.board.textContent, "Flow + Scenarios");
+        assert.doesNotMatch(p.els.board.title, /only the flow/);
+        p.els.board.onclick();
+        assert.equal(p.sent.at(-1).action, "board");
+        // a flow frame: the button is on and has its old label
+        p.send({ type: "target", kind: "flowframe", n: 1 });
+        assert.equal(p.els.board.textContent, "Flow + Scenarios");
+        assert.equal(p.els.board.disabled, false);
     } finally {
         p.restore();
     }

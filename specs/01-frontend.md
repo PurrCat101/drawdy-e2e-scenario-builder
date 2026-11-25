@@ -56,13 +56,18 @@ control: flows are written on the board, not in the panel.
   | none, paste box empty | off | off | off | off | off | off | off |
   | none, text in the paste box | on | on | on | on | on | on | on |
   | flows | on | on | on | on | on | on | on |
-  | scenarios | on ("Flow + Test steps") | off | off | on | on | on | on |
+  | scenarios | on ("Flow + Test steps") | off | on ("Flow only") | on | on | on | on |
   | frame | off | on | off | on | on | on | on |
   | flowframe | off | on | on | on | on | on | on |
   | table (a table or a decision table) | off | off | off | off | off | on | off |
 
   A button that is off says "Not available for what is selected".
 - **UI-32** With scenario notes selected, the Flow button reads "Flow + Test steps".
+- **UI-34** With scenario notes selected (a scenario note or a column head of a decision
+  table, DRV-59), the Flow + Scenarios button, which has nothing to draw there, reads
+  "Flow only" and is on: it draws just the flow of each selected scenario, without its
+  test steps (DRV-60). With any other selection it reads "Flow + Scenarios" again. The
+  box above the buttons names both buttons.
 - **UI-33** The Test steps, Decision table, Copy to clipboard and Copy decision table
   labels end with what they use: ` · N scenarios` (`· 1 scenario` for one) for a scenario
   frame or selected scenario notes, ` · selected table` (Copy to clipboard only) for a selected table, or

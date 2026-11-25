@@ -188,7 +188,7 @@ export async function onPanelMessage(m: any) {
             if (!status) return; // the panel reports the result itself
         } else if (text && !usable) {
             status = await drawFromText(
-                m.action === "flow" ? "flow" : m.action === "scenarios" ? "scenarios" : "board",
+                m.action === "flow" || m.action === "flowonly" ? "flow" : m.action === "scenarios" ? "scenarios" : "board",
                 text,
                 uiMode
             );
@@ -198,7 +198,8 @@ export async function onPanelMessage(m: any) {
             if (!sel.length) {
                 status = "Write a flow in the box first, or select a sticky note on the board";
             } else {
-                if (m.action === "flow") await actionFlow(sel);
+                // DRV-60: "flowonly" is the Flow + Scenarios button of a scenario note: the flow, no test steps
+                if (m.action === "flow" || m.action === "flowonly") await actionFlow(sel, m.action === "flow");
                 else await actionBoard(sel, uiMode, m.action !== "scenarios");
                 status = "Done";
             }
