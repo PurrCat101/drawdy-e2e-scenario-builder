@@ -83,6 +83,7 @@
     <button id="decision" class="wide" title="Decision table: the conditions and the scenarios that take each choice, as boxes you can edit on the board">Decision table</button>
     <div class="grp wide">Export</div>
     <button id="copy" class="wide" title="Copy the table to the clipboard as tab-separated text, ready to paste into a spreadsheet">Copy to clipboard</button>
+    <button id="copydecision" class="wide" title="Copy the decision table as tab-separated text, one long row of scenarios for a spreadsheet (freeze the first two columns); no limit on scenarios">Copy decision table</button>
   </div>
   <div class="status" id="status"></div>
 
@@ -177,7 +178,7 @@
   var target = { kind: 'none', n: 0 };
   function hasText() { return !!lastCounts && $('t').value.trim().length > 0; }
   function updateTarget() {
-    var el = $('target'), tb = $('table'), dc = $('decision'), cp = $('copy');
+    var el = $('target'), tb = $('table'), dc = $('decision'), cp = $('copy'), cd = $('copydecision');
     var N = lastCounts ? lastCounts[mode] : 0, M = MODE_NAME[mode];
     var k = target.kind, n = target.n, line, tail = '', ctail = '', tl, dl, cl;
     // the buttons say how many scenarios they use; the box above says what is selected
@@ -203,20 +204,21 @@
     if (!ctail) ctail = tail;
     tl = 'Test steps' + tail;
     dl = 'Decision table' + tail;
+    var cdl = 'Copy decision table' + tail;
     cl = 'Copy to clipboard' + ctail;
     var sel = k === 'frame' || k === 'scenarios' || k === 'table' || k === 'flows' || k === 'flowframe';
     // which buttons make sense for what is selected; the others are greyed out
-    var ok = { flow: true, scenarios: true, board: true, table: true, decision: true, copy: true };
+    var ok = { flow: true, scenarios: true, board: true, table: true, decision: true, copy: true, copydecision: true };
     var have = hasText();
-    if (k === 'none') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = ok.copy = have; }
+    if (k === 'none') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = ok.copy = ok.copydecision = have; }
     else if (k === 'scenarios') { ok.scenarios = false; ok.board = false; }          // a scenario note: its flow, table or copy
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
-    else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = false; } // a table: only copy
+    else if (k === 'table') { ok.flow = ok.scenarios = ok.board = ok.table = ok.decision = ok.copydecision = false; } // a table: only copy
     // a selected scenario note: the Flow button draws that scenario's flow and its table
     $('flow').textContent = k === 'scenarios' ? 'Flow + Test steps' : 'Flow';
     var why = 'Not available for what is selected';
-    ['flow', 'scenarios', 'board', 'table', 'decision', 'copy'].forEach(function (id) {
+    ['flow', 'scenarios', 'board', 'table', 'decision', 'copy', 'copydecision'].forEach(function (id) {
       var b = $(id);
       b.disabled = !ok[id];
       if (!ok[id]) b.setAttribute('data-title', b.getAttribute('data-title') || b.title);
@@ -227,8 +229,10 @@
     tb.textContent = tl;
     dc.textContent = dl;
     cp.textContent = cl;
+    cd.textContent = cdl;
     tb.classList.toggle('scoped', k === 'frame' || k === 'scenarios');
     dc.classList.toggle('scoped', k === 'frame' || k === 'scenarios');
+    cd.classList.toggle('scoped', k === 'frame' || k === 'scenarios');
     cp.classList.toggle('scoped', k === 'frame' || k === 'scenarios' || k === 'table');
   }
   setInterval(function () { send({ type: 'target' }); }, 1200);
@@ -255,7 +259,7 @@
   $('t').addEventListener('input', preview);
   $('pull').onclick = function () { send({ type: 'pull' }); };
 
-  ['board', 'flow', 'scenarios', 'table', 'decision', 'copy'].forEach(function (id) {
+  ['board', 'flow', 'scenarios', 'table', 'decision', 'copy', 'copydecision'].forEach(function (id) {
     $(id).onclick = function () {
       setStatus('Working...');
       send({ type: 'action', action: id, text: $('t').value, mode: mode });

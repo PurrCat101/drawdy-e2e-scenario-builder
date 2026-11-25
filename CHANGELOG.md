@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Copy decision table** button (Export): copies the decision table as text for a spreadsheet,
+  without drawing it and without the limit of 60 scenarios, one long row of scenarios so
+  the first two columns can be frozen (DRV-58). **Decision table** still draws at most 60.
 - The decision table shows each scenario's ID (`TSS-…` / `TSN-…`) under its `Test Scenario k`
   head, so a column is found on the board by the ID on the scenario note, and selecting
   that note gives its Flow and Test steps (OUT-61, OUT-65).
