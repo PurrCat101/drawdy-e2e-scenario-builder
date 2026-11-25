@@ -1,57 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Read this before upgrading
-
-- **Scenario IDs are running numbers again.** Happy scenarios are `TSS-001`,
-  `TSS-002`... and Negative ones `TSN-001`, `TSN-002`..., counted in the order the board
-  lists them, instead of the five-digit hash (`TSS-04821`) of 0.2.0 and 0.3.0. The same
-  flow always gives the same IDs, but a flow that gains or loses a scenario moves the
-  IDs after it, so check an ID you kept in a ticket after you regenerate. IDs from the
-  hash still read on old boards (CALC-50, 55, 56; CALC-51 to 53 are removed).
-- **Each mode numbers its own scenarios.** EP, Pair and Each count from `001` over what
-  they pick, so 3 Happy and 2 Negative scenarios end at `TSS-003` and `TSN-002`. The same
-  scenario can have another ID in another mode (CALC-57).
-- **The Decision table is headed by the scenario IDs** (`TSS-001`, `TSN-001`) instead of
-  `Test Scenario 1, 2…`, the IDs of the scenario notes of the same mode. A table split
-  over several frames is named `Scenarios 1 to 10 of N`, and the copied text has the IDs
-  as its head row, without the separate `Scenario ID` row (OUT-61, OUT-64).
-- **`setup:` and `expect:` are the field names; `given:` and `then:` still work.** The two
-  are Gherkin's words, but the syntax is not Gherkin (no `When`, no `And`), so the
-  fields are now named for what they hold and for the columns of the Test steps table.
-  Notes you wrote with `given:` / `then:` read exactly as before, and you can keep typing
-  them. What the extension writes back, and the starter template, use `setup:` and
-  `expect:`, so a note read and written back by the extension changes its spelling. A
-  field written twice, under either name, keeps both texts. The README has a new
-  Fields section (SYN-19).
-
-### Added
-
-- **`needs:` and `sets:` lines under a choice.** A rule such as `needs: user and lv1 or
-  premium` is now a line of its own instead of the end of the choice's line, so the
-  label stays easy to read. The bracket spelling (`[needs user, sets cod]`) still works
-  and gives the same scenarios. Both on one choice: the line wins, with a warning.
-  `needs:` and `sets:` on a step, with no value, or given twice are reported with their
-  line (SYN-17, SYN-18). The starter template and the text the extension writes back use
-  the new lines (SYN-40).
-- **Copy decision table** button (Export): copies the decision table as text for a spreadsheet,
-  without drawing it and without the limit of 60 scenarios, one long row of scenarios so
-  the first two columns can be frozen (DRV-58). **Decision table** still draws at most 60.
-- A decision table column is found on the board by the ID on the scenario note: column k
-  and note k of the same mode are the same scenario with the same ID, and selecting that
-  note gives its Flow and Test steps (OUT-65).
-- **Flow only.** With a scenario note or a decision table's column head selected, the
-  **Flow + Scenarios** button, which had nothing to draw there and was greyed out, now reads
-  **Flow only** and draws just the flow of the selected scenario, without its test steps.
-  **Flow** keeps reading **Flow + Test steps** (UI-34, DRV-60).
-- **A decision table's column heads trace back.** Select a head (`TSS-001`) and press
-  **Flow**, **Test steps**, **Copy to clipboard** or **Decision table**: it works like a
-  scenario note. The table keeps the flow and the mode it was made from, and each head
-  keeps its path, so it goes back to the right scenario even after the note is edited or
-  when two tables were drawn, and although an ID counts within one mode (OUT-66, DRV-59).
-  Tables drawn by an earlier version have to be drawn again.
-
 ## 0.3.0
 
 ### Read this before upgrading
@@ -63,6 +11,23 @@
   sentence. The frame the Test steps button draws is named `Test steps · …`, not `Test
   sequence · …`. In the README a row of that table is a **test step** (it was a "test
   case", which most people use for what we call a scenario).
+- **Scenario IDs are running numbers again.** Happy scenarios are `TSS-001`,
+  `TSS-002`... and Negative ones `TSN-001`, `TSN-002`..., counted in the order the board
+  lists them, instead of the five-digit hash (`TSS-04821`) of 0.2.0. The same flow always
+  gives the same IDs, but a flow that gains or loses a scenario moves the IDs after it, so
+  check an ID you kept in a ticket after you regenerate. IDs from the hash still read on
+  old boards (CALC-50, 55, 56; CALC-51 to 53 are removed).
+- **Each mode numbers its own scenarios.** EP, Pair and Each count from `001` over what
+  they pick, so 3 Happy and 2 Negative scenarios end at `TSS-003` and `TSN-002`. The same
+  scenario can have another ID in another mode (CALC-57).
+- **`setup:` and `expect:` are the field names; `given:` and `then:` still work.** The two
+  are Gherkin's words, but the syntax is not Gherkin (no `When`, no `And`), so the
+  fields are named for what they hold and for the columns of the Test steps table.
+  Notes you wrote with `given:` / `then:` read exactly as before, and you can keep typing
+  them. What the extension writes back, and the starter template, use `setup:` and
+  `expect:`, so a note read and written back by the extension changes its spelling. A
+  field written twice, under either name, keeps both texts. The README has a new
+  Fields section (SYN-19).
 - **One starter note.** The Basic, Loop and Levels buttons are replaced by one **Start
   with a template** button: an online-shop checkout (log in or guest, products in a
   loop, shipping, payment) that uses every piece of the syntax.
@@ -78,12 +43,35 @@
 ### Added
 
 - **Decision table** button: the decision table of the scenarios of the chosen mode. The
-  steps that decide (two or more choices) are the rows, each scenario is a column under
-  a **Success** (Happy) or **Negative** bar, an X marks the choices a
-  scenario takes. It is drawn as ordinary boxes, so it
-  can be edited on the board, ten scenarios to a frame and at most 60. **Copy to clipboard**
-  copies a selected decision table for a spreadsheet, with the scenario IDs
-  (CALC-90 to 94, OUT-60 to 64, DRV-57).
+  steps that decide (two or more choices) are the rows, each scenario is a column headed
+  by its scenario ID (`TSS-001`, `TSN-001`) under a **Success** (Happy) or **Negative**
+  bar, an X marks the choices a scenario takes. It is drawn as ordinary boxes, so it
+  can be edited on the board, ten scenarios to a frame (named `Scenarios 1 to 10 of N`)
+  and at most 60. **Copy to clipboard** copies a selected decision table for a
+  spreadsheet, with the scenario IDs as its head row (CALC-90 to 94, OUT-60 to 64,
+  DRV-57).
+- **Copy decision table** button (Export): copies the decision table as text for a spreadsheet,
+  without drawing it and without the limit of 60 scenarios, one long row of scenarios so
+  the first two columns can be frozen (DRV-58). **Decision table** still draws at most 60.
+- A decision table column is found on the board by the ID on the scenario note: column k
+  and note k of the same mode are the same scenario with the same ID, and selecting that
+  note gives its Flow and Test steps (OUT-65).
+- **A decision table's column heads trace back.** Select a head (`TSS-001`) and press
+  **Flow**, **Test steps**, **Copy to clipboard** or **Decision table**: it works like a
+  scenario note. The table keeps the flow and the mode it was made from, and each head
+  keeps its path, so it goes back to the right scenario even after the note is edited or
+  when two tables were drawn, and although an ID counts within one mode (OUT-66, DRV-59).
+- **Flow only.** With a scenario note or a decision table's column head selected, the
+  **Flow + Scenarios** button, which had nothing to draw there and was greyed out, now reads
+  **Flow only** and draws just the flow of the selected scenario, without its test steps.
+  **Flow** keeps reading **Flow + Test steps** (UI-34, DRV-60).
+- **`needs:` and `sets:` lines under a choice.** A rule such as `needs: user and lv1 or
+  premium` is now a line of its own instead of the end of the choice's line, so the
+  label stays easy to read. The bracket spelling (`[needs user, sets cod]`) still works
+  and gives the same scenarios. Both on one choice: the line wins, with a warning.
+  `needs:` and `sets:` on a step, with no value, or given twice are reported with their
+  line (SYN-17, SYN-18). The starter template and the text the extension writes back use
+  the new lines (SYN-40).
 - MIT license (`LICENSE`, `package.json`, README): free to use and share, with the
   copyright line kept.
 - README: a table of contents with links to every section, and the starter template as

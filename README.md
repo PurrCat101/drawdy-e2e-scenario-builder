@@ -379,7 +379,7 @@ turns the old `TSS-003` into `TSS-004`. So when a ticket or a test management to
 refers to an ID, regenerate and check the scenario it points to before you trust the
 number.
 
-Boards drawn by earlier versions show `TSS-04821`-style IDs (0.2.0 and 0.3.0); they
+Boards drawn by earlier versions show `TSS-04821`-style IDs (0.2.0); they
 still work, as does any `TSS-`/`TSN-` number.
 
 ## How the scenarios are counted
