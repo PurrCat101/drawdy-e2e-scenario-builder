@@ -56,20 +56,16 @@ export function buildDecisionTable(flow: Flow, scenarios: Scenario[]): DecisionT
     };
 }
 
-/** The name of column k (0-based): `Test Scenario 1`. */
-export const columnName = (k: number) => `Test Scenario ${k + 1}`;
-
-const q = (v: string) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
+const q =(v: string) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
 
 /**
- * The table as tab-separated text, for a spreadsheet: a group row, a scenario ID row
- * (the IDs are not drawn on the board) and the values with an X.
+ * The table as tab-separated text, for a spreadsheet: the scenario IDs as the column
+ * heads (the same as on the board), a group row and the values with an X.
  */
 export function decisionToTsv(t: DecisionTable): string {
     const rows: string[][] = [];
-    rows.push(["Condition", "Combination", ...t.columns.map((_, k) => columnName(k))]);
+    rows.push(["Condition", "Combination", ...t.columns.map((c) => c.id)]);
     rows.push(["", "Group", ...t.columns.map((c) => (c.type === "happy" ? "Success" : "Negative"))]);
-    rows.push(["", "Scenario ID", ...t.columns.map((c) => c.id)]);
     t.conditions.forEach((cd, ci) =>
         cd.values.forEach((v, vi) =>
             rows.push([

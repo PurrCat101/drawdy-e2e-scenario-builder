@@ -826,38 +826,64 @@ test("OUT-25: requirements: each req lists the scenarios that pass it, and a mis
     assert.deepEqual(requirementLines(g.list, parseFlowText("1. a\n- b").flow), []);
 });
 
-test("CALC-50 CALC-51 CALC-53: scenario IDs stay put when the flow changes elsewhere, and are unique", () => {
-    const base = "1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n3. Pay\n- paid\n- declined -> end";
-    const ids = (t: string) => {
-        const m = new Map<string, string>();
-        generate(parseFlowText(t).flow).list.forEach((s) =>
-            m.set(s.path.map((v) => (v.c ? v.c.label : "-")).join(">"), s.id)
-        );
-        return m;
-    };
-    const before = ids(base);
-    assert.equal(new Set(before.values()).size, before.size, "unique");
-    for (const id of before.values()) assert.match(id, /^TS[SN]-\d{5}$/);
-    // a new choice, lines in another order, a new step at the end with one choice... the
-    // scenarios that still exist keep their IDs
-    const changed = [
-        base.replace("- shoes", "- shoes\n- hat"),
-        base.replace("- shirt\n- shoes", "- shoes\n- shirt"),
-        base.replace("- ok\n- bad -> end", "- bad -> end\n- ok"),
-    ];
-    for (const t of changed) {
-        const after = ids(t);
-        for (const [path, id] of before) if (after.has(path)) assert.equal(after.get(path), id, path);
-    }
-    // a renamed choice is a different test: a new ID for the scenarios through it only
-    const renamed = ids(base.replace("- paid", "- paid by card"));
-    assert.equal(renamed.get("ok>shirt>declined"), before.get("ok>shirt>declined"));
-    assert.ok(![...before.values()].includes(renamed.get("ok>shirt>paid by card")!));
+test("CALC-50 CALC-55: scenario IDs run TSS-001.. and TSN-001.. in list order", () => {
+    // 3 Happy and 2 Negative: Sign in (ok / bad ends), Pick (shirt / shoes / hat)
+    const g = generate(parseFlowText("1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n- hat").flow);
+    assert.deepEqual(
+        g.list.map((s) => s.id),
+        ["TSS-001", "TSS-002", "TSS-003", "TSN-001"]
+    );
+    assert.deepEqual(
+        g.list.map((s) => s.type),
+        ["happy", "happy", "happy", "neg"]
+    );
+    const two = generate(parseFlowText("1. a\n- ok\n- x -> end\n- y -> end\n2. b\n- p\n- q").flow);
+    assert.deepEqual(
+        two.list.map((s) => s.id),
+        ["TSS-001", "TSS-002", "TSN-001", "TSN-002"]
+    );
 });
 
-test("CALC-52: scenario IDs stay unique on a big flow (clashes move to the next number)", () => {
-    const text = Array.from({ length: 6 }, (_, i) => `${i + 1}. S${i}\n- a\n- b\n- c`).join("\n");
-    const g = generate(parseFlowText(text).flow);
+test("CALC-56: the same flow gives the same IDs; a new scenario moves only the ones after it", () => {
+    const base = "1. Sign in\n- ok\n- bad -> end\n2. Pick\n- shirt\n- shoes\n3. Pay\n- paid\n- declined -> end";
+    const ids = (t: string) => generate(parseFlowText(t).flow).list.map((s) => s.id);
+    const before = ids(base);
+    assert.deepEqual(ids(base), before, "same flow, same IDs");
+    // a choice added to the last step is one more scenario of each Happy/Negative run:
+    // IDs stay a gapless running count of the same prefixes
+    const after = ids(base.replace("- shoes", "- shoes\n- hat"));
+    for (const prefix of ["TSS", "TSN"]) {
+        const nums = after.filter((id) => id.startsWith(prefix)).map((id) => Number(id.slice(4)));
+        assert.deepEqual(nums, nums.map((_, i) => i + 1), prefix + " counts 1, 2, 3...");
+    }
+    assert.ok(after.length > before.length);
+});
+
+test("CALC-57: a mode numbers only what it picks (EP: 3 Happy and 2 Negative end at TSS-003 and TSN-002)", () => {
+    // All: 9 Happy and 2 Negative. Each-choice needs 3 Happy (3 picks x 3 sizes) + 2 Negative.
+    const flow = parseFlowText(
+        "1. Sign in\n- ok\n- bad1 -> end\n- bad2 -> end\n2. Pick\n- shirt\n- shoes\n- hat\n3. Size\n- s\n- m\n- l"
+    ).flow;
+    const g = generate(flow);
+    assert.equal(g.list.filter((s) => s.type === "happy").length, 9);
+    assert.equal(g.list.filter((s) => s.type === "happy").at(-1)!.id, "TSS-009");
+    const min = pick(g, "min");
+    assert.deepEqual(
+        min.map((s) => s.id),
+        ["TSS-001", "TSS-002", "TSS-003", "TSN-001", "TSN-002"]
+    );
+    // All keeps its own numbering, and the pick keeps the place in All (`n`)
+    assert.deepEqual(pick(g, "all").map((s) => s.id), g.list.map((s) => s.id));
+    assert.ok(min.every((s) => g.list.find((a) => a.n === s.n)!.path === s.path));
+});
+
+test("CALC-50: a running number past 999 just grows (TSS-1000)", () => {
+    // 11 steps of 3 choices: 3^7 = 2187 paths would pass the limit, so use 1000+ via a high limit
+    const text = Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i}\n- a\n- b\n- c`).join("\n");
+    const g = generate(parseFlowText(text).flow, 5000);
+    assert.equal(g.list.length, 2187);
+    assert.equal(g.list[0].id, "TSS-001");
+    assert.equal(g.list[1000].id, "TSS-1001");
     assert.equal(new Set(g.list.map((s) => s.id)).size, g.list.length);
 });
 

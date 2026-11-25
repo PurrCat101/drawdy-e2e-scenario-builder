@@ -116,16 +116,29 @@ check), `src/analysis.ts` (remembering results).
 
 ## Scenario IDs
 
-- **CALC-50** An ID is `TSS-` (Happy) or `TSN-` (Negative) and five digits.
-- **CALC-51** The number is FNV-1a (32-bit) of the scenario's description, mod 100000:
-  for each item of the path, the step name and the choice label (lower case, trimmed),
-  joined in order.
-- **CALC-52** On a clash within the same prefix, the scenario whose description sorts
-  later takes the next free number (wrapping at 99999). Descriptions are resolved in
-  sorted order, so the result does not depend on walk order.
-- **CALC-53** So an ID changes only when its own path changes (a renamed step or
-  choice on it, a step added in its way), never because of a change elsewhere.
-- **CALC-54** Any `TSS-`/`TSN-` number is read back (older boards used `TSS-001`).
+- **CALC-50** An ID is `TSS-` (Happy) or `TSN-` (Negative) and a running number of at
+  least three digits (`TSS-001`, `TSN-001`; past 999 the number just grows).
+- **CALC-51** (removed) The number was a hash of the scenario's description (0.2.0 to
+  0.3.0); it is now a running number (CALC-55).
+- **CALC-52** (removed) A clash of hashed numbers moved the later description to the next
+  free number; running numbers never clash.
+- **CALC-53** (removed) An ID changed only when its own path changed; running numbers
+  can move when the flow gains or loses a scenario (CALC-56).
+- **CALC-54** Any `TSS-`/`TSN-` number is read back (older boards used `TSS-001` or, in
+  0.2.0 to 0.3.0, five digits such as `TSS-04821`).
+- **CALC-55** The numbers are given after the list is sorted (CALC-42), one count per
+  prefix: the first Happy scenario of the list is `TSS-001`, the next `TSS-002`, and
+  the first Negative one is `TSN-001`. So 3 Happy and 2 Negative scenarios are
+  `TSS-001` to `TSS-003` and `TSN-001`, `TSN-002`.
+- **CALC-56** The same flow always gives the same IDs. When the flow gains or loses a
+  scenario, the scenarios sorted after it of the same prefix move by one (or more);
+  the ones before it keep their ID. The README says so.
+- **CALC-57** Each mode numbers the scenarios it picks, in its own list (CALC-55): the
+  biggest ID of a mode is its count per prefix (5 picked, 3 Happy and 2 Negative: at
+  most `TSS-003` and `TSN-002`). The scenario notes, the Test steps tables, the copied
+  text and the decision table of one mode all show the same IDs, so an ID traces back
+  from any of them. The same scenario can have another ID in another mode. All keeps the
+  numbers of CALC-55 over the whole list.
 
 ## Flow check
 
@@ -176,7 +189,8 @@ mode. Drawing it is OUT-60 and the rules after it.
   choices. Its **values** are its choices, in the order they are written. A step with
   fewer than two choices is not a condition and is left out.
 - **CALC-91** The columns are the scenarios of the chosen mode, Happy first, then
-  Negative, each by priority and then ID (OUT-22). Column k is named `Test Scenario k`.
+  Negative, each by priority and then ID (OUT-22). A column is named by the scenario's
+  ID (`TSS-001`), the one of CALC-57.
   A Happy scenario belongs to the group **Success**, a Negative one to
   **Negative**. The ID of each column is drawn under its name (OUT-61), and the notes of
   the Scenarios frame are in the same order (OUT-65).
