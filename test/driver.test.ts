@@ -621,6 +621,67 @@ const headsOf = (h: Awaited<ReturnType<typeof makeHost>>, frame: El) =>
 const stepTexts = (h: Awaited<ReturnType<typeof makeHost>>) =>
     h.find((e) => e.meta?.kind === "step").map((e) => String(e.text));
 
+test("DRV-59 DRV-60 UI-34: start with a template, draw its decision table, then every button works from a column head", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "shop" });
+    const note = h.find(isStarter)[0];
+    h.select(h.idOf(note));
+    await h.action("decision", "", "min");
+    const frame = decisionFrames(h)[0];
+    assert.ok(frame, "the decision table is drawn from the template note");
+    // the column heads are the IDs, Happy first, numbered within the mode (CALC-57)
+    const heads = headsOf(h, frame);
+    assert.ok(heads.length >= 2);
+    assert.match(heads[0].text, /^TSS-001$/);
+    assert.ok(heads.every((e) => /^TS[SN]-\d{3}$/.test(e.text)));
+    const head = heads[1];
+
+    // the panel counts a selected head as a scenario and shows the right buttons
+    h.select(h.idOf(head));
+    const target = await h.lastTarget();
+    assert.deepEqual([target.kind, target.n], ["scenarios", 1]);
+    const p = loadPanel();
+    try {
+        p.send({ type: "target", kind: target.kind, n: target.n });
+        assert.equal(p.els.flow.textContent, "Flow + Test steps");
+        assert.equal(p.els.board.textContent, "Flow only");
+        assert.deepEqual(
+            ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"].filter((id) => !p.els[id].disabled),
+            ["flow", "board", "table", "decision", "copy", "copydecision"]
+        );
+    } finally {
+        p.restore();
+    }
+
+    // Flow + Test steps: the flow of that scenario and its table
+    const before = h.frames().length;
+    await h.action("flow", "");
+    const drawn = h.frames().slice(before);
+    assert.equal(drawn.length, 2);
+    assert.ok(drawn.some((f) => f.name === `E2E Flow · ${head.meta.id}`));
+    assert.ok(drawn.some((f) => f.meta?.e2eScenarioTable));
+
+    // Flow only: just the flow, no table
+    const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable).length;
+    const mid = h.frames().length;
+    await h.action("flowonly", "");
+    assert.equal(h.frames().length - mid, 1);
+    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable).length, tables);
+
+    // Test steps and Copy to clipboard: that one scenario
+    await h.action("table", "");
+    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable).length, tables + 1);
+    await h.action("copy", "");
+    assert.equal(h.lastClip().scenarios, 1);
+
+    // Decision table of just that head: same ID, same mode as the table it came from
+    await h.action("decision", "", "all");
+    const sub = decisionFrames(h).at(-1)!;
+    assert.equal(sub.meta.scenarios, 1);
+    assert.equal(sub.meta.mode, "min");
+    assert.deepEqual(headsOf(h, sub).map((e) => e.meta.id), [head.meta.id]);
+});
+
 test("DRV-59 OUT-66: a column head traces back to its own flow, even when the note was edited and another table was drawn", async () => {
     const h = await makeHost();
     h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "n1", text: FLOW });
