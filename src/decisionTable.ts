@@ -12,7 +12,13 @@ export type DtCondition = {
     name: string;
     values: DtValue[];
 };
-export type DtColumn = { id: string; type: "happy" | "neg"; pri: number };
+export type DtColumn = {
+    id: string;
+    type: "happy" | "neg";
+    pri: number;
+    /** the scenario's path as `[step index, choice id | null]`, as a scenario note keeps it */
+    path: [number, string | null][];
+};
 
 export type DecisionTable = {
     /** Happy scenarios first (the group Success), then Negative */
@@ -30,7 +36,12 @@ export const MAX_DECISION_SCENARIOS = 60;
 export function buildDecisionTable(flow: Flow, scenarios: Scenario[]): DecisionTable {
     // CALC-91: the order of the scenario notes (OUT-22)
     const cols = orderScenarios(scenarios);
-    const columns: DtColumn[] = cols.map((s) => ({ id: s.id, type: s.type, pri: s.pri }));
+    const columns: DtColumn[] = cols.map((s) => ({
+        id: s.id,
+        type: s.type,
+        pri: s.pri,
+        path: s.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null]),
+    }));
 
     // CALC-90: a condition is a step with two or more choices
     const conditions: DtCondition[] = [];

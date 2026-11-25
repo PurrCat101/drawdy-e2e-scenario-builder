@@ -33,6 +33,12 @@
 - A decision table column is found on the board by the ID on the scenario note: column k
   and note k of the same mode are the same scenario with the same ID, and selecting that
   note gives its Flow and Test steps (OUT-65).
+- **A decision table's column heads trace back.** Select a head (`TSS-001`) and press
+  **Flow**, **Test steps**, **Copy to clipboard** or **Decision table**: it works like a
+  scenario note. The table keeps the flow and the mode it was made from, and each head
+  keeps its path, so it goes back to the right scenario even after the note is edited or
+  when two tables were drawn, and although an ID counts within one mode (OUT-66, DRV-59).
+  Tables drawn by an earlier version have to be drawn again.
 
 ## 0.3.0
 

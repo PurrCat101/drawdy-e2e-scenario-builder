@@ -585,6 +585,102 @@ test("DRV-57: nothing selected and no text gives the usual hint", async () => {
     assert.ok(lastStatus(h).bad);
 });
 
+const headsOf = (h: Awaited<ReturnType<typeof makeHost>>, frame: El) =>
+    h.find((e) => e.meta?.kind === "scenario" && e.frameId === h.idOf(frame));
+const stepTexts = (h: Awaited<ReturnType<typeof makeHost>>) =>
+    h.find((e) => e.meta?.kind === "step").map((e) => String(e.text));
+
+test("DRV-59 OUT-66: a column head traces back to its own flow, even when the note was edited and another table was drawn", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "n1", text: FLOW });
+    h.add({ type: "shape", componentType: "rect", x: 900, y: 0, width: 300, height: 100, drawdyElementId: "n2", text: FLOW });
+    h.select("n1");
+    await h.action("decision", "", "all");
+    // the second note is edited (Pay becomes Ship) before its own table is drawn
+    h.scene.get("n2")!.text = FLOW.replace("2. Pay", "2. Ship").replace("- paid", "- shipped");
+    h.select("n2");
+    await h.action("decision", "", "all");
+    // the first note is edited too, after its table was drawn
+    h.scene.get("n1")!.text = "@builder\n1. Other\n   - x\n   - y\n";
+    const [first, second] = decisionFrames(h);
+    assert.notDeepEqual(first.meta.flow, second.meta.flow, "each table has its own snapshot");
+
+    // a head of the first table: its flow is the first one, not the edited notes
+    const head = headsOf(h, first)[0];
+    h.select(h.idOf(head));
+    await h.action("flow", "");
+    assert.ok(stepTexts(h).some((t) => /Pay/.test(t)), "the step of the first table's flow");
+    assert.ok(!stepTexts(h).some((t) => /Ship|Other/.test(t)), "not the steps of the edited notes");
+    assert.ok(h.frames().some((f) => f.name === `E2E Flow · ${head.meta.id}`));
+    assert.ok(h.frames().some((f) => f.meta?.e2eScenarioTable), "and the test steps of that scenario");
+
+    // a head of the second table: its own flow
+    const before = stepTexts(h).length;
+    h.select(h.idOf(headsOf(h, second)[0]));
+    await h.action("flow", "");
+    assert.ok(stepTexts(h).slice(before).some((t) => /Ship/.test(t)));
+});
+
+test("DRV-59 OUT-66: the mode of the table is kept, so the same ID in two modes is two scenarios", async () => {
+    const h = await makeHost();
+    const flow = TEMPLATES[0].text;
+    await h.action("decision", flow, "pair");
+    await h.action("decision", flow, "min");
+    const [pair, min] = decisionFrames(h);
+    assert.equal(pair.meta.mode, "pair");
+    assert.equal(min.meta.mode, "min");
+    // the third Happy scenario is not the same path in Pairwise and in Each
+    const third = (f: El) => headsOf(h, f).find((e) => e.meta.id === "TSS-003");
+    assert.notDeepEqual(third(pair)!.meta.path, third(min)!.meta.path);
+    // each head gives its own scenario's test steps, whatever the panel's switch says
+    h.select(h.idOf(third(min)!));
+    await h.action("table", "", "ep");
+    const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable);
+    assert.equal(tables.length, 1);
+    assert.equal(tables[0].meta.scenarios, 1);
+    h.select(h.idOf(third(pair)!));
+    await h.action("table", "", "ep");
+    const both = h.frames().filter((f) => f.meta?.e2eScenarioTable);
+    assert.notEqual(both[0].meta.tsv, both[1].meta.tsv, "another path, other test steps");
+});
+
+test("DRV-59: selected column heads draw a decision table of just those scenarios, with the same IDs", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "pair");
+    const frame = decisionFrames(h)[0];
+    const two = headsOf(h, frame).slice(1, 3);
+    h.select(...two.map((e) => h.idOf(e)));
+    await h.action("decision", "", "all");
+    const [, sub] = decisionFrames(h);
+    assert.equal(sub.meta.scenarios, 2);
+    assert.equal(sub.meta.mode, "pair", "the mode of the table the heads are in");
+    assert.deepEqual(headsOf(h, sub).map((e) => e.meta.id), two.map((e) => e.meta.id));
+});
+
+test("DRV-59: the panel counts selected column heads as scenarios", async () => {
+    const h = await makeHost();
+    await h.action("decision", TEMPLATES[0].text, "pair");
+    h.select(...headsOf(h, decisionFrames(h)[0]).slice(0, 3).map((e) => h.idOf(e)));
+    const target = await h.lastTarget();
+    assert.equal(target.kind, "scenarios");
+    assert.equal(target.n, 3);
+});
+
+test("DRV-59: a head whose frame does not keep its flow (a table of an older version) draws nothing and says so", async () => {
+    const h = await makeHost();
+    h.add({ type: "frame", drawdyElementId: "old", name: "Decision table · All Paths · 1 scenarios", position: [0, 0], width: 400, height: 200, meta: { e2eDecision: true, scenarios: 1, tsv: "x" } });
+    h.add({
+        type: "shape", componentType: "rect", drawdyElementId: "oldhead", frameId: "old", x: 10, y: 10, width: 100, height: 30,
+        text: "TSS-001", meta: { kind: "scenario", id: "TSS-001", type: "happy", path: [[0, "x"]] },
+    });
+    h.select("oldhead");
+    const before = h.scene.size;
+    await h.action("table", "");
+    assert.equal(h.scene.size, before, "nothing drawn");
+    const s = lastStatus(h);
+    assert.match(s.text, /no longer know their flow.*draw it again/);
+});
+
 test("DRV-25 OUT-64 UI-30: a selected decision table is a table: the panel says so and Copy to clipboard copies its text", async () => {
     const h = await makeHost();
     await h.action("decision", TEMPLATES[0].text, "pair");

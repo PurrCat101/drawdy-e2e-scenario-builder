@@ -108,6 +108,12 @@ the board, `src/actions.ts` decides what to draw for each button.
   scenario takes the value. A value box is as tall as its text needs (OUT-50).
 - **OUT-63** (removed) A note of expected results under the decision table; they are in the
   Test steps table (OUT-31).
+- **OUT-66** Every frame of a decision table keeps a snapshot of the flow it was made
+  from and its mode, and every column head keeps `kind: "scenario"`, its `id`, `type`,
+  priority, `path` (as a scenario note keeps it, OUT-22) and `mode`. So the head can be
+  traced back (DRV-59) after the note is edited, after another table is drawn, and
+  although the same ID names another scenario in another mode (CALC-57). No other box of
+  the table carries scenario data.
 - **OUT-64** Every frame of a decision table carries the text of the whole table, as
   tab-separated text for a spreadsheet, and the number of scenarios (so Copy to clipboard
   copies it, DRV-25): the row `Condition, Combination, TSS-001…` (the scenario IDs), a `Group` row

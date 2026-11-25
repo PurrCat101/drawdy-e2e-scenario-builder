@@ -98,6 +98,15 @@ There is no server: nothing leaves the user's browser.
   separated by an empty line. A flow with no step that decides copies nothing and says
   "Cannot copy a decision table: ...". A selected table is not a source (UI-31): Copy to
   clipboard copies it.
+- **DRV-59** A column head of a decision table (OUT-66) is a scenario note for every
+  button: Flow draws that scenario's flow and its table, Test steps and Copy to clipboard
+  give its test steps, Decision table draws a table of just the selected heads, and the
+  panel counts it as a scenario (`scenarios`). The flow and mode come from the frame the
+  head is in, never from the note the table was made from, and the scenario is found by its
+  path, not by its ID, which counts within one mode (CALC-57). A head whose frame does
+  not keep its flow (a table drawn by an older version) gives no scenario: Test steps,
+  Copy and Decision table say the scenarios no longer know their flow (Test steps and
+  Copy add that the table is to be drawn again), and Flow draws only the red hint (DRV-27).
 - **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the
