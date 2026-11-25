@@ -574,6 +574,16 @@ decision table is drawn for at most 60 scenarios: pick EP, Pair or Each for a bi
 or press **Copy decision table** to get it as text for a spreadsheet with no limit.
 A flow with no step that has two or more choices has no decision table.
 
+**From a column head to its test steps.** Select a column head (`TSS-001`) and use it like
+a scenario note: **Flow** draws that scenario's flow and its test steps, **Test steps** and
+**Copy to clipboard** give them, and **Decision table** draws a table of just the selected
+heads (hold Shift to select several). The table keeps its own copy of the flow and of the
+mode, so this works after you edit the note you wrote the flow in, and when you drew two
+tables from two notes: each head goes back to the flow *its* table was made from. That is
+also why the same ID in two modes is not a problem: `TSS-003` of Each and `TSS-003` of
+Pair are two scenarios, and each head knows which. A table drawn by an earlier version has
+no copy of the flow: its heads say so, and the table has to be drawn again.
+
 Select a decision table and press **Copy to clipboard** to copy it for a spreadsheet: the same
 rows, with the scenario IDs as the column heads and a Group row under them.
 

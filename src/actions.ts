@@ -140,15 +140,22 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
         anchor = frame;
         label = `Test steps · ${mode.toUpperCase()}`;
     } else if (scenarioNotes.length) {
+        let unknown = 0;
         for (const p of scenarioNotes) {
             const fr = p.frameId ? (await readElements([p.frameId]))[0] : undefined;
             const flow = fr?.meta?.flow as Flow | undefined;
-            if (!flow?.steps?.length) continue;
+            if (!flow?.steps?.length) {
+                unknown++;
+                continue;
+            }
             const sub = scenarioFlow(flow, p.meta.path as [number, string | null][]);
-            const pri = p.text.match(/·\s*P(\d)/)?.[1];
+            const pri = p.meta.pri ?? p.text.match(/·\s*P(\d)/)?.[1];
             scenarios.push({ title: scenarioTitle(String(p.meta.id), String(p.meta.type), pri, sub), flow: sub });
             anchor = anchor ?? p;
         }
+        // DRV-59: a head of a table drawn by an older version has no flow to go back to
+        if (unknown && !scenarios.length)
+            return "Could not read: the selected scenarios no longer know their flow (a table drawn by an older version); draw it again";
     } else if (flowNotes.length) {
         for (const p of flowNotes) {
             const r = parseFlowText(p.text);
@@ -248,10 +255,12 @@ async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSour
         const fr = first.frameId ? (await readElements([first.frameId]))[0] : undefined;
         const flow = fr?.meta?.flow as Flow | undefined;
         if (!flow?.steps?.length) return "Could not draw: the selected scenario notes no longer know their flow";
-        // a note's ID counts within the mode its frame was drawn with (CALC-57)
+        // the notes' paths, not their IDs, say which scenarios they are: an ID counts within
+        // one mode (CALC-57), so it is not unique across modes (OUT-66)
         const mode = (fr?.meta?.mode as Mode) ?? uiMode;
-        const ids = new Set(scenarioNotes.filter((p) => p.frameId === first.frameId).map((p) => String(p.meta.id)));
-        const scenarios = analyze(flow).pick(mode).filter((s) => ids.has(s.id));
+        const key = (path: unknown) => JSON.stringify(path);
+        const paths = new Set(scenarioNotes.filter((p) => p.frameId === first.frameId).map((p) => key(p.meta.path)));
+        const scenarios = analyze(flow).pick(mode).filter((s) => paths.has(key(scenarioPath(s))));
         if (!scenarios.length) return "Could not draw: the selected scenarios are not in the flow any more";
         return [{ flow, scenarios, mode, anchor: first }];
     }
@@ -287,9 +296,9 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
         if (dt.columns.length > MAX_DECISION_SCENARIOS)
             return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each, or press Copy decision table`;
         const name = `Decision table · ${MODE_LABEL[src.mode]}`;
-        const size = renderDecisionTables({ table: dt, name, origin: [0, 0], generateId });
+        const size = renderDecisionTables({ table: dt, flow: src.flow, mode: src.mode, name, origin: [0, 0], generateId });
         const origin = findFree(await occupiedRects(), src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
-        const out = renderDecisionTables({ table: dt, name, origin, generateId });
+        const out = renderDecisionTables({ table: dt, flow: src.flow, mode: src.mode, name, origin, generateId });
         const failed = await addInBatches(out.elements);
         if (failed) return "Could not draw the decision table: " + failed;
         drawn += dt.columns.length;

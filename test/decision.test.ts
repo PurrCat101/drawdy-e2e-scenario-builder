@@ -127,7 +127,7 @@ test("CALC-92: a label with a tab, a quote or a line break is quoted in the TSV"
 const draw = (text: string, mode: "all" | "ep" | "pair" | "min" = "all") => {
     const { flow, dt } = table(text, mode);
     let n = 0;
-    const out = renderDecisionTables({ table: dt, name: "Decision table · All Paths", origin: [100, 200], generateId: () => "e" + ++n });
+    const out = renderDecisionTables({ table: dt, flow, mode, name: "Decision table · All Paths", origin: [100, 200], generateId: () => "e" + ++n });
     const els = out.elements as any[];
     const frames = els.filter((e) => e.type === "frame");
     const boxes = els.filter((e) => e.type === "shape");
@@ -186,6 +186,26 @@ test("OUT-65: column k of the decision table and note k of the Scenarios frame a
         const dt = buildDecisionTable(flow, shown);
         assert.deepEqual(dt.columns.map((c) => c.id), noteIds, `${mode}: the columns and the notes are in the same order`);
     }
+});
+
+test("OUT-66: every frame keeps the flow and mode, and every column head is a scenario with its path and mode", () => {
+    const { flow, dt, frames, boxes } = draw(TEMPLATES[0].text, "ep");
+    assert.ok(frames.length > 1, "a table in several frames");
+    for (const f of frames) {
+        assert.equal(f.meta.mode, "ep");
+        assert.deepEqual(f.meta.flow, flow);
+    }
+    const heads = boxes.filter((b) => b.meta?.kind === "scenario");
+    assert.equal(heads.length, dt.columns.length);
+    heads.forEach((h, k) => {
+        const c = dt.columns[k];
+        assert.equal(h.text, c.id);
+        assert.deepEqual(h.meta, { kind: "scenario", id: c.id, type: c.type, pri: c.pri, path: c.path, mode: "ep" });
+        // the head sits in the frame that holds the flow
+        assert.ok(frames.some((f) => f.drawdyElementId === h.frameId));
+    });
+    // only the heads are scenarios: a value box or an X is not
+    assert.ok(boxes.filter((b) => b.meta).every((b) => b.meta.kind === "scenario"));
 });
 
 test("OUT-62: a box for each condition and value, and an X where a scenario takes it", () => {

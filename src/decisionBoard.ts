@@ -4,6 +4,7 @@
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import { decisionToTsv, type DecisionTable } from "./decisionTable";
+import type { Flow, Mode } from "./flow";
 import { fitHeight, textBox, type Tone } from "./textBox";
 
 const FONT = 13;
@@ -33,6 +34,9 @@ type Group = { title: string; tone: Tone; rows: { text: string; marks: boolean[]
 
 export function renderDecisionTables(opts: {
     table: DecisionTable;
+    /** the flow and mode the table was made from: kept on every frame (OUT-66) */
+    flow: Flow;
+    mode: Mode;
     /** the name of the frames, before ` · N scenarios` or ` · Scenarios a to b of N` */
     name: string;
     origin: [number, number];
@@ -53,7 +57,9 @@ export function renderDecisionTables(opts: {
 
     const elements: DrawdyElementSchema[] = [];
     const frameIds: string[] = [];
-    const meta = { e2eDecision: true, scenarios: n, tsv: decisionToTsv(t) };
+    // OUT-66: a snapshot of the flow and the mode, so a column head can be traced back
+    // even after the note it came from is edited or another table is drawn
+    const meta = { e2eDecision: true, scenarios: n, tsv: decisionToTsv(t), mode: opts.mode, flow: opts.flow };
     let y0 = oy;
     let width = 0;
 
@@ -69,10 +75,10 @@ export function renderDecisionTables(opts: {
         const body: DrawdyElementSchema[] = [];
         const chip = (
             x: number, y: number, w: number, h: number, text: string, tone: Tone,
-            align: "left" | "center" = "left", fontSize = FONT
+            align: "left" | "center" = "left", fontSize = FONT, boxMeta?: Record<string, any>
         ) =>
             body.push(
-                textBox({ id: generateId(), frameId, x, y, width: w, height: h, text, fontSize, tone, align, valign: "middle" })
+                textBox({ id: generateId(), frameId, x, y, width: w, height: h, text, fontSize, tone, align, valign: "middle", meta: boxMeta })
             );
         let y = y0 + PAD;
 
@@ -83,7 +89,18 @@ export function renderDecisionTables(opts: {
         bar(a, Math.min(b, t.success), "Success", "green");
         bar(Math.max(a, t.success), b, "Negative", "red");
         y += BAR_H + GAP;
-        for (let k = a; k < b; k++) chip(colX(k), y, COL_W, CHIP_H, t.columns[k].id, "violet", "center");
+        // OUT-66: a column head is a scenario note for the buttons: its ID, type, path and mode
+        for (let k = a; k < b; k++) {
+            const c = t.columns[k];
+            chip(colX(k), y, COL_W, CHIP_H, c.id, "violet", "center", FONT, {
+                kind: "scenario",
+                id: c.id,
+                type: c.type,
+                pri: c.pri,
+                path: c.path,
+                mode: opts.mode,
+            });
+        }
         chip(xLabel, y, LABEL_W, CHIP_H, "Condition", "purple");
         chip(xCombo, y, COMBO_W, CHIP_H, "Combinations", "gray");
         y += CHIP_H + 18;
