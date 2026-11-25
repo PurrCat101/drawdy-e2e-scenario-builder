@@ -333,7 +333,7 @@ test("SYN-31: a typo in needs: / sets: gets a did-you-mean", () => {
     assert.match(r.warnings.join("\n"), /Unknown field "nedes:" \(did you mean needs:\?\)/);
 });
 
-test("SYN-40 SYN-17: sets / needs are written as fields before given:, the rest stays in the brackets", () => {
+test("SYN-40 SYN-17: sets / needs are written as fields before setup:, the rest stays in the brackets", () => {
     const first = parseFlowText(SPELLED_IN_BRACKETS);
     const text = formatFlow(first.flow);
     assert.match(text, /- Cash\n     needs: !user\n     sets: cod\n/);
@@ -447,8 +447,10 @@ test("OUT-31: scenario notes carry setup, data and expected result, and the tabl
     });
     const notes = out.elements.filter((e: any) => e.meta?.kind === "scenario") as any[];
     const happy = notes.find((n) => n.meta.type === "happy");
-    for (const w of ["given: stack is up", "data: user a", "data: good password", "then: token stored", "then: receipt"])
+    // written under the first names (SYN-19), although the fixture was typed with given: / then:
+    for (const w of ["setup: stack is up", "data: user a", "data: good password", "expect: token stored", "expect: receipt"])
         assert.ok(happy.text.includes(w), w);
+    assert.ok(!/\b(given|then):/.test(happy.text), "no second names in what is written");
     // the note reads back, and its table has the same cells
     const back = parseFlowText(happy.text);
     assert.deepEqual(back.warnings, []);
@@ -458,20 +460,51 @@ test("OUT-31: scenario notes carry setup, data and expected result, and the tabl
     assert.equal(rows[0].pre, "stack is up");
 });
 
-test("SYN-10: given / then are the field names; setup / expect are still read", () => {
+test("SYN-19 SYN-10: setup / expect and given / then are the same fields, and setup / expect are written back", () => {
     const a = parseFlowText("@builder\n1. a\n   given: g\n   then: t\n   - ok\n");
     const b = parseFlowText("@builder\n1. a\n   setup: g\n   expect: t\n   - ok\n");
     assert.deepEqual(a.warnings, []);
     assert.deepEqual(b.warnings, []);
     assert.equal(a.flow.steps[0].pre, "g");
     assert.equal(a.flow.steps[0].exp, "t");
-    assert.equal(b.flow.steps[0].pre, "g");
-    assert.equal(b.flow.steps[0].exp, "t");
-    const out = formatFlow(b.flow);
-    assert.ok(out.includes("   given: g") && out.includes("   then: t"));
-    assert.ok(!out.includes("setup:") && !out.includes("expect:"));
-    // a typo is pointed at the new name
-    assert.match(parseFlowText("@builder\n1. a\n   gven: x\n").warnings.join(""), /given:/);
+    assert.deepEqual(shape(a.flow), shape(b.flow));
+    // either way the first names are written, and read back to the same flow
+    for (const f of [a.flow, b.flow]) {
+        const out = formatFlow(f);
+        assert.ok(out.includes("   setup: g") && out.includes("   expect: t"));
+        assert.ok(!out.includes("given:") && !out.includes("then:"));
+        assert.deepEqual(shape(parseFlowText(out).flow), shape(f));
+    }
+    // on a choice too, and in any letter case
+    const c = parseFlowText("@builder\n1. a\n   - ok\n     GIVEN: g1\n     Then: t1\n   - bad\n     Setup: g2\n     EXPECT: t2\n");
+    assert.deepEqual(c.warnings, []);
+    assert.deepEqual(c.flow.steps[0].conds.map((x) => [x.pre, x.exp]), [["g1", "t1"], ["g2", "t2"]]);
+    // a typo is pointed at a field name
+    assert.match(parseFlowText("@builder\n1. a\n   gven: x\n").warnings.join(""), /given:|setup:/);
+});
+
+test("SYN-19: a field written twice, under either name, keeps both texts in the order written", () => {
+    const f = parseFlowText("@builder\n1. a\n   setup: first\n   given: second\n   data: d\n   expect: x\n   then: y\n   - ok\n").flow;
+    assert.deepEqual(f.steps[0].pre, "first\nsecond");
+    assert.deepEqual(f.steps[0].exp, "x\ny");
+    const out = formatFlow(f);
+    assert.ok(out.includes("   setup: first\n     second"), out);
+    assert.deepEqual(shape(parseFlowText(out).flow), shape(f));
+});
+
+test("SYN-19: setup is text, not a condition: it does not change which scenarios exist", () => {
+    const plain = parseFlowText("@builder\n1. a\n   - x\n   - y\n2. b\n   - p\n");
+    const withSetup = parseFlowText("@builder\n1. a\n   setup: the stock is 0\n   - x\n     setup: s\n   - y\n2. b\n   - p\n");
+    assert.deepEqual(counts(withSetup.flow), counts(plain.flow));
+    assert.equal(generate(withSetup.flow).list.length, generate(plain.flow).list.length);
+});
+
+test("SYN-19 SYN-41: the starter template and the README example use the first names", () => {
+    for (const t of TEMPLATES) {
+        const fields = t.text.split("\n").filter((l) => !l.trim().startsWith("#"));
+        assert.ok(fields.some((l) => /^\s+setup:/.test(l)) && fields.some((l) => /^\s+expect:/.test(l)));
+        assert.ok(!fields.some((l) => /^\s+(given|then):/.test(l)), "no second names in the template's lines");
+    }
 });
 
 test("OUT-32: scenarios as tab-separated text for a spreadsheet", async () => {
