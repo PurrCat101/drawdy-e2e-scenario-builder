@@ -13,6 +13,7 @@ import * as driver from "../src/index.ts";
 import { parseFlowText } from "../src/core/syntax.ts";
 import { fitHeight } from "../src/textBox.ts";
 import { TEMPLATES } from "../src/core/templates.ts";
+import { flowStepRows } from "../src/core/testSteps.ts";
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -180,15 +181,15 @@ test("UI-06: the buttons are in three groups under the headings Draw, Tables and
     const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="status"'));
     // headings and buttons, in the order the user sees them
     const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "decision", "Export", "copy", "copydecision"]);
+    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "stepslist", "decision", "Export", "copy", "copydecision"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
     assert.deepEqual(
-        ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"].map(label),
-        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Decision table", "Copy to clipboard", "Copy decision table"]
+        ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision"].map(label),
+        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Steps list", "Decision table", "Copy to clipboard", "Copy decision table"]
     );
     // Flow + Scenarios is the primary button; the three tables and export buttons are full width
     assert.match(block, /<button id="board" class="primary wide"/);
-    for (const id of ["table", "decision", "copy", "copydecision"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
+    for (const id of ["table", "stepslist", "decision", "copy", "copydecision"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
 });
 
 test("OUT-30: the Test steps frame is named after the button, with the mode when it holds many scenarios", async () => {
@@ -609,6 +610,74 @@ test("DRV-58: Copy decision table says why when the flow has no step that decide
     assert.ok(s.bad);
 });
 
+const stepsFrames = (h: Awaited<ReturnType<typeof makeHost>>) => h.frames().filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit === "steps");
+const REQ_FLOW = `@builder
+1. Login
+   req: REQ-1
+   - ok
+     req: REQ-2, REQ-1
+   - bad -> end
+2. Pay
+   - paid
+`;
+
+test("DRV-61 OUT-67: Steps list draws one frame with every step and choice of the flow, and a Req column", async () => {
+    const h = await makeHost();
+    await h.action("stepslist", REQ_FLOW, "ep");
+    const frames = stepsFrames(h);
+    assert.equal(frames.length, 1);
+    assert.equal(frames[0].name, "Steps list · 3 steps");
+    const rows = frames[0].meta.tsv.split("\n").map((r: string) => r.split("\t"));
+    assert.deepEqual(rows[0], ["#", "Step", "Condition", "Setup", "Test data", "Expected result", "Req"]);
+    assert.deepEqual(rows.slice(1).map((r: string[]) => [r[1], r[2], r[6]]), [
+        ["1. Login", "ok", "REQ-1, REQ-2"],
+        ["1. Login", "bad  ✖", "REQ-1"],
+        ["2. Pay", "paid", ""],
+    ]);
+    assert.equal(frames[0].meta.count, 3);
+    assert.match(lastStatus(h).text, /^Steps list drawn \(3 steps\)$/);
+    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit !== "steps").length, 0, "no Test steps table");
+});
+
+test("DRV-61: the steps list does not depend on the mode and has no limit on size", async () => {
+    const a = await makeHost();
+    await a.action("stepslist", TEMPLATES[0].text, "all"); // more than 60 scenarios
+    const b = await makeHost();
+    await b.action("stepslist", TEMPLATES[0].text, "min");
+    assert.equal(stepsFrames(a).length, 1);
+    assert.equal(stepsFrames(a)[0].meta.tsv, stepsFrames(b)[0].meta.tsv);
+    assert.equal(stepsFrames(a)[0].meta.count, flowStepRows(parseFlowText(TEMPLATES[0].text).flow).length);
+});
+
+test("DRV-61: with a scenario frame selected it lists the steps of that frame's flow, once", async () => {
+    const h = await makeHost();
+    await h.action("scenarios", REQ_FLOW, "all");
+    const frame = h.find((e) => e.type === "frame" && e.meta?.e2eScenarios)[0];
+    h.select(h.idOf(frame));
+    await h.action("stepslist", "", "ep");
+    assert.equal(stepsFrames(h).length, 1);
+    assert.equal(stepsFrames(h)[0].meta.count, 3);
+});
+
+test("DRV-61 DRV-25: Copy to clipboard on a selected steps list copies it and says steps", async () => {
+    const h = await makeHost();
+    await h.action("stepslist", REQ_FLOW, "ep");
+    const frame = stepsFrames(h)[0];
+    h.select(h.idOf(frame));
+    await h.action("copy", "", "ep");
+    const clip = h.lastClip();
+    assert.equal(clip.text, frame.meta.tsv);
+    assert.equal(clip.scenarios, 3);
+    assert.equal(clip.what, "steps");
+});
+
+test("DRV-61: Steps list with nothing to read says so and draws nothing", async () => {
+    const h = await makeHost();
+    await h.action("stepslist", "", "ep");
+    assert.equal(stepsFrames(h).length, 0);
+    assert.ok(lastStatus(h).bad);
+});
+
 test("DRV-57: nothing selected and no text gives the usual hint", async () => {
     const h = await makeHost();
     await h.action("decision", "", "ep");
@@ -646,8 +715,8 @@ test("DRV-59 DRV-60 UI-34: start with a template, draw its decision table, then 
         assert.equal(p.els.flow.textContent, "Flow + Test steps");
         assert.equal(p.els.board.textContent, "Flow only");
         assert.deepEqual(
-            ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"].filter((id) => !p.els[id].disabled),
-            ["flow", "board", "table", "decision", "copy", "copydecision"]
+            ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision"].filter((id) => !p.els[id].disabled),
+            ["flow", "board", "table", "stepslist", "decision", "copy", "copydecision"]
         );
     } finally {
         p.restore();
@@ -870,21 +939,21 @@ test("UI-31: panel: which buttons are on for each selection", () => {
     try {
         const row = (kind: string) => {
             p.send({ type: "target", kind, n: 1 });
-            return ["flow", "scenarios", "board", "table", "decision", "copy", "copydecision"]
+            return ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision"]
                 .map((id) => (p.els[id].disabled ? "-" : id))
                 .filter((x) => x !== "-")
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("scenarios"), "flow,board,table,decision,copy,copydecision"); // board reads "Flow only" (UI-34)
-        assert.equal(row("frame"), "scenarios,table,decision,copy,copydecision");
-        assert.equal(row("flows"), "flow,scenarios,board,table,decision,copy,copydecision");
-        assert.equal(row("flowframe"), "scenarios,board,table,decision,copy,copydecision");
+        assert.equal(row("scenarios"), "flow,board,table,stepslist,decision,copy,copydecision"); // board reads "Flow only" (UI-34)
+        assert.equal(row("frame"), "scenarios,table,stepslist,decision,copy,copydecision");
+        assert.equal(row("flows"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision");
+        assert.equal(row("flowframe"), "scenarios,board,table,stepslist,decision,copy,copydecision");
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
-        assert.equal(row("none"), "flow,scenarios,board,table,decision,copy,copydecision");
+        assert.equal(row("none"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision");
     } finally {
         p.restore();
     }

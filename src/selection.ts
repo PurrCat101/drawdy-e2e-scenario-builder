@@ -103,5 +103,8 @@ export const frameSize = (els: any[]): { w: number; h: number } => ({
     h: els[0].height,
 });
 
-/** How many scenarios a table holds: tables drawn by earlier versions stored it as `scenarios`. */
-export const tableCount = (meta: Record<string, any>): number => Number(meta.scenarios ?? meta.cases ?? 1);
+/**
+ * How many scenarios a table holds (a steps list: how many steps); tables drawn by earlier
+ * versions stored it as `scenarios` or `cases`.
+ */
+export const tableCount = (meta: Record<string, any>): number => Number(meta.count ?? meta.scenarios ?? meta.cases ?? 1);

@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { buildReport, TEMPLATES, generate, pick, parseFlowText, scenariosToTsv, scenarioFlow, orderScenarios } from "../src/core/index.ts";
+import { buildReport, TEMPLATES, generate, pick, parseFlowText, scenariosToTsv, scenarioFlow, orderScenarios, flowStepRows, flowStepsToTsv, STEPS_LIST_COLUMNS } from "../src/core/index.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = join(here, "..", "src", "core");
@@ -90,4 +90,28 @@ test("CORE-12: a text with no step gives no scenarios and does not throw", () =>
     }
     // any other text is read as one step
     assert.equal(buildReport("just some words", "ep").scenarios.length, 1);
+});
+
+test("OUT-67 CORE-10: the steps list has a row per choice, a row per step with no choice, and the requirement IDs of step and choice", () => {
+    const flow = parseFlowText(`@builder
+1. Login
+   req: REQ-1; REQ-3
+   - ok
+     req: REQ-2, REQ-1
+   - bad -> end
+2. Note
+3. Pay
+   - paid
+`).flow;
+    const rows = flowStepRows(flow);
+    assert.deepEqual(rows.map((r) => [r.n, r.step, r.cond, r.req]), [
+        ["1", "1. Login", "ok", "REQ-1, REQ-3, REQ-2"],
+        ["2", "1. Login", "bad  ✖", "REQ-1, REQ-3"],
+        ["3", "2. Note", "", ""],
+        ["4", "3. Pay", "paid", ""],
+    ]);
+    const lines = flowStepsToTsv(flow).split("\n");
+    assert.equal(lines.length, 5);
+    assert.deepEqual(lines[0].split("\t"), STEPS_LIST_COLUMNS.map((c) => c.title));
+    assert.equal(buildReport("@builder\n1. Login\n- ok\n- bad -> end\n", "all").stepsListTsv.split("\n").length, 3);
 });

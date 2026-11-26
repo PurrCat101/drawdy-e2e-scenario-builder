@@ -4,10 +4,13 @@
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import type { Flow } from "./core/flow";
-import { scenarioRows, scenariosToTsv, STEP_COLUMNS, type ScenarioItem } from "./core/testSteps";
+import { flowStepRows, flowStepsToTsv, scenarioRows, scenariosToTsv, STEP_COLUMNS, STEPS_LIST_COLUMNS, type ScenarioItem } from "./core/testSteps";
 
 const COL_W = [44, 190, 170, 230, 320, 320];
-const COLS: { key: string; title: string; w: number }[] = STEP_COLUMNS.map((c, i) => ({ ...c, w: COL_W[i] }));
+type Col = { key: string; title: string; w: number };
+const COLS_SCENARIO: Col[] = STEP_COLUMNS.map((c, i) => ({ ...c, w: COL_W[i] }));
+/** The steps list of a whole flow: those columns and Req (requirement IDs). */
+const LIST_COLS: Col[] = STEPS_LIST_COLUMNS.map((c, i) => ({ ...c, w: i < COL_W.length ? COL_W[i] : 130 }));
 const FONT = 12;
 const MAX_H = 200000; // the board cannot scroll an embedded page, so a table is drawn full height
 const CHAR_W = 7.6; // approx width of a character at FONT
@@ -34,7 +37,7 @@ const esc = (x: string) =>
     x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** The tables as one HTML page: real table cells, so rows size themselves. */
-function tablesHtml(scenarios: ScenarioItem[]): string {
+function tablesHtml(scenarios: ScenarioItem[], COLS: Col[]): string {
     const head = COLS.map((c) => `<th style="width:${c.w}px">${esc(c.title)}</th>`).join("");
     const body = scenarios
         .map((cs) => {
@@ -74,11 +77,17 @@ export function renderScenarioTables(opts: {
     name: string;
     origin: [number, number];
     generateId: () => string;
+    /** a steps list of whole flows (one table per flow, with Req) instead of the tables of scenarios */
+    stepsList?: boolean;
 }): { frameId: string; elements: DrawdyElementSchema[]; width: number; height: number } {
     const { scenarios, name, origin, generateId } = opts;
+    const COLS = opts.stepsList ? LIST_COLS : COLS_SCENARIO;
     const [ox, oy] = origin;
     const frameId = generateId();
-    const tsv = scenariosToTsv(scenarios); // kept on the table, so "copy" can read it from a selection
+    // kept on the table, so "copy" can read it from a selection
+    const tsv = opts.stepsList ? scenarios.map((cs) => flowStepsToTsv(cs.flow)).join("\n\n") : scenariosToTsv(scenarios);
+    // what a copy says it copied: scenarios, or the steps of a steps list
+    const count = opts.stepsList ? scenarios.reduce((a, cs) => a + flowStepRows(cs.flow).length, 0) : scenarios.length;
     const tableW = COLS.reduce((a, c) => a + c.w, 0);
     // The page is laid out by the browser and a board page cannot report its height back,
     // so the height is worked out from the same widths and fonts (a few percent of slack).
@@ -102,7 +111,7 @@ export function renderScenarioTables(opts: {
             width: frameW,
             height: frameH,
             rotation: 0,
-            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv },
+            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv, ...(opts.stepsList ? { count, unit: "steps" } : {}) },
         },
         {
             type: "component",
@@ -113,11 +122,11 @@ export function renderScenarioTables(opts: {
             y: oy + 50,
             width: compW,
             height: compH,
-            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv },
+            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv, ...(opts.stepsList ? { count, unit: "steps" } : {}) },
             schema: {
                 type: "iframe",
                 label: name,
-                child: { srcDoc: tablesHtml(scenarios) },
+                child: { srcDoc: tablesHtml(scenarios, COLS) },
                 styles: { width: [compW, "px"], height: [compH, "px"] },
             },
         } as DrawdyElementSchema,

@@ -16,8 +16,8 @@ import { test } from "node:test";
 import { parseFlowText } from "../src/core/syntax.ts";
 import { analyze } from "../src/core/analysis.ts";
 import { scenarioFlow } from "../src/core/scenarioFlow.ts";
-import { renderScenarioTable } from "../src/scenarioTable.ts";
-import { scenariosToTsv } from "../src/core/testSteps.ts";
+import { renderScenarioTable, renderScenarioTables } from "../src/scenarioTable.ts";
+import { flowStepsToTsv, scenariosToTsv } from "../src/core/testSteps.ts";
 import { buildDecisionTable, decisionToTsv } from "../src/core/decisionTable.ts";
 import { renderDecisionTables } from "../src/decisionBoard.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
@@ -147,6 +147,10 @@ function snapshot() {
             tip: fp(modeTip(flow, counts)),
             issues: fp(a.issues()),
             flowBoard: fp(renderFlow(flow, () => "f" + ++n, [10, 20])),
+            stepsListTsv: fp(flowStepsToTsv(flow)),
+            stepsListBoard: fp(
+                renderScenarioTables({ scenarios: [{ title: "All steps", flow }], name: "Steps list", origin: [10, 20], generateId: () => "s" + ++n, stepsList: true })
+            ),
             modes: perMode,
         };
     }

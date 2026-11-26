@@ -111,6 +111,7 @@ of scenarios.
 | **Scenarios** | The scenario notes of the chosen mode, without the diagram |
 | **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover. With a scenario note (or a decision table's column head) selected it reads **Flow only**: just the flow of that scenario, without its test steps |
 | **Test steps** | The test steps of each scenario, in order, as tables: one row per test step (step, condition, setup, test data, expected result) |
+| **Steps list** | Every step and every choice of the whole flow as one table (step, condition, setup, test data, expected result, **Req**): a checklist of the flow itself, not of scenarios. It does not depend on the mode and has no limit on size. Select the table and press **Copy to clipboard** to paste it into a spreadsheet |
 | **Decision table** | A decision table of the same scenarios: the steps that decide as rows, each scenario as a column. See [Decision table](#decision-table) |
 | **Copy to clipboard** | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
 | **Copy decision table** | Copies the decision table of the same scenarios, without drawing it and with no limit on scenarios: one long row of scenarios, so you can freeze the first two columns in the spreadsheet |

@@ -12,7 +12,7 @@ import { analyze } from "./analysis";
 import { scenarioFlow } from "./scenarioFlow";
 import { buildDecisionTable, decisionToTsv } from "./decisionTable";
 import { MODE_LABEL, noteLines, orderScenarios, reportHeader } from "./scenarioText";
-import { scenarioRows, scenariosToTsv, type Row } from "./testSteps";
+import { flowStepsToTsv, scenarioRows, scenariosToTsv, type Row } from "./testSteps";
 
 export type { Flow, Step, Cond, CondAction, Mode } from "./flow";
 export type { Scenario, Generated, Issue } from "./scenarios";
@@ -25,7 +25,7 @@ export { generate, pick } from "./scenarios";
 export { scenarioFlow } from "./scenarioFlow";
 export { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./decisionTable";
 export { MODE_LABEL, noteLines, orderScenarios, reportHeader, coverageLines, requirementLines } from "./scenarioText";
-export { STEP_COLUMNS, scenarioRows, scenariosToTsv } from "./testSteps";
+export { STEP_COLUMNS, STEPS_LIST_COLUMNS, scenarioRows, flowStepRows, flowStepsToTsv, scenariosToTsv } from "./testSteps";
 export { previewOf } from "./preview";
 export { TEMPLATES, templateById, type Template } from "./templates";
 
@@ -62,6 +62,8 @@ export type Report = {
     stepsTsv: string;
     /** the copied text of the decision table, null when no step has two or more choices */
     decisionTsv: string | null;
+    /** every step and choice of the whole flow as text for a spreadsheet, with a Req column */
+    stepsListTsv: string;
     /** false when a very big flow was only searched in part, so counts may grow */
     complete: boolean;
 };
@@ -85,6 +87,7 @@ export function buildReport(text: string, mode: Mode = "ep", budgetMs?: number):
             scenarios: [],
             stepsTsv: "",
             decisionTsv: null,
+            stepsListTsv: "",
             complete: true,
         };
     const a = analyze(flow, budgetMs);
@@ -127,6 +130,7 @@ export function buildReport(text: string, mode: Mode = "ep", budgetMs?: number):
         scenarios: views,
         stepsTsv: scenariosToTsv(items),
         decisionTsv: dt.conditions.length ? decisionToTsv(dt) : null,
+        stepsListTsv: flowStepsToTsv(flow),
         complete: a.complete,
     };
 }

@@ -74,6 +74,14 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 ## Starter notes
 
+- **OUT-67** The steps list (DRV-61) is one frame named `Steps list · N steps`, holding one
+  embedded page with a table per flow (`All steps` for one flow, `Flow 1`, `Flow 2`... for
+  more) with the columns of OUT-31 and a last column `Req`. One row per choice of a step,
+  in the order of the flow; a step with no choice is one row. A row shows the step's fields
+  and the choice's fields as OUT-31 does, and in `Req` the requirement IDs of the step and
+  of the choice, each once, joined by `, `. The frame keeps the text of the table (tab-
+  separated, one header row `#  Step  Condition  Setup  Test data  Expected result  Req`,
+  quoted as OUT-32) and the number of steps, so Copy to clipboard copies it (DRV-25).
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
   shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow
   whose `#` lines explain the syntax it uses, and it uses every kind of choice and field
