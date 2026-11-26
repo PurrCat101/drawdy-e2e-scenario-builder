@@ -164,7 +164,7 @@
   var SHOWN_ISSUES = 2;
   function issueKind(t) {
     if (/^ERROR/.test(t)) return 'err';
-    if (/^(TIP|INFO)/.test(t)) return 'info';
+    if (/^INFO/.test(t)) return 'info';
     return 'warn';
   }
   function showIssues(list) {

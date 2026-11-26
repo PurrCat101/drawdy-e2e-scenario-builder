@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/core/syntax.ts";
-import { generate, modeTip, pick } from "../src/core/scenarios.ts";
+import { generate, pick } from "../src/core/scenarios.ts";
 import { reportHeader } from "../src/core/scenarioText.ts";
 import type { Flow } from "../src/core/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
@@ -525,7 +525,8 @@ test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scen
     const shop = parseFlowText(TEMPLATES[0].text).flow;
     const all = shop.steps.flatMap((s) => s.conds);
     const has = (f: (c: (typeof all)[number]) => boolean) => all.some(f);
-    assert.ok(has((c) => c.action === "loop" && c.distinct && c.max >= 2), "a distinct loop with max");
+    assert.ok(has((c) => c.action === "loop" && c.distinct), "a distinct loop");
+    assert.ok(TEMPLATES[0].text.includes("-> loop to step 2 max 1 [distinct]"), "written with max");
     assert.ok(has((c) => c.action === "end" && c.neg), "an end (negative)");
     assert.ok(has((c) => c.variant), "a variant");
     assert.ok(has((c) => !!c.tags), "a sets");
@@ -563,7 +564,7 @@ test("OUT-10: the flow diagram has plain words only (no distinct, sets, needs, P
         ...r.labels.map((l) => l.text),
         ...(r.elements as any[]).map((e) => e.text).filter((t) => typeof t === "string"),
     ].join("\n");
-    assert.ok(/Add another product ↻ up to 2 times/.test(seen), seen);
+    assert.ok(/Add another product ↻ up to 1 time(?!s)/.test(seen), seen);
     assert.ok(!/distinct|\bsets\b|\bneeds\b|\bP[123]\b|≤/.test(seen), "no syntax words on the diagram: " + seen);
     let m = 0;
     const one = renderFlow(parseFlowText("@builder\n1. A\n- go -> loop to step 1\n2. B\n- ok").flow, () => "x" + ++m, [0, 0]);
@@ -586,6 +587,13 @@ test("OUT-12: a choice label stays on one line and its arrow is long enough for 
     for (const l of r.labels) {
         if (/↻/.test(l.text)) continue;
         for (const line of l.text.split("\n")) assert.ok(labels.has(line), `"${line}" is not a whole label`);
+    }
+});
+
+test("SYN-41 CALC-65: the starter template has no flow check item, not even a warning", () => {
+    for (const t of TEMPLATES) {
+        const flow = parseFlowText(t.text).flow;
+        assert.deepEqual(validate(flow, generate(flow)).map((i) => i.msg), [], t.id);
     }
 });
 
@@ -826,7 +834,7 @@ test("CALC-24 CALC-16: orders of the same rounds do not count toward the 1,000: 
     assert.equal(g.list.length, 255);
 });
 
-test("CALC-24 CALC-64 CALC-70 OUT-21: when the walk stops at its bound, the warning, the header and the tip say the list is a part", () => {
+test("CALC-24 CALC-64 OUT-21: when the walk stops at its bound, the warning and the header say the list is a part", () => {
     const flow = parseFlowText(pickMany(9)).flow;
     const g = generate(flow);
     assert.ok(g.capped);
@@ -838,8 +846,7 @@ test("CALC-24 CALC-64 CALC-70 OUT-21: when the walk stops at its bound, the warn
     const head = reportHeader({ flow, mode: "all", shown: g.list, gen: g, counts, issues: [] });
     assert.ok(head[1].startsWith(`${g.list.length} of ${g.list.length} listed paths (the flow has more)`), head[1]);
     assert.match(head[2], /^All 20\+ · /);
-    assert.doesNotMatch(modeTip(flow, counts, true), /run them all/);
-    assert.match(modeTip(flow, counts, false), /run them all/);
+    assert.ok(!head.some((l) => /^TIP/.test(l)), head.join(" / "));
 });
 
 test("CALC-36: every mode tests the last round a loop allows", () => {
@@ -947,16 +954,6 @@ test("CALC-50: a running number past 999 just grows (TSS-1000)", () => {
     assert.equal(g.list[0].id, "TSS-001");
     assert.equal(g.list[1000].id, "TSS-1001");
     assert.equal(new Set(g.list.map((s) => s.id)).size, g.list.length);
-});
-
-test("CALC-70 CALC-71 CALC-72: the mode tip fits the flow", async () => {
-    const { modeTip } = await import("../src/core/scenarios.ts");
-    const small = parseFlowText("1. a\n- x\n- y").flow;
-    assert.match(modeTip(small, { all: 2, ep: 2, pair: 1, min: 1 }), /All has only 2 scenarios/);
-    const plain = parseFlowText("1. a\n- x\n- y").flow;
-    assert.match(modeTip(plain, { all: 90, ep: 80, pair: 12, min: 5 }), /no choice is marked \[variant\].*Pair \(12\)/);
-    const marked = parseFlowText("1. a\n- x [variant]\n- y [variant]").flow;
-    assert.match(modeTip(marked, { all: 90, ep: 20, pair: 12, min: 5 }), /^TIP: EP \(20\) for regression/);
 });
 
 test("CALC-25: a scenario takes the most important P on its path (the lowest number)", () => {

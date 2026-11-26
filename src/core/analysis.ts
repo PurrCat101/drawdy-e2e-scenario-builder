@@ -5,7 +5,7 @@
 // or more, so a flow already seen is answered from memory.
 
 import type { Flow, Mode } from "./flow";
-import { generate, modeTip, pick, validate, type Generated, type Issue, type Scenario } from "./scenarios";
+import { generate, pick, validate, type Generated, type Issue, type Scenario } from "./scenarios";
 
 export type Counts = { all: number; ep: number; pair: number; min: number };
 
@@ -22,7 +22,6 @@ export type Analysis = {
     pick(mode: Mode): Scenario[];
     counts(): Counts;
     issues(): Issue[];
-    tip(): string;
 };
 
 /** How many flows to remember: the panel's text, the selected note, a few recent ones. */
@@ -67,9 +66,6 @@ function build(flow: Flow, budgetMs: number): Analysis {
         },
         issues() {
             return (issues ??= validate(flow, gen));
-        },
-        tip() {
-            return modeTip(flow, a.counts(), gen.capped);
         },
     };
     return a;

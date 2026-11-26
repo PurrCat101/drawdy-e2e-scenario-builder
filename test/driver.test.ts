@@ -1092,6 +1092,13 @@ function loadPanel() {
     return { els, sent, send: (m: any) => onMessage(m), restore };
 }
 
+test("UI-45 OUT-21: neither the panel's issues nor the scenario frame header give a TIP line", async () => {
+    const { previewOf } = await import("../src/core/preview.ts");
+    assert.ok(!previewOf(FLOW).issues.some((m) => /^TIP/.test(m)));
+    const h = await drawn();
+    assert.ok(!h.find((e) => typeof e.text === "string").some((e) => /TIP:/.test(e.text)));
+});
+
 test("UI-46: previewOf marks a flow past the limit and says so before the other warnings", async () => {
     const { previewOf } = await import("../src/core/preview.ts");
     const big = Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}`).join("\n");
@@ -1215,7 +1222,7 @@ test("UI-45: issues are one line each, coloured by kind, and past two they fold 
             type: "counts",
             counts: { all: 9, ep: 5, pair: 4, min: 3 },
             steps: 3,
-            issues: ["ERROR: EP MISSING choices: \"x\"", "TIP: run them all", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
+            issues: ["ERROR: EP MISSING choices: \"x\"", "INFO: a quick search", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
         });
         const kids = p.els.issues.children;
         assert.deepEqual(kids.slice(0, 2).map((d: any) => d.className), ["iss err", "iss info"]);

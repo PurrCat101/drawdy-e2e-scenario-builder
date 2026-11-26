@@ -24,7 +24,6 @@ import { renderScenarios } from "../src/scenarioBoard.ts";
 import { coverageLines, requirementLines } from "../src/core/scenarioText.ts";
 import { renderFlow } from "../src/render.ts";
 import { TEMPLATES } from "../src/core/templates.ts";
-import { modeTip } from "../src/core/scenarios.ts";
 import type { Mode } from "../src/core/flow.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -144,7 +143,6 @@ function snapshot() {
         out[name] = {
             warnings: parsed.warnings,
             counts,
-            tip: fp(modeTip(flow, counts)),
             issues: fp(a.issues()),
             flowBoard: fp(renderFlow(flow, () => "f" + ++n, [10, 20])),
             stepsListTsv: fp(flowStepsToTsv(flow)),

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Fixed: the starter template raised a flow check warning.** Its loop asked for
+  `max 2` different products where the step has two; it is `max 1` now. The scenarios
+  are the same, and the diagram says `up to 1 time`.
+- **The `TIP:` line is gone** from the panel and from the scenario frame header; it
+  took room and the line under the mode switch says what each mode picks.
 - **You choose where results go.** A new **Place** switch: **By hand** (now the
   default) holds what a button draws as an outline that follows the pointer; click the
   board to put it down, press Esc to cancel. The camera no longer moves. **Auto** is

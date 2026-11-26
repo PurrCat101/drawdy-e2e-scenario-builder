@@ -27,7 +27,7 @@ const SHOP = `@builder
 #                   given: and then: are read the same, as setup: and expect:
 # req: R-01         a requirement id, on a step or a choice
 # -> end            the flow stops here: a negative scenario
-# -> loop to step 2 max 2   go back to step 2, at most 2 rounds
+# -> loop to step 2 max 1   go back to step 2, at most 1 round
 # [distinct]        on a loop: a round offers only choices not picked yet
 # [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
@@ -64,7 +64,7 @@ const SHOP = `@builder
 4. Calculate Total
    expect: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
 5. More product?
-   - Add another product -> loop to step 2 max 2 [distinct]
+   - Add another product -> loop to step 2 max 1 [distinct]
      expect: the product list opens again, the cart item count is still 1 after round 1
    - No more product [P1]
      expect: the page moves to shipping, the cart item count is unchanged (1 or 2)

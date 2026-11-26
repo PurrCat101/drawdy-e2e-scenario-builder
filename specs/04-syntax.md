@@ -98,7 +98,7 @@ The README's "Text syntax" is the user's guide to the same rules.
   (in that order), not in the brackets (SYN-17), before its `setup:` field; `P`, `variant`,
   `negative` and `distinct` stay in the brackets. The text fields are written under their
   first names, `setup:`, `data:`, `expect:` and `req:`, whichever name was read (SYN-19).
-- **SYN-41** The starter note (OUT-40) reads without any warning, gives scenarios and uses
+- **SYN-41** The starter note (OUT-40) reads without any warning, has no flow check item, gives scenarios and uses
   every kind of choice and field the syntax has (a distinct loop with max, an end, a
   variant, sets, needs with or and not, a req); its
   `#` lines explain the syntax and do not change the flow. Every step has an expected

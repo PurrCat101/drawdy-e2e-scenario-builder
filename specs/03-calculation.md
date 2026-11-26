@@ -167,16 +167,14 @@ check), `src/core/analysis.ts` (remembering results).
 
 ## Mode tip
 
-- **CALC-70** All ≤ 30 → "run them all", never past the limit (CALC-20, CALC-24).
-- **CALC-71** No `variant` anywhere → EP stays close to All: suggest Pair, or Each for
-  a quick pass, or marking interchangeable choices `variant`.
-- **CALC-72** Otherwise: EP for regression by `variant` groups, Pair when choices at
-  different steps affect each other, Each for a smoke pass. Each suggestion shows the
-  mode's count.
+- **CALC-70** (removed) A suggested mode, "run them all" for a small flow; the line
+  under the mode switch says what each mode picks (UI-47).
+- **CALC-71** (removed) The suggestion for a flow without `variant`.
+- **CALC-72** (removed) The suggestion for a flow with `variant`.
 
 ## Remembering results
 
-- **CALC-80** The analysis of a flow (paths, each mode once, counts, flow check, tip)
+- **CALC-80** The analysis of a flow (paths, each mode once, counts, flow check)
   is kept in memory for the last 8 flows, keyed by the flow's content. Nothing is
   written to disk or sent anywhere; it is lost when the board reloads.
 - **CALC-81** A remembered result is used when it is complete, or when it had at

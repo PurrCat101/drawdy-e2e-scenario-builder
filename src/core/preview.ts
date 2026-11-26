@@ -51,7 +51,6 @@ export function previewOf(text: string) {
                 ? []
                 : ["INFO: a very big flow: these counts are what a quick search found; the full search runs when you press a button."]),
             ...reading,
-            a.tip(),
             ...a.issues()
                 .slice(0, 3)
                 .map((i) => (i.lv === "err" ? "ERROR: " : "WARN: ") + i.msg),

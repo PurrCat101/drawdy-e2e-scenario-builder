@@ -96,7 +96,7 @@ of scenarios.
    You can also type in the panel's **Paste or type text here** box, or press
    **Pull from selected note** in it to fill the box from a note.
    While one flow note is selected, the panel shows that note's scenario counts, the
-   flow check and a mode tip, updated as you edit it; with nothing selected it counts
+   flow check, updated as you edit it; with nothing selected it counts
    the paste box.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
    and of test scenarios in every mode (All, EP, Pairwise, Each-Choice), the problems
@@ -185,7 +185,7 @@ This is the starter template, the note that **Start with a template** drops on t
 #                   given: and then: are read the same, as setup: and expect:
 # req: R-01         a requirement id, on a step or a choice
 # -> end            the flow stops here: a negative scenario
-# -> loop to step 2 max 2   go back to step 2, at most 2 rounds
+# -> loop to step 2 max 1   go back to step 2, at most 1 round
 # [distinct]        on a loop: a round offers only choices not picked yet
 # [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
@@ -222,7 +222,7 @@ This is the starter template, the note that **Start with a template** drops on t
 4. Calculate Total
    expect: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
 5. More product?
-   - Add another product -> loop to step 2 max 2 [distinct]
+   - Add another product -> loop to step 2 max 1 [distinct]
      expect: the product list opens again, the cart item count is still 1 after round 1
    - No more product [P1]
      expect: the page moves to shipping, the cart item count is unchanged (1 or 2)
@@ -477,13 +477,7 @@ Choose the mode with the panel's switch; the line under it says what the mode pi
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all four modes, so
-you can compare them, and the panel and the header give a `TIP:` for this flow:
-
-- All has 30 scenarios or fewer: run them all.
-- No choice is marked `variant`: EP stays close to All, so use Pair (every pair of
-  choices) or Each (a quick pass), or mark interchangeable choices `variant`.
-- Otherwise: EP for regression by your `variant` groups, Pair when choices at
-  different steps affect each other, Each for a smoke pass.
+you can compare them.
 
 ### What each mode guarantees
 

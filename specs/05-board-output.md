@@ -47,8 +47,7 @@ the board, `src/actions.ts` decides what to draw for each button.
      pairs: N`, naming up to 6;
   6. `Never reachable (see the flow check): …` when there are unreachable choices;
   7. requirements, when the flow has `req:` (OUT-25);
-  8. the mode tip (CALC-70);
-  9. the flow check items, if any.
+  8. the flow check items, if any.
 - **OUT-22** Then one note per scenario, Happy first, then Negative, each by priority
   then ID; 4 columns up to 40 scenarios, more columns (at most 12) above that. Fill
   colour: pink = Negative, orange = Happy with loops, green = other Happy.

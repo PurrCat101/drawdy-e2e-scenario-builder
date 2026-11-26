@@ -88,8 +88,8 @@ control: flows are written on the board, not in the panel.
   panel sends `preview` for its paste box at once.
 - **UI-45** The issues show, in order: ERROR lines from the coverage safety net
   (DRV-41), the limit line (UI-46), an INFO line when the counts come from a quick search (CALC-22), reading
-  problems (up to 4), the mode tip (CALC-70), and up to 3 flow check items. One line
-  each, coloured by kind: ERROR red, TIP and INFO muted, the rest amber. Only the first
+  problems (up to 4), and up to 3 flow check items. One line
+  each, coloured by kind: ERROR red, INFO muted, the rest amber. Only the first
   two are shown; the others fold under "N more", so the buttons stay in view.
 
 ## Big flows and modes

@@ -1,9 +1,9 @@
 // The words of a scenario report, with no drawing: the text of a scenario note, the
-// header lines (counts, coverage, requirements, tip, flow check), coverage, traceability
+// header lines (counts, coverage, requirements, flow check), coverage, traceability
 // and the order scenarios are shown in. Shared by the Drawdy extension and any other front end.
 
 import type { Flow, Mode } from "./flow";
-import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
+import { passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
 import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
@@ -150,7 +150,7 @@ export function orderScenarios(list: Scenario[]): Scenario[] {
     );
 }
 
-/** The header of a scenario report: what was picked, counts of every mode, coverage, requirements, tip, flow check. */
+/** The header of a scenario report: what was picked, counts of every mode, coverage, requirements, flow check. */
 export function reportHeader(opts: {
     flow: Flow;
     mode: Mode;
@@ -167,7 +167,6 @@ export function reportHeader(opts: {
         `All ${counts.all}${gen.capped ? "+" : ""} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
         ...coverageLines(shown, gen, mode),
         ...requirementLines(shown, flow),
-        modeTip(flow, counts, gen.capped),
     ];
     if (issues.length) {
         head.push("");
