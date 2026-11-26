@@ -8,13 +8,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/syntax.ts";
-import { generate, pick } from "../src/scenarios.ts";
-import type { Flow } from "../src/flow.ts";
+import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/core/syntax.ts";
+import { generate, pick } from "../src/core/scenarios.ts";
+import type { Flow } from "../src/core/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
 import { renderFlow } from "../src/render.ts";
-import { TEMPLATES, templateById } from "../src/templates.ts";
-import { validate } from "../src/scenarios.ts";
+import { TEMPLATES, templateById } from "../src/core/templates.ts";
+import { validate } from "../src/core/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
@@ -921,7 +921,7 @@ test("CALC-50: a running number past 999 just grows (TSS-1000)", () => {
 });
 
 test("CALC-70 CALC-71 CALC-72: the mode tip fits the flow", async () => {
-    const { modeTip } = await import("../src/scenarios.ts");
+    const { modeTip } = await import("../src/core/scenarios.ts");
     const small = parseFlowText("1. a\n- x\n- y").flow;
     assert.match(modeTip(small, { all: 2, ep: 2, pair: 1, min: 1 }), /All has only 2 scenarios/);
     const plain = parseFlowText("1. a\n- x\n- y").flow;
@@ -950,7 +950,7 @@ const messages = (text: string) => {
 };
 
 test("CALC-22: the search past 1,000 paths has a time budget; when it runs out the result says so and the flow check says what is uncertain", async () => {
-    const { analyze, clearCache, FULL_BUDGET_MS, PREVIEW_BUDGET_MS } = await import("../src/analysis.ts");
+    const { analyze, clearCache, FULL_BUDGET_MS, PREVIEW_BUDGET_MS } = await import("../src/core/analysis.ts");
     assert.equal(FULL_BUDGET_MS, 3000);
     assert.equal(PREVIEW_BUDGET_MS, 300);
     const flow = parseFlowText(BIG_FLOW).flow;

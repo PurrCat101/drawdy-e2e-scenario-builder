@@ -1,8 +1,8 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import type { Flow, Mode } from "./flow";
-import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
-import { scenarioFlow } from "./scenarioFlow";
-import { formatFlow } from "./syntax";
+import type { Flow, Mode } from "./core/flow";
+import { modeTip, passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./core/scenarios";
+import { scenarioFlow } from "./core/scenarioFlow";
+import { formatFlow } from "./core/syntax";
 import { fitHeight, textBox, type Tone } from "./textBox";
 
 const W = 300;

@@ -1,8 +1,8 @@
-import type { Mode } from "./flow";
-import { hasMarker, parseFlowText } from "./syntax";
-import { analyze, PREVIEW_BUDGET_MS } from "./analysis";
+import type { Mode } from "./core/flow";
+import { hasMarker, parseFlowText } from "./core/syntax";
+import { analyze, PREVIEW_BUDGET_MS } from "./core/analysis";
 import { coverageLines } from "./scenarioBoard";
-import { templateById } from "./templates";
+import { templateById } from "./core/templates";
 import { isBusy, setBusy } from "./host";
 import { toPanel } from "./webview";
 import { currentSelectionIds, readElements, tableCount } from "./selection";

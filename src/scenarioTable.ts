@@ -2,7 +2,7 @@
 // the choice taken, its setup, test data and expected result. Pure logic.
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import type { Flow } from "./flow";
+import type { Flow } from "./core/flow";
 
 const COLS: { key: string; title: string; w: number }[] = [
     { key: "n", title: "#", w: 44 },

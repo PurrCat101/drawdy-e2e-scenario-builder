@@ -10,9 +10,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as driver from "../src/index.ts";
-import { parseFlowText } from "../src/syntax.ts";
+import { parseFlowText } from "../src/core/syntax.ts";
 import { fitHeight } from "../src/textBox.ts";
-import { TEMPLATES } from "../src/templates.ts";
+import { TEMPLATES } from "../src/core/templates.ts";
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -426,7 +426,7 @@ test("UI-40 DRV-42 DRV-43: the panel counts the flow note selected on the board,
 });
 
 test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out again when a button is pressed", async () => {
-    const { clearCache, cacheStats } = await import("../src/analysis.ts");
+    const { clearCache, cacheStats } = await import("../src/core/analysis.ts");
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
     const note = h.find(isStarter)[0];
@@ -455,7 +455,7 @@ test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out 
 });
 
 test("CALC-32 CALC-82: EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
-    const { analyze } = await import("../src/analysis.ts");
+    const { analyze } = await import("../src/core/analysis.ts");
     const flow = parseFlowText("1. Pick\n- shirt [variant]\n- shoes [variant]\n2. Pay\n- paid\n- declined -> end").flow;
     const a = analyze(flow);
     assert.ok(a.pick("ep").some((sc) => sc.covers && sc.covers.length));
@@ -463,7 +463,7 @@ test("CALC-32 CALC-82: EP's 'stands for' marks stay on EP: another mode drawn af
 });
 
 test("CALC-81: a quick preview of a huge flow is worked out again in full for a button", async () => {
-    const { analyze, clearCache, cacheStats } = await import("../src/analysis.ts");
+    const { analyze, clearCache, cacheStats } = await import("../src/core/analysis.ts");
     const text = Array.from({ length: 10 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}\n- d${i}`).join("\n");
     const flow = parseFlowText(text).flow;
     clearCache();
@@ -1048,7 +1048,7 @@ test("UI-14: panel: the clipboard message copies and reports", () => {
 test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\"", async () => {
     const word = /\b(test )?cases?\b/i;
     // the files people read ("letter case" is something else)
-    for (const f of ["../README.md", "../src/templates.ts"]) {
+    for (const f of ["../README.md", "../src/core/templates.ts"]) {
         const text = readFileSync(new URL(f, import.meta.url), "utf8").replace(/letter case/g, "");
         const hit = text.split("\n").find((l) => word.test(l) && !/^## /.test(l));
         assert.ok(!hit, f + ": " + hit);
@@ -1077,7 +1077,7 @@ test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\""
 
 test("UI-21: no Thai text is left in what the user sees", () => {
     const thai = /[฀-๿]/;
-    for (const f of ["../editor/panel.html", "../src/index.ts", "../src/syntax.ts", "../src/scenarioBoard.ts", "../src/render.ts", "../README.md"])
+    for (const f of ["../editor/panel.html", "../src/index.ts", "../src/core/syntax.ts", "../src/scenarioBoard.ts", "../src/render.ts", "../README.md"])
         assert.ok(!thai.test(readFileSync(new URL(f, import.meta.url), "utf8")), f);
 });
 

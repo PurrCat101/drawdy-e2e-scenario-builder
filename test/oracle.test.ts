@@ -7,8 +7,8 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { generate, pick, singles } from "../src/scenarios.ts";
-import type { Cond, Flow } from "../src/flow.ts";
+import { generate, pick, singles } from "../src/core/scenarios.ts";
+import type { Cond, Flow } from "../src/core/flow.ts";
 
 /* a small seeded random generator, so a failure can be reproduced */
 function rng(seed: number) {
