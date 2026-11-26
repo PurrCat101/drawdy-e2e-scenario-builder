@@ -37,6 +37,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   1. the mode name;
   2. `N of M paths · H happy · K negative`;
   3. `All a · EP b · Pairwise c · Each-Choice d`;
+     past the limit (CALC-20, CALC-24) line 2 reads `N of M listed paths (the flow has
+     more) · …` and line 3 reads `All a+ · …`;
   4. the coverage line: `Coverage of N scenarios: choice x/y (p%) · loop end x/y (p%)
      · pair x/y (p%)` (loop end only when the flow has loop ends);
   5. `OK: every choice[, every loop end][ and every pair] is covered` (pairs only for

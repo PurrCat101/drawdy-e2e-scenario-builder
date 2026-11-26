@@ -915,7 +915,7 @@ function loadPanel() {
                 this.children.push(c);
             },
         }),
-        createTextNode: () => ({}),
+        createTextNode: (text: string) => ({ textContent: text }),
         execCommand: () => true,
     };
     g.acquireDrawdyApi = () => ({
@@ -933,6 +933,37 @@ function loadPanel() {
     };
     return { els, sent, send: (m: any) => onMessage(m), restore };
 }
+
+test("UI-46: previewOf marks a flow past the limit and says so before the other warnings", async () => {
+    const { previewOf } = await import("../src/core/preview.ts");
+    const big = Array.from({ length: 7 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}`).join("\n");
+    const p = previewOf(big);
+    assert.equal(p.capped, true);
+    assert.match(p.issues[0], /^Too big to list every path/);
+    const small = previewOf("1. a\n- x\n- y");
+    assert.equal(small.capped, false);
+    assert.ok(!small.issues.some((m) => /Too big/.test(m)));
+});
+
+test("UI-46 UI-47: panel: a flow past the limit reads N+ and partial, and each mode says what it picks", () => {
+    const p = loadPanel();
+    try {
+        const counts = { all: 1330, ep: 1330, pair: 336, min: 13 };
+        // the stub keeps old children when the box is emptied: read the last five chips
+        const read = () => p.els.counts.children.slice(-5).map((c: any) => c.children.at(-1).textContent);
+        p.send({ type: "counts", counts, steps: 10, capped: true, issues: [] });
+        assert.deepEqual(read().slice(1, 3), ["1330+", "1330 (partial)"]);
+        assert.match(p.els.plan.textContent, /Mode EP: 1330 scenarios \(partial: not every path is listed\)/);
+        p.send({ type: "counts", counts, steps: 10, capped: false, issues: [] });
+        assert.deepEqual(read().slice(1, 3), [1330, 1330]);
+        assert.doesNotMatch(p.els.plan.textContent, /partial/);
+        const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+        assert.match(html, /id="modehint">EP: groups paths that differ only in \[variant\] choices, and still uses every choice\./);
+        assert.match(html, /\$\('modehint'\)\.textContent = MODE_HINT\[m\]/);
+    } finally {
+        p.restore();
+    }
+});
 
 test("UI-31: panel: which buttons are on for each selection", () => {
     const p = loadPanel();

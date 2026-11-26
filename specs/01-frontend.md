@@ -87,10 +87,22 @@ control: flows are written on the board, not in the panel.
 - **UI-44** When the selected note is unselected, the driver sends `recount` and the
   panel sends `preview` for its paste box at once.
 - **UI-45** The issues show, in order: ERROR lines from the coverage safety net
-  (DRV-41), an INFO line when the counts come from a quick search (CALC-22), reading
+  (DRV-41), the limit line (UI-46), an INFO line when the counts come from a quick search (CALC-22), reading
   problems (up to 4), the mode tip (CALC-70), and up to 3 flow check items. One line
   each, coloured by kind: ERROR red, TIP and INFO muted, the rest amber. Only the first
   two are shown; the others fold under "N more", so the buttons stay in view.
+
+## Big flows and modes
+
+- **UI-46** When the flow is past the limit (CALC-20, CALC-24): the All count reads
+  `N+`, the EP count `N (partial)`, the plan line of All and EP adds "(partial: not
+  every path is listed)", and a limit line says "Too big to list every path. Pair and
+  Each still cover the flow; add needs / sets to cut paths." When the search could not
+  finish (CALC-22) it says "Too big to list every path: some choices or pairs may be
+  missing (see the flow check)." instead, and never claims coverage.
+- **UI-47** Under the mode switch, one line says what the chosen mode picks. For EP:
+  "EP: groups paths that differ only in [variant] choices, and still uses every
+  choice."
 
 ## Theme
 

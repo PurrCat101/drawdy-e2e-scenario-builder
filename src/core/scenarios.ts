@@ -20,7 +20,7 @@ export type Scenario = {
 
 export type Generated = {
     list: Scenario[];
-    /** the walk stopped at the limit: `list` holds the first paths walked, plus `extra` */
+    /** the walk stopped early (the limit, or WALK_BOUND): `list` holds the first paths walked, plus `extra` */
     capped: boolean;
     /** scenarios added after the limit so every choice (and pair) is in at least one */
     extra?: number;
@@ -61,6 +61,13 @@ function withTags(tags: Tags, c: Cond): Tags {
     });
     return n;
 }
+
+/**
+ * With a `distinct` loop many walked paths are the same rounds in another order, and
+ * only one of them counts. The walk also stops after this many walked paths, so a flow
+ * with very many orders cannot run for minutes.
+ */
+export const WALK_BOUND = 200_000;
 
 /** A label for a happy scenario that passes a `[negative]` choice and still completes. */
 export const VIA_NEGATIVE = "via negative";
@@ -169,19 +176,23 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
     steps.forEach((s, i) => {
         idx[s.id] = i;
     });
-    /** keep one path per set of distinct-loop rounds (the first one walked) */
-    const dropReordered = (paths: PathItem[][]) => {
-        if (!steps.some((s) => s.conds.some((c) => c.distinct))) return;
-        const seen = new Set<string>();
-        let w = 0;
-        for (const p of paths) {
-            const k = orderFreeKey(p, idx);
-            if (seen.has(k)) continue;
-            seen.add(k);
-            paths[w++] = p;
+    /**
+     * Keeps a walked path. With a `distinct` loop only the first path of each set of
+     * rounds is kept, and only kept paths count toward the limit.
+     */
+    const hasDistinct = steps.some((s) => s.conds.some((c) => c.distinct));
+    const seenRounds = new Set<string>();
+    let walked = 0;
+    const keep = (path: PathItem[]) => {
+        walked++;
+        if (hasDistinct) {
+            const k = orderFreeKey(path, idx);
+            if (seenRounds.has(k)) return;
+            seenRounds.add(k);
         }
-        paths.length = w;
+        out.push(path);
     };
+    const full = () => out.length >= limit || walked >= Math.max(limit, WALK_BOUND);
 
     /** distinct loops: the steps they go back to (only those steps' last pick matters) */
     const distinctTargets = new Set<number>();
@@ -279,12 +290,12 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
         last: Record<number, number> = {},
         run: Run | null = null
     ) {
-        if (out.length >= limit) {
+        if (full()) {
             capped = true;
             return;
         }
         if (i >= steps.length) {
-            out.push(path);
+            keep(path);
             return;
         }
         const s = steps[i];
@@ -305,11 +316,11 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
             const p = path.concat([{ i, c }]);
             const nt = withTags(tags, c);
             if (c.action === "end") {
-                if (out.length >= limit) {
+                if (full()) {
                     capped = true;
                     return;
                 }
-                out.push(p);
+                keep(p);
                 continue;
             }
             if (c.action === "loop") {
@@ -334,7 +345,6 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
         }
     }
     walk(0, [], {}, {});
-    dropReordered(out);
 
     // Past the limit, the walk never got to some paths, so some choices (and pairs)
     // would be in no scenario, and no mode could pick them. Look for one path for
@@ -364,8 +374,8 @@ export function generate(flow: Flow, limit = 1000, budgetMs = 3000): Generated {
         // loops at their full max (the last round they allow)
         for (const [id, c] of condById) {
             if (c.action !== "loop" || (c.max || 1) < 2) continue;
-            const full = (p: PathItem[]) => p.filter((v) => v.c && v.c.id === id).length === c.max;
-            if (out.some(full)) continue;
+            const atMax = (p: PathItem[]) => p.filter((v) => v.c && v.c.id === id).length === c.max;
+            if (out.some(atMax)) continue;
             const p = findPath([id], [id], deadline);
             if (p === "timeout") searchComplete = false;
             else if (p) add(p);
@@ -654,9 +664,13 @@ export function pick(g: Generated, mode: Mode): Scenario[] {
  * One line that suggests a mode for this flow, from its counts. Every mode covers
  * every choice and loop end; they differ in what else they promise and in size.
  */
-export function modeTip(flow: Flow, counts: { all: number; ep: number; pair: number; min: number }): string {
+export function modeTip(
+    flow: Flow,
+    counts: { all: number; ep: number; pair: number; min: number },
+    capped = false
+): string {
     const variant = flow.steps.some((st) => st.conds.some((c) => c.variant));
-    if (counts.all <= 30) return `TIP: All has only ${counts.all} scenarios: run them all.`;
+    if (!capped && counts.all <= 30) return `TIP: All has only ${counts.all} scenarios: run them all.`;
     if (!variant)
         return `TIP: no choice is marked [variant], so EP (${counts.ep}) stays close to All. Use Pair (${counts.pair}) to cover every pair of choices, or Each (${counts.min}) for a quick pass; mark interchangeable choices [variant] to make EP useful.`;
     return `TIP: EP (${counts.ep}) for regression by your [variant] groups; Pair (${counts.pair}) when choices at different steps affect each other; Each (${counts.min}) for a quick smoke pass.`;
@@ -754,10 +768,13 @@ export function validate(flow: Flow, g: Generated): Issue[] {
     });
     if (g.capped) {
         const added = g.extra ? `, plus ${g.extra} found to cover the rest` : "";
+        const first = g.list.length - (g.extra || 0);
         R.push({
             lv: "warn",
             msg:
-                `More than 1,000 paths: All lists the first 1,000${added}. ` +
+                (first >= 1000
+                    ? `More than 1,000 paths: All lists the first 1,000${added}. `
+                    : `Too many orders of the same rounds to walk them all: All lists the ${first} scenarios found first${added}. `) +
                 (g.pairsComplete === false
                     ? "Every choice is covered, but not every pair (the search ran out of time). "
                     : "Every choice and every pair that can meet is in at least one scenario. ") +

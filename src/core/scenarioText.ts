@@ -163,11 +163,11 @@ export function reportHeader(opts: {
     const happy = shown.filter((s) => s.type === "happy").length;
     const head: string[] = [
         `${MODE_LABEL[mode]}`,
-        `${shown.length} of ${gen.list.length} paths · ${happy} happy · ${shown.length - happy} negative`,
-        `All ${counts.all} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
+        `${shown.length} of ${gen.list.length} ${gen.capped ? "listed paths (the flow has more)" : "paths"} · ${happy} happy · ${shown.length - happy} negative`,
+        `All ${counts.all}${gen.capped ? "+" : ""} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
         ...coverageLines(shown, gen, mode),
         ...requirementLines(shown, flow),
-        modeTip(flow, counts),
+        modeTip(flow, counts, gen.capped),
     ];
     if (issues.length) {
         head.push("");

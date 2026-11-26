@@ -31,12 +31,22 @@ export function previewOf(text: string) {
                       .filter((l) => l.startsWith("MISSING"))
                       .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
               );
+    // said first, so the panel never folds it away
+    const limit = !gen.capped
+        ? []
+        : [
+              gen.searchComplete === false || gen.pairsComplete === false
+                  ? "Too big to list every path: some choices or pairs may be missing (see the flow check)."
+                  : "Too big to list every path. Pair and Each still cover the flow; add needs / sets to cut paths.",
+          ];
     return {
         steps: flow.steps.length,
+        capped: gen.capped,
         counts,
         ms: Date.now() - t0,
         issues: [
             ...broken,
+            ...limit,
             ...(a.complete
                 ? []
                 : ["INFO: a very big flow: these counts are what a quick search found; the full search runs when you press a button."]),

@@ -461,12 +461,12 @@ scenario: EP, Pair and Each give a subset of what All lists.
 
 ## Modes
 
-Choose the mode with the panel's switch.
+Choose the mode with the panel's switch; the line under it says what the mode picks.
 
 | Mode | What you get |
 | --- | --- |
 | EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the flow check says so |
+| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the panel shows the All count as `N+` and EP as partial, and the flow check says so |
 | Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 

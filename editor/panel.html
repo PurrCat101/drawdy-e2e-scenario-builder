@@ -72,6 +72,7 @@
       <button data-m="min" title="Each-Choice (1-wise)">Each</button>
     </span>
   </div>
+  <div class="hint" id="modehint">EP: groups paths that differ only in [variant] choices, and still uses every choice.</div>
 
   <div class="acts">
     <div class="grp wide">Draw</div>
@@ -135,6 +136,14 @@
   }
   var lastCounts = null;
   var MODE_NAME = { ep: 'EP', all: 'All', pair: 'Pair', min: 'Each' };
+  var MODE_HINT = {
+    all: 'All: every path the flow allows.',
+    ep: 'EP: groups paths that differ only in [variant] choices, and still uses every choice.',
+    pair: 'Pair: every choice, and every pair of choices that can meet.',
+    min: 'Each: every choice at least once.'
+  };
+  // the flow is too big to list every path: All is a part of it, and EP may miss groups
+  var capped = false;
   // one line per issue, coloured by kind; past the first two, the rest fold away so
   // the buttons stay in view in Drawdy's small window
   var SHOWN_ISSUES = 2;
@@ -172,7 +181,9 @@
       .filter(function (m) { return m !== mode && lastCounts[m] < n; })
       .sort(function (a, b) { return lastCounts[a] - lastCounts[b]; })
       .map(function (m) { return MODE_NAME[m] + ' has ' + lastCounts[m]; });
+    var partial = capped && (mode === 'all' || mode === 'ep');
     el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' scenarios' +
+      (partial ? ' (partial: not every path is listed)' : '') +
       (many ? ' (a lot; the board may get slow' + (fewer.length ? '. ' + fewer.join(', ') : '') + ')' : '');
     el.className = 'plan' + (many ? ' warn' : '');
   }
@@ -243,6 +254,7 @@
   $('t').addEventListener('input', function () { updateTarget(); });
   function setMode(m) {
     mode = m;
+    $('modehint').textContent = MODE_HINT[m];
     updateTarget();
     updatePlan();
     var bs = document.querySelectorAll('#mode button');
@@ -309,8 +321,8 @@
           box.appendChild(src);
         }
         box.appendChild(chip('steps', m.steps));
-        box.appendChild(chip('All', m.counts.all));
-        box.appendChild(chip('EP', m.counts.ep));
+        box.appendChild(chip('All', m.capped ? m.counts.all + '+' : m.counts.all));
+        box.appendChild(chip('EP', m.capped ? m.counts.ep + ' (partial)' : m.counts.ep));
         box.appendChild(chip('Pairwise', m.counts.pair));
         box.appendChild(chip('Each-Choice', m.counts.min));
       }
@@ -323,6 +335,7 @@
         box.appendChild(slow);
       }
       box.style.opacity = '';
+      capped = !!m.capped;
       lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
       updatePlan();
       updateTarget();

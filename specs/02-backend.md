@@ -35,7 +35,7 @@ There is no server: nothing leaves the user's browser.
 
   | Message | Fields | Meaning |
   | --- | --- | --- |
-  | `counts` | `counts` {all, ep, pair, min} or null, `steps`, `issues`, `ms`, `from` ("note" or absent) | the counts and issues to show |
+  | `counts` | `counts` {all, ep, pair, min} or null, `steps`, `capped` (past the limit, UI-46), `issues`, `ms`, `from` ("note" or absent) | the counts and issues to show |
   | `counting` | | the selected note is changing; counts will follow |
   | `recount` | | the note was unselected; count your paste box again |
   | `target` | `kind`, `n` | the selection (UI-30) |

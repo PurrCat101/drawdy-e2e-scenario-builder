@@ -57,7 +57,12 @@ check), `src/core/analysis.ts` (remembering results).
 
 ## The 1,000 limit
 
-- **CALC-20** The walk stops after 1,000 paths. All then lists those 1,000 first.
+- **CALC-20** The walk stops after 1,000 different paths. All then lists those 1,000 first.
+- **CALC-24** Paths that CALC-16 counts once do not count toward the 1,000: a flow with
+  at most 1,000 different paths lists them all, unless the walk stops first. The walk
+  also stops after 200,000 walked paths (orders counted), so it cannot run for minutes;
+  All then lists the different paths found by then, and the flow is past the limit as
+  above.
 - **CALC-21** Past the limit, a targeted search (same rules as the walk, dead ends
   remembered) adds one path for each choice, each loop end and each pair the 1,000
   missed, so every mode can still cover them (CALC-36).
@@ -151,8 +156,9 @@ check), `src/core/analysis.ts` (remembering results).
 - **CALC-63** A choice in no scenario: "no path can take this choice" when it is
   unreachable (CALC-09); "the flow is too big to finish the search for it" when the
   search ran out of time (CALC-22).
-- **CALC-64** Past the limit: one warning saying how many paths All lists, how many
-  were added, whether every pair was found, that EP may miss groups beyond these,
+- **CALC-64** Past the limit: one warning saying how many paths All lists (when the
+  walk stopped at 200,000 before reaching 1,000 different ones, it says so and gives
+  that number, CALC-24), how many were added, whether every pair was found, that EP may miss groups beyond these,
   and what to do (Pair or Each, or `sets`/`needs` to cut impossible paths).
 - **CALC-65** `distinct`: a warning when it does nothing (loop to itself or forward,
   or a target step without choices) or when `max + 1` is more than the target step's
@@ -161,7 +167,7 @@ check), `src/core/analysis.ts` (remembering results).
 
 ## Mode tip
 
-- **CALC-70** All ≤ 30 → "run them all".
+- **CALC-70** All ≤ 30 → "run them all", never past the limit (CALC-20, CALC-24).
 - **CALC-71** No `variant` anywhere → EP stays close to All: suggest Pair, or Each for
   a quick pass, or marking interchangeable choices `variant`.
 - **CALC-72** Otherwise: EP for regression by `variant` groups, Pair when choices at

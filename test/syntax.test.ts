@@ -9,7 +9,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/core/syntax.ts";
-import { generate, pick } from "../src/core/scenarios.ts";
+import { generate, modeTip, pick } from "../src/core/scenarios.ts";
+import { reportHeader } from "../src/core/scenarioText.ts";
 import type { Flow } from "../src/core/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
 import { renderFlow } from "../src/render.ts";
@@ -811,6 +812,34 @@ test("CALC-21 CALC-64: past 1,000 paths: the late choices are found, and the mes
     const msgs = validate(flow, g).map((i) => i.msg);
     assert.ok(msgs.some((m) => /All lists the first 1,000, plus \d+ found/.test(m)), msgs.join(" / "));
     assert.ok(!msgs.some((m) => /no path can take/.test(m)));
+});
+
+/** One step of `n` choices, taken again in `distinct` rounds, in any order. */
+const pickMany = (n: number) =>
+    "1. pick\n" + [..."abcdefghi"].slice(0, n).map((x) => "- " + x).join("\n") +
+    `\n2. more\n- no\n- yes -> loop to step 1 max ${n - 1} [distinct]`;
+
+test("CALC-24 CALC-16: orders of the same rounds do not count toward the 1,000: every different path is listed", () => {
+    // 8 choices: 2^8 - 1 = 255 different sets of rounds, walked in over 100,000 orders
+    const g = generate(parseFlowText(pickMany(8)).flow);
+    assert.equal(g.capped, false);
+    assert.equal(g.list.length, 255);
+});
+
+test("CALC-24 CALC-64 CALC-70 OUT-21: when the walk stops at its bound, the warning, the header and the tip say the list is a part", () => {
+    const flow = parseFlowText(pickMany(9)).flow;
+    const g = generate(flow);
+    assert.ok(g.capped);
+    assert.ok(g.list.length < 511, "9 choices have 511 different sets: " + g.list.length);
+    const msgs = validate(flow, g).map((i) => i.msg);
+    assert.ok(msgs.some((m) => m.includes(`All lists the ${g.list.length} scenarios found first`)), msgs.join(" / "));
+    assert.ok(!msgs.some((m) => /first 1,000/.test(m)));
+    const counts = { all: 20, ep: 20, pair: 1, min: 2 };
+    const head = reportHeader({ flow, mode: "all", shown: g.list, gen: g, counts, issues: [] });
+    assert.ok(head[1].startsWith(`${g.list.length} of ${g.list.length} listed paths (the flow has more)`), head[1]);
+    assert.match(head[2], /^All 20\+ · /);
+    assert.doesNotMatch(modeTip(flow, counts, true), /run them all/);
+    assert.match(modeTip(flow, counts, false), /run them all/);
 });
 
 test("CALC-36: every mode tests the last round a loop allows", () => {

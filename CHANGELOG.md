@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **The panel says what each mode picks**, under the mode switch. For EP: it groups
+  paths that differ only in `[variant]` choices, and still uses every choice (UI-47).
+- **Flows too big to list are marked as such.** The All count reads `N+`, EP says
+  `(partial)`, one line explains it before the other warnings, and the scenario frame
+  header says `listed paths (the flow has more)` instead of `paths`. The tip no longer
+  says "run them all" for such a flow (UI-46, OUT-21, CALC-70).
+- **Fixed: a `distinct` loop could list far fewer paths than there are.** Rounds in
+  another order counted toward the limit of 1,000 before they were merged, so a flow
+  with 255 different paths listed 59. Only different paths count now; the walk stops
+  after 200,000 walked paths, and the flow check then says how many it found
+  (CALC-24).
+
 ## 0.4.0
 
 - **New button: Steps list** (under Tables). Draws every step and every choice of the whole

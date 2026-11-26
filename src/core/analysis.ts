@@ -69,7 +69,7 @@ function build(flow: Flow, budgetMs: number): Analysis {
             return (issues ??= validate(flow, gen));
         },
         tip() {
-            return modeTip(flow, a.counts());
+            return modeTip(flow, a.counts(), gen.capped);
         },
     };
     return a;
