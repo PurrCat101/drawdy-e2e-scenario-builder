@@ -132,6 +132,10 @@ labels follow it (they end with how many scenarios they use), and buttons that d
 | a note that starts with `@builder` | on | on | on | its scenarios |
 | a table or a decision table | off | off | off | **Copy to clipboard** copies that table; the rest are off |
 
+**Steps list** is on wherever **Test steps** is, but it always lists the whole flow: with
+scenario notes, column heads or a scenario frame selected it takes the flow they came from,
+not just those scenarios. A drawn flow frame works too.
+
 **Only notes that start with `@builder` are read.** Any other note is left
 alone, so the extension never spends time on notes that are not flows. (The text box
 in the panel does not need the marker.)

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **New button: Steps list** (under Tables). Draws every step and every choice of the whole
   flow as one table, with the usual columns and a **Req** column (the requirement IDs of the
