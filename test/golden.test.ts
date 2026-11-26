@@ -49,18 +49,18 @@ const LOOPS = `@builder
 
 const QUANTITY = `@builder
 1. Enter quantity (allowed 1 to 15)
-- -1 items -> end [variant]
+- -1 items -> end
   expect: Error: quantity must be 1 to 15
 - 0 items -> end
   expect: Error: quantity must be 1 to 15
 - 1 item
-- 5 items [variant]
-- 8 items [variant]
-- 14 items [variant]
+- 5 items
+- 8 items
+- 14 items
 - 15 items
 - 16 items -> end
   expect: Error: quantity must be 1 to 15
-- 99 items -> end [variant]
+- 99 items -> end
   expect: Error: quantity must be 1 to 15
 2. Choose shipping
 - Standard
@@ -73,7 +73,7 @@ const FLOWS: Record<string, string> = {
     ...Object.fromEntries(TEMPLATES.map((t) => [`template-${t.id}`, t.text])),
 };
 
-const MODES: Mode[] = ["all", "ep", "pair", "min"];
+const MODES: Mode[] = ["all", "pair", "min"];
 
 /** a short fingerprint: the snapshot stays small, and a difference names the part that moved */
 const fp = (x: unknown) => createHash("sha1").update(JSON.stringify(x) ?? "null").digest("hex").slice(0, 12);
@@ -108,7 +108,6 @@ function snapshot() {
                         pri: sc.pri,
                         loops: sc.loops,
                         path: sc.path.map((v) => `${v.i}:${v.c ? v.c.id : "-"}`).join(">"),
-                        covers: (sc.covers || []).map((c) => c.id),
                     }))
                 ),
                 coverage: fp(coverageLines(list, a.gen, mode)),

@@ -18,9 +18,8 @@
   setup (`setup:`, also `given:`), test data (`data:`) and expected result (`expect:`,
   also `then:`) that apply. One
   row of a scenario's table (the Test steps button).
-- **TERM-07 Mode.** How many scenarios are shown: All, EP (equivalence
-  partitioning), Pairwise (2-wise) or Each (each-choice, 1-wise). See CALC-30 to
-  CALC-37.
+- **TERM-07 Mode.** How many scenarios are shown: All, Pairwise (2-wise) or
+  Each (each-choice, 1-wise). See CALC-30 to CALC-39 (there is no EP since 0.6.0).
 - **TERM-08 Tag.** A word a choice puts on its path (`sets lv1`), read by later
   choices (`needs lv1`).
 - **TERM-09 Loop end.** A loop choice with `max` 2 or more, taken its full `max`

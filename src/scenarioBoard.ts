@@ -23,7 +23,7 @@ export function renderScenarios(opts: {
     shown: Scenario[];
     gen: Generated;
     /** scenario counts per mode, shown in the header for comparison */
-    counts: { all: number; ep: number; pair: number; min: number };
+    counts: { all: number; pair: number; min: number };
     issues: Issue[];
     origin: [number, number];
     generateId: () => string;

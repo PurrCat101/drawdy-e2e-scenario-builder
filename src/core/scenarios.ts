@@ -14,8 +14,6 @@ export type Scenario = {
     type: "happy" | "neg";
     loops: number;
     pri: number;
-    /** scenarios collapsed into this one by EP */
-    covers?: Scenario[];
 };
 
 export type Generated = {
@@ -449,91 +447,6 @@ export function singles(sc: Scenario): string[] {
 }
 
 /**
- * Equivalence partitioning: a condition marked `variant` (and not used as a
- * tag by anyone) does not make a case different, so scenarios that differ only in
- * those choices keep a single representative. Every condition stays covered.
- */
-export function dedupe(list: Scenario[]): Scenario[] {
-    const relevant = (sc: Scenario) => {
-        const r: Record<string, 1> = {};
-        sc.path.forEach((v) => {
-            if (v.c)
-                tokens(v.c.need).forEach((t) =>
-                    t.split("|").forEach((l) => {
-                        l = l.trim().replace(/^!/, "");
-                        if (l) r[l] = 1;
-                    })
-                );
-        });
-        return r;
-    };
-    // which paths each kept scenario stands for; kept apart from the scenarios
-    // themselves, so picking EP never changes what All or another mode returns
-    const covers = new Map<Scenario, Scenario[]>();
-    const seen: Record<string, Scenario> = {};
-    const keep: Scenario[] = [];
-    list.forEach((sc) => {
-        const rel = relevant(sc);
-        const sig = sc.path
-            .filter(
-                (v) =>
-                    v.c &&
-                    !(v.c.variant && !tokens(v.c.tags).some((t) => rel[t]))
-            )
-            .map((v) => v.i + ":" + (v.c ? v.c.id : "-"))
-            .sort()
-            .join("|");
-        if (!seen[sig]) {
-            seen[sig] = sc;
-            covers.set(sc, []);
-            keep.push(sc);
-        } else covers.get(seen[sig])!.push(sc);
-    });
-    const cov = new Set<string>();
-    keep.forEach((sc) => singles(sc).forEach((x) => cov.add(x)));
-    const ids: string[] = [];
-    list.forEach((sc) =>
-        singles(sc).forEach((x) => {
-            if (ids.indexOf(x) < 0) ids.push(x);
-        })
-    );
-    ids.forEach((id) => {
-        if (cov.has(id)) return;
-        let best: Scenario | null = null;
-        const rank = (s: Scenario) => [
-            s.type === "happy" ? 0 : 1,
-            s.pri,
-            s.loops,
-            s.path.length,
-        ];
-        list.forEach((sc) => {
-            if (!singles(sc).includes(id)) return;
-            if (!best) {
-                best = sc;
-                return;
-            }
-            const a = rank(sc);
-            const b = rank(best);
-            for (let k = 0; k < a.length; k++) {
-                if (a[k] !== b[k]) {
-                    if (a[k] < b[k]) best = sc;
-                    return;
-                }
-            }
-        });
-        if (best) {
-            const b = best as Scenario;
-            keep.push(b);
-            singles(b).forEach((x) => cov.add(x));
-        }
-    });
-    const keptIds = new Set(keep.map((s) => s.id));
-    return Array.from(new Set(keep))
-        .sort((a, b) => a.n - b.n)
-        .map((sc) => ({ ...sc, covers: (covers.get(sc) || []).filter((o) => !keptIds.has(o.id)) }));
-}
-
-/**
  * Each-choice (1-wise): a small set of scenarios that touch every condition. A greedy
  * cover that prefers readable scenarios (Happy paths first, then paths with at most one
  * failing choice, then any), so it is complete but not always the smallest possible.
@@ -656,7 +569,7 @@ export function pick(g: Generated, mode: Mode): Scenario[] {
         case "min":
             return renumber(minimal(g.list));
         default:
-            return renumber(dedupe(g.list));
+            return renumber(pairwise(g.list));
     }
 }
 
@@ -762,7 +675,7 @@ export function validate(flow: Flow, g: Generated): Issue[] {
                 (g.pairsComplete === false
                     ? "Every choice is covered, but not every pair (the search ran out of time). "
                     : "Every choice and every pair that can meet is in at least one scenario. ") +
-                "EP may miss groups of paths beyond these. Use Pair or Each, or add sets / needs to cut paths that cannot happen.",
+                "Use Pair or Each, or add sets / needs to cut paths that cannot happen.",
         });
     }
     return R.sort((a, b) => (a.lv === b.lv ? 0 : a.lv === "err" ? -1 : 1));

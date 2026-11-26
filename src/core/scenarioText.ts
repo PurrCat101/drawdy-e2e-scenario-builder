@@ -8,7 +8,6 @@ import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
 export const MODE_LABEL: Record<Mode, string> = {
-    ep: "Equivalence Partitioning",
     all: "All Paths",
     pair: "Pairwise (2-wise)",
     min: "Each-Choice (1-wise)",
@@ -31,11 +30,10 @@ export function noteLines(sc: Scenario, flow: Flow): string[] {
     );
     // only what describes the walk: no priority, tags or rules
     for (const st of cf.steps)
-        st.conds = st.conds.map((c) => ({ ...c, pri: "", variant: false, tags: "", need: "" }));
+        st.conds = st.conds.map((c) => ({ ...c, pri: "", tags: "", need: "" }));
     const out = formatFlow(cf, { title })
         .split("\n")
         .filter((l) => l.trim());
-    if (sc.covers && sc.covers.length) out.push(`# also stands for ${sc.covers.length} similar`);
     return out;
 }
 
@@ -156,7 +154,7 @@ export function reportHeader(opts: {
     mode: Mode;
     shown: Scenario[];
     gen: Generated;
-    counts: { all: number; ep: number; pair: number; min: number };
+    counts: { all: number; pair: number; min: number };
     issues: Issue[];
 }): string[] {
     const { flow, mode, shown, gen, counts, issues } = opts;
@@ -164,7 +162,7 @@ export function reportHeader(opts: {
     const head: string[] = [
         `${MODE_LABEL[mode]}`,
         `${shown.length} of ${gen.list.length} ${gen.capped ? "listed paths (the flow has more)" : "paths"} · ${happy} happy · ${shown.length - happy} negative`,
-        `All ${counts.all}${gen.capped ? "+" : ""} · EP ${counts.ep} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
+        `All ${counts.all}${gen.capped ? "+" : ""} · Pairwise ${counts.pair} · Each-Choice ${counts.min}`,
         ...coverageLines(shown, gen, mode),
         ...requirementLines(shown, flow),
     ];

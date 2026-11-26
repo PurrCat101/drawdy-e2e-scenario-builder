@@ -95,7 +95,7 @@ async function makeHost(opts: { noPreview?: boolean } = {}) {
             body: { webviewDomId: PANEL, message },
         } as any);
     };
-    const action = (a: string, text = "", mode = "ep") =>
+    const action = (a: string, text = "", mode = "pair") =>
         panel({ type: "action", action: a, text, mode });
     const select = (...ids: string[]) => {
         selection = ids;
@@ -115,7 +115,7 @@ async function makeHost(opts: { noPreview?: boolean } = {}) {
 }
 
 /** a host with the flow and its scenario notes already drawn (Flow + Scenarios) */
-async function drawn(mode = "ep") {
+async function drawn(mode = "pair") {
     const h = await makeHost();
     await h.action("board", FLOW, mode);
     return h;
@@ -209,9 +209,9 @@ test("OUT-30: the Test steps frame is named after the button, with the mode when
     assert.equal(names.length, 1);
     assert.ok(names[0].startsWith("Test steps"), names[0]);
     const g = await drawn();
-    await g.action("table", FLOW, "ep");
+    await g.action("table", FLOW, "pair");
     const many = g.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
-    assert.match(many[0], /^Test steps · EP · 2 scenarios$/);
+    assert.match(many[0], /^Test steps · PAIR · 2 scenarios$/);
 });
 
 test("OUT-01 OUT-30 OUT-31: a table is placed in board coordinates and its columns include their padding", async () => {
@@ -313,13 +313,13 @@ test("UI-31: Scenarios on a scenario note does not draw anything (the panel disa
     assert.ok(h.scene.size - before <= 1);
 });
 
-test("CALC-30: mode: the same flow in All gives more scenarios than in EP", async () => {
-    const flow = "@builder\n1. a\n   - x [variant]\n   - y [variant]\n2. b\n   - p [variant]\n   - q [variant]\n";
-    const ep = await makeHost();
-    await ep.action("scenarios", flow, "ep");
+test("CALC-30: mode: the same flow in All gives more scenarios than in Each", async () => {
+    const flow = "@builder\n1. a\n   - x\n   - y\n2. b\n   - p\n   - q\n";
+    const each = await makeHost();
+    await each.action("scenarios", flow, "min");
     const all = await makeHost();
     await all.action("scenarios", flow, "all");
-    assert.ok(scenarioNotes(all).length > scenarioNotes(ep).length);
+    assert.ok(scenarioNotes(all).length > scenarioNotes(each).length);
     assert.equal(scenarioNotes(all).length, 4);
 });
 
@@ -352,7 +352,7 @@ test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that 
 test("OUT-50: every note is a filled text box sized to its text, never a sticky note", async () => {
     const h = await makeHost();
     await h.panel({ type: "template", id: "shop" });
-    await h.action("board", FLOW, "ep");
+    await h.action("board", FLOW, "pair");
     await h.action("board", ""); // nothing selected: a hint note
     const all = h.find(() => true);
     assert.ok(!all.some((e) => e.componentType === "sticky-note"), "no sticky notes");
@@ -464,14 +464,6 @@ test("DRV-42 DRV-44 CALC-80: a flow the panel already counted is not worked out 
     assert.equal(typeof counts.ms, "number");
 });
 
-test("CALC-32 CALC-82: EP's 'stands for' marks stay on EP: another mode drawn after it has none", async () => {
-    const { analyze } = await import("../src/core/analysis.ts");
-    const flow = parseFlowText("1. Pick\n- shirt [variant]\n- shoes [variant]\n2. Pay\n- paid\n- declined -> end").flow;
-    const a = analyze(flow);
-    assert.ok(a.pick("ep").some((sc) => sc.covers && sc.covers.length));
-    for (const m of ["all", "pair", "min"] as const) assert.ok(a.pick(m).every((sc) => !sc.covers || !sc.covers.length), m);
-});
-
 test("CALC-81: a quick preview of a huge flow is worked out again in full for a button", async () => {
     const { analyze, clearCache, cacheStats } = await import("../src/core/analysis.ts");
     const text = Array.from({ length: 10 }, (_, i) => `${i + 1}. S${i}\n- a${i}\n- b${i}\n- c${i}\n- d${i}`).join("\n");
@@ -537,11 +529,11 @@ test("DRV-57: with scenario notes selected, only those scenarios are columns", a
     const notes = scenarioNotes(h);
     assert.ok(notes.length >= 2);
     h.select(h.idOf(notes[0]));
-    await h.action("decision", "", "ep");
+    await h.action("decision", "", "pair");
     const dt = decisionFrames(h);
     assert.equal(dt.length, 1);
     assert.equal(dt[0].meta.scenarios, 1);
-    // the column is named by the ID the note shows (CALC-57), though the panel's switch says EP
+    // the column is named by the ID the note shows (CALC-57), though the panel's switch says Pair
     const heads = h.find((e) => e.type === "shape" && /^TS[SN]-\d{3}$/.test(e.text ?? ""));
     assert.deepEqual(heads.map((e) => e.text), [String(notes[0].meta.id)]);
 });
@@ -560,7 +552,7 @@ test("DRV-57: a @builder note selected gives a table for its flow, and two notes
 
 test("DRV-57: a flow with no step that decides draws nothing and says why", async () => {
     const h = await makeHost();
-    await h.action("decision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "ep");
+    await h.action("decision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "pair");
     assert.equal(decisionFrames(h).length, 0);
     const s = lastStatus(h);
     assert.match(s.text, /^Cannot draw a decision table: the flow has no step with two or more choices/);
@@ -572,7 +564,7 @@ test("DRV-57: more than 60 scenarios draws nothing and names the smaller modes",
     await h.action("decision", TEMPLATES[0].text, "all"); // 113 scenarios
     assert.equal(decisionFrames(h).length, 0);
     const s = lastStatus(h);
-    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick EP, Pair or Each, or press Copy decision table$/);
+    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick Pair or Each, or press Copy decision table$/);
     assert.ok(s.bad);
 });
 
@@ -607,13 +599,13 @@ test("DRV-58: Copy decision table with a scenario frame selected uses that frame
     await h.action("scenarios", TEMPLATES[0].text, "pair");
     const frame = h.find((e) => e.type === "frame" && e.meta?.e2eScenarios)[0];
     h.select(h.idOf(frame));
-    await h.action("copydecision", "", "ep");
+    await h.action("copydecision", "", "pair");
     assert.equal(h.lastClip().scenarios, frame.meta.count);
 });
 
 test("DRV-58: Copy decision table says why when the flow has no step that decides, and copies nothing", async () => {
     const h = await makeHost();
-    await h.action("copydecision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "ep");
+    await h.action("copydecision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "pair");
     const s = lastStatus(h);
     assert.match(s.text, /^Cannot copy a decision table: the flow has no step with two or more choices/);
     assert.ok(s.bad);
@@ -632,7 +624,7 @@ const REQ_FLOW = `@builder
 
 test("DRV-61 OUT-67: Steps list draws one frame with every step and choice of the flow, and a Req column", async () => {
     const h = await makeHost();
-    await h.action("stepslist", REQ_FLOW, "ep");
+    await h.action("stepslist", REQ_FLOW, "pair");
     const frames = stepsFrames(h);
     assert.equal(frames.length, 1);
     assert.equal(frames[0].name, "Steps list · 3 steps");
@@ -663,17 +655,17 @@ test("DRV-61: with a scenario frame selected it lists the steps of that frame's 
     await h.action("scenarios", REQ_FLOW, "all");
     const frame = h.find((e) => e.type === "frame" && e.meta?.e2eScenarios)[0];
     h.select(h.idOf(frame));
-    await h.action("stepslist", "", "ep");
+    await h.action("stepslist", "", "pair");
     assert.equal(stepsFrames(h).length, 1);
     assert.equal(stepsFrames(h)[0].meta.count, 3);
 });
 
 test("DRV-61 DRV-25: Copy to clipboard on a selected steps list copies it and says steps", async () => {
     const h = await makeHost();
-    await h.action("stepslist", REQ_FLOW, "ep");
+    await h.action("stepslist", REQ_FLOW, "pair");
     const frame = stepsFrames(h)[0];
     h.select(h.idOf(frame));
-    await h.action("copy", "", "ep");
+    await h.action("copy", "", "pair");
     const clip = h.lastClip();
     assert.equal(clip.text, frame.meta.tsv);
     assert.equal(clip.scenarios, 3);
@@ -682,14 +674,14 @@ test("DRV-61 DRV-25: Copy to clipboard on a selected steps list copies it and sa
 
 test("DRV-61: Steps list with nothing to read says so and draws nothing", async () => {
     const h = await makeHost();
-    await h.action("stepslist", "", "ep");
+    await h.action("stepslist", "", "pair");
     assert.equal(stepsFrames(h).length, 0);
     assert.ok(lastStatus(h).bad);
 });
 
 test("DRV-57: nothing selected and no text gives the usual hint", async () => {
     const h = await makeHost();
-    await h.action("decision", "", "ep");
+    await h.action("decision", "", "pair");
     assert.equal(decisionFrames(h).length, 0);
     assert.ok(lastStatus(h).bad);
 });
@@ -804,12 +796,12 @@ test("DRV-59 OUT-66: the mode of the table is kept, so the same ID in two modes 
     assert.notDeepEqual(third(pair)!.meta.path, third(min)!.meta.path);
     // each head gives its own scenario's test steps, whatever the panel's switch says
     h.select(h.idOf(third(min)!));
-    await h.action("table", "", "ep");
+    await h.action("table", "", "pair");
     const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable);
     assert.equal(tables.length, 1);
     assert.equal(tables[0].meta.scenarios, 1);
     h.select(h.idOf(third(pair)!));
-    await h.action("table", "", "ep");
+    await h.action("table", "", "pair");
     const both = h.frames().filter((f) => f.meta?.e2eScenarioTable);
     assert.notEqual(both[0].meta.tsv, both[1].meta.tsv, "another path, other test steps");
 });
@@ -879,7 +871,7 @@ test("OUT-60 OUT-01: the decision table is placed below what is selected, not on
 
 type Host = Awaited<ReturnType<typeof makeHost>>;
 const press = (h: Host, a: string, place = "hand", text = FLOW) =>
-    h.panel({ type: "action", action: a, text, mode: "ep", place });
+    h.panel({ type: "action", action: a, text, mode: "pair", place });
 const issued = (h: Host, type: string) => h.commands.filter((c) => c.type === type);
 const canvas = (x: number, y: number) => ({ canvasSpace: { x, y }, domSpace: { x: x / 10, y: y / 10 } });
 const event = (type: string, body: any) => driver.onEvent({ type, body } as any);
@@ -1113,17 +1105,18 @@ test("UI-46: previewOf marks a flow past the limit and says so before the other 
 test("UI-46 UI-47: panel: a flow past the limit reads N+ and partial, and each mode says what it picks", () => {
     const p = loadPanel();
     try {
-        const counts = { all: 1330, ep: 1330, pair: 336, min: 13 };
-        // the stub keeps old children when the box is emptied: read the last five chips
-        const read = () => p.els.counts.children.slice(-5).map((c: any) => c.children.at(-1).textContent);
+        const counts = { all: 1330, pair: 336, min: 13 };
+        // the stub keeps old children when the box is emptied: read the last four chips
+        const read = () => p.els.counts.children.slice(-4).map((c: any) => c.children.at(-1).textContent);
         p.send({ type: "counts", counts, steps: 10, capped: true, issues: [] });
-        assert.deepEqual(read().slice(1, 3), ["1330+", "1330 (partial)"]);
-        assert.match(p.els.plan.textContent, /Mode EP: 1330 scenarios \(partial: not every path is listed\)/);
+        assert.deepEqual(read().slice(1, 3), ["1330+", 336]);
+        // only All is a part of the paths; Pair (the default) still covers the flow
+        assert.equal(p.els.plan.textContent, "Mode Pair: 336 scenarios (a lot; the board may get slow. Each has 13)");
         p.send({ type: "counts", counts, steps: 10, capped: false, issues: [] });
-        assert.deepEqual(read().slice(1, 3), [1330, 1330]);
+        assert.deepEqual(read().slice(1, 3), [1330, 336]);
         assert.doesNotMatch(p.els.plan.textContent, /partial/);
         const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
-        assert.match(html, /id="modehint">EP: groups paths that differ only in \[variant\] choices, and still uses every choice\./);
+        assert.match(html, /id="modehint">Pair: every choice, and every pair of choices that can meet\./);
         assert.match(html, /\$\('modehint'\)\.textContent = MODE_HINT\[m\]/);
     } finally {
         p.restore();
@@ -1148,7 +1141,7 @@ test("UI-31: panel: which buttons are on for each selection", () => {
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
-        p.send({ type: "counts", counts: { all: 5, ep: 3, pair: 2, min: 2 }, steps: 1, issues: [] });
+        p.send({ type: "counts", counts: { all: 5, pair: 2, min: 2 }, steps: 1, issues: [] });
         assert.equal(row("none"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision");
     } finally {
         p.restore();
@@ -1190,12 +1183,12 @@ test("UI-32 UI-33: panel: labels follow the selection and say what will be used"
     const p = loadPanel();
     try {
         p.els.t.value = "x";
-        p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
+        p.send({ type: "counts", counts: { all: 231, pair: 17, min: 11 }, steps: 3, issues: [] });
         p.send({ type: "target", kind: "none", n: 0 });
-        assert.equal(p.els.table.textContent, "Test steps · EP · 28 scenarios");
-        assert.equal(p.els.decision.textContent, "Decision table · EP · 28 scenarios");
-        assert.equal(p.els.copydecision.textContent, "Copy decision table · EP · 28 scenarios");
-        assert.equal(p.els.copy.textContent, "Copy to clipboard · EP · 28 scenarios");
+        assert.equal(p.els.table.textContent, "Test steps · Pair · 17 scenarios");
+        assert.equal(p.els.decision.textContent, "Decision table · Pair · 17 scenarios");
+        assert.equal(p.els.copydecision.textContent, "Copy decision table · Pair · 17 scenarios");
+        assert.equal(p.els.copy.textContent, "Copy to clipboard · Pair · 17 scenarios");
         assert.equal(p.els.flow.textContent, "Flow");
         p.send({ type: "target", kind: "scenarios", n: 2 });
         assert.equal(p.els.table.textContent, "Test steps · 2 scenarios");
@@ -1220,9 +1213,9 @@ test("UI-45: issues are one line each, coloured by kind, and past two they fold 
     try {
         p.send({
             type: "counts",
-            counts: { all: 9, ep: 5, pair: 4, min: 3 },
+            counts: { all: 9, pair: 4, min: 3 },
             steps: 3,
-            issues: ["ERROR: EP MISSING choices: \"x\"", "INFO: a quick search", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
+            issues: ["ERROR: PAIR MISSING choices: \"x\"", "INFO: a quick search", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
         });
         const kids = p.els.issues.children;
         assert.deepEqual(kids.slice(0, 2).map((d: any) => d.className), ["iss err", "iss info"]);
@@ -1238,8 +1231,8 @@ test("UI-45: issues are one line each, coloured by kind, and past two they fold 
 test("UI-04: a big mode suggests only modes with fewer scenarios", () => {
     const p = loadPanel();
     try {
-        p.send({ type: "counts", counts: { all: 1624, ep: 1201, pair: 64, min: 9 }, steps: 12, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode EP: 1201 scenarios (a lot; the board may get slow. Each has 9, Pair has 64)");
+        p.send({ type: "counts", counts: { all: 1624, pair: 64, min: 9 }, steps: 12, issues: [] });
+        assert.equal(p.els.plan.textContent, "Mode Pair: 64 scenarios (a lot; the board may get slow. Each has 9)");
     } finally {
         p.restore();
     }
@@ -1248,8 +1241,8 @@ test("UI-04: a big mode suggests only modes with fewer scenarios", () => {
 test("UI-04: panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
     const p = loadPanel();
     try {
-        p.send({ type: "counts", counts: { all: 231, ep: 28, pair: 17, min: 11 }, steps: 3, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode EP: 28 scenarios");
+        p.send({ type: "counts", counts: { all: 231, pair: 17, min: 11 }, steps: 3, issues: [] });
+        assert.equal(p.els.plan.textContent, "Mode Pair: 17 scenarios");
         assert.equal(p.els.plan.className, "plan");
     } finally {
         p.restore();
@@ -1277,7 +1270,7 @@ test("UI-41: panel: counts dim while the note is being typed in, and come back w
     try {
         p.send({ type: "counting" });
         assert.equal(p.els.counts.style.opacity, "0.5");
-        p.send({ type: "counts", from: "note", counts: { all: 9, ep: 5, pair: 4, min: 3 }, steps: 3, issues: [], ms: 1300 });
+        p.send({ type: "counts", from: "note", counts: { all: 9, pair: 4, min: 3 }, steps: 3, issues: [], ms: 1300 });
         assert.equal(p.els.counts.style.opacity, "");
     } finally {
         p.restore();
@@ -1287,12 +1280,12 @@ test("UI-41: panel: counts dim while the note is being typed in, and come back w
 test("UI-40 UI-44: panel: counts from a note are labelled, and a recount asks for the paste box's counts", () => {
     const p = loadPanel();
     try {
-        p.send({ type: "counts", from: "note", counts: { all: 9, ep: 5, pair: 4, min: 3 }, steps: 3, issues: [] });
+        p.send({ type: "counts", from: "note", counts: { all: 9, pair: 4, min: 3 }, steps: 3, issues: [] });
         assert.equal(p.els.counts.title, "Counts of the selected flow note");
         p.els.t.value = "1. a\n- b";
         p.send({ type: "recount" });
         assert.deepEqual(p.sent[p.sent.length - 1], { type: "preview", text: "1. a\n- b" });
-        p.send({ type: "counts", counts: { all: 1, ep: 1, pair: 1, min: 1 }, steps: 1, issues: [] });
+        p.send({ type: "counts", counts: { all: 1, pair: 1, min: 1 }, steps: 1, issues: [] });
         assert.equal(p.els.counts.title, "Counts of the text in the paste box");
     } finally {
         p.restore();
@@ -1444,4 +1437,16 @@ test("DRV-54: a table from an earlier version (`cases`, or neither) is still rea
         assert.equal(t.kind, "table");
         assert.equal(t.n, want, JSON.stringify(meta));
     }
+});
+
+test("CALC-39: a mode 'ep' (a board drawn before 0.6.0, an old panel) is read as the panel's own mode, Pair", async () => {
+    const { modeOr } = await import("../src/core/flow.ts");
+    assert.equal(modeOr("ep", "pair"), "pair");
+    assert.equal(modeOr(undefined, "min"), "min");
+    assert.equal(modeOr("all", "pair"), "all");
+    assert.equal(modeOr("min", "pair"), "min");
+    const g = await drawn();
+    await g.action("table", FLOW, "ep");
+    const names = g.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    assert.match(names[0], /^Test steps · PAIR · 2 scenarios$/);
 });

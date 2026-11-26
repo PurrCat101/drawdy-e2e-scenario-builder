@@ -26,7 +26,7 @@ export function previewOf(text: string) {
     const broken =
         gen.list.length > SAFETY_NET_MAX
             ? []
-            : (["ep", "pair", "min"] as const).flatMap((m) =>
+            : (["pair", "min"] as const).flatMap((m) =>
                   coverageLines(a.pick(m), gen, m)
                       .filter((l) => l.startsWith("MISSING"))
                       .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)

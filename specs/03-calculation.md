@@ -81,13 +81,8 @@ check), `src/core/analysis.ts` (remembering results).
 
 - **CALC-30** Every mode except All picks a subset of All's scenarios; none twice; it
   never invents a scenario.
-- **CALC-31** EP: scenarios are grouped by the set of their choices once `variant`
-  choices are left out (order ignored; a `variant` choice that sets a tag another
-  choice on the path needs still counts). One scenario per group (the first in All's
-  order). Then, for each coverage item (CALC-36) still missing, the best scenario
-  that has it is added (Happy first, then higher priority, fewer loops, shorter).
-- **CALC-32** EP marks, for each kept scenario, the scenarios it stands for. Those
-  marks belong to EP's own copies and never show in another mode.
+- **CALC-31** (removed) EP, the grouping by `variant` choices. Removed in 0.6.0 (CALC-39).
+- **CALC-32** (removed) EP's "stands for N similar" marks. Removed with EP.
 - **CALC-33** Pairwise: greedy set cover over every choice, every loop end and every
   pair of choices on a path. Each round takes the scenario that covers the most items
   not yet covered; ties go to the higher priority, then the shorter path.
@@ -101,16 +96,21 @@ check), `src/core/analysis.ts` (remembering results).
   | Mode | Always covers |
   | --- | --- |
   | All | every path (while under the limit) |
-  | EP | every choice, every loop end, every group of CALC-31 |
   | Pairwise | every choice, every loop end, every pair |
   | Each | every choice, every loop end |
 
-- **CALC-37** Not promised: EP does not cover every pair; Each does not cover pairs;
+- **CALC-37** Not promised: Each does not cover pairs;
   only All covers the rounds in between (for `max 3`: 1 and 2 rounds) and every
   order.
 - **CALC-38** Lower bounds, for checking a size by hand (flows without loops): Each ≥
   ⌈choices ÷ most choices on one path⌉; Pairwise ≥ the number of choice pairs that
   can meet between the two steps with the most such pairs.
+- **CALC-39** There is no EP (equivalence partitioning) mode since 0.6.0. The modes are
+  All, Pairwise and Each, and Pairwise is the default. A board frame drawn before 0.6.0
+  may carry the mode "ep": it is read as "no mode of its own", so the panel's switch
+  decides, as for any frame without one. Why EP went: it only grouped choices marked
+  `variant`, and then added back every choice it had dropped (CALC-36), so it removed
+  little and its name promised more than it did.
 
 ## Scenario facts
 
@@ -158,8 +158,7 @@ check), `src/core/analysis.ts` (remembering results).
   search ran out of time (CALC-22).
 - **CALC-64** Past the limit: one warning saying how many paths All lists (when the
   walk stopped at 200,000 before reaching 1,000 different ones, it says so and gives
-  that number, CALC-24), how many were added, whether every pair was found, that EP may miss groups beyond these,
-  and what to do (Pair or Each, or `sets`/`needs` to cut impossible paths).
+  that number, CALC-24), how many were added, whether every pair was found, and what to do (Pair or Each, or `sets`/`needs` to cut impossible paths).
 - **CALC-65** `distinct`: a warning when it does nothing (loop to itself or forward,
   or a target step without choices) or when `max + 1` is more than the target step's
   `next` choices (rounds past that are skipped).
@@ -182,7 +181,7 @@ check), `src/core/analysis.ts` (remembering results).
 - **CALC-82** Cached results are shared: nothing may change them after they are made.
 - **CALC-83** Every mode picks at least one scenario when All has one. A flow without
   choices has nothing to cover, but still has its one path: Pairwise picks the first
-  Happy scenario (the first scenario if none is Happy), as EP and Each do.
+  Happy scenario (the first scenario if none is Happy), as Each does.
 
 ## Decision table
 

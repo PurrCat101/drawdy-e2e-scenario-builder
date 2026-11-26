@@ -15,6 +15,7 @@ import { MODE_LABEL, noteLines, orderScenarios, reportHeader } from "./scenarioT
 import { flowStepsToTsv, scenarioRows, scenariosToTsv, type Row } from "./testSteps";
 
 export type { Flow, Step, Cond, CondAction, Mode } from "./flow";
+export { modeOr } from "./flow";
 export type { Scenario, Generated, Issue } from "./scenarios";
 export type { Analysis, Counts } from "./analysis";
 export type { DecisionTable } from "./decisionTable";
@@ -37,8 +38,6 @@ export type ScenarioView = {
     loops: number;
     /** the choices taken, in order, as their labels */
     choices: string[];
-    /** how many similar scenarios this one stands for (EP) */
-    stands: number;
     /** the lines of its note, in the flow syntax */
     note: string[];
     /** the test steps, one row per step and choice taken */
@@ -52,7 +51,7 @@ export type Report = {
     mode: Mode;
     modeLabel: string;
     /** how many scenarios each mode picks */
-    counts: { all: number; ep: number; pair: number; min: number };
+    counts: { all: number; pair: number; min: number };
     /** the flow check */
     issues: { lv: "err" | "warn"; msg: string }[];
     /** the header lines of the scenario report: counts, coverage, requirements, tip */
@@ -72,7 +71,7 @@ export type Report = {
  * Everything a front end shows for a flow text and a mode, in one call.
  * `budgetMs` limits the search past 1,000 paths (default: a button press).
  */
-export function buildReport(text: string, mode: Mode = "ep", budgetMs?: number): Report {
+export function buildReport(text: string, mode: Mode = "pair", budgetMs?: number): Report {
     const parsed = parseFlowText(text);
     const flow = parsed.flow;
     if (!flow.steps.length)
@@ -81,7 +80,7 @@ export function buildReport(text: string, mode: Mode = "ep", budgetMs?: number):
             warnings: parsed.warnings,
             mode,
             modeLabel: MODE_LABEL[mode],
-            counts: { all: 0, ep: 0, pair: 0, min: 0 },
+            counts: { all: 0, pair: 0, min: 0 },
             issues: [],
             header: [],
             scenarios: [],
@@ -106,7 +105,6 @@ export function buildReport(text: string, mode: Mode = "ep", budgetMs?: number):
             priority: sc.pri,
             loops: sc.loops,
             choices: sc.path.filter((v) => v.c).map((v) => v.c!.label),
-            stands: (sc.covers || []).length,
             note: noteLines(sc, flow),
             rows: scenarioRows(one),
         };

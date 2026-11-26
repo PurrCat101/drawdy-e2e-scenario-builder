@@ -55,7 +55,6 @@ function flowOf(maxSteps: number, loops: boolean): fc.Arbitrary<Flow> {
                                 tags: fc.option(tag, { nil: "" }),
                                 need,
                                 pri: fc.constantFrom("", "", "1", "2", "3"),
-                                variant: fc.boolean(),
                                 distinct: fc.boolean(),
                                 data: text,
                                 exp: text,
@@ -84,7 +83,6 @@ function flowOf(maxSteps: number, loops: boolean): fc.Arbitrary<Flow> {
                             tags: c.tags ?? "",
                             need: c.need,
                             pri: c.pri,
-                            variant: c.variant,
                             distinct: c.kind === "loop" ? c.distinct : undefined,
                             data: c.data,
                             exp: c.exp,
@@ -114,7 +112,6 @@ function canon(flow: Flow) {
             tags: c.tags,
             need: c.need,
             pri: c.pri,
-            variant: c.variant,
             distinct: !!c.distinct,
             data: e(c.data),
             exp: e(c.exp),
@@ -160,7 +157,7 @@ test("CALC-57 (property): every mode numbers the scenarios it picks 1, 2, 3 per 
     fc.assert(
         fc.property(small, (flow) => {
             const g = generate(flow, 1000, 1e9);
-            for (const mode of ["all", "ep", "pair", "min"] as const) {
+            for (const mode of ["all", "pair", "min"] as const) {
                 const got = pick(g, mode);
                 const count = { happy: 0, neg: 0 };
                 for (const s of got) {
@@ -198,7 +195,7 @@ test("CALC-30, CALC-83 (property): every mode picks only scenarios of All Paths,
             const g = generate(flow, 1000, 1e9);
             // a mode numbers its own scenarios (CALC-57): compare by `n`, the place in All
             const all = new Set(g.list.map((s) => s.n));
-            for (const mode of ["all", "ep", "pair", "min"] as const) {
+            for (const mode of ["all", "pair", "min"] as const) {
                 const got = pick(g, mode).map((s) => s.n);
                 assert.equal(new Set(got).size, got.length, `${mode}: a scenario twice`);
                 for (const n of got) assert.ok(all.has(n), `${mode}: #${n} is not in All Paths`);
@@ -216,7 +213,7 @@ test("CALC-80, CALC-81 (property): the remembered analysis gives what a fresh ca
         fc.property(small, (flow) => {
             const a = analyze(flow);
             const g = generate(flow, 1000, 1e9);
-            for (const mode of ["all", "ep", "pair", "min"] as const) {
+            for (const mode of ["all", "pair", "min"] as const) {
                 assert.deepEqual(ids(a.pick(mode)), ids(pick(g, mode)), mode);
             }
             assert.equal(analyze(flow), a, "the second call must reuse the first");
@@ -243,7 +240,7 @@ test("SYN-40: a choice named like options (Pay [visa]) is written with [] and re
             {
                 id: "s0",
                 name: "Pay",
-                conds: [{ id: "s0c0", label: "Pay [visa]", neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", variant: false }],
+                conds: [{ id: "s0c0", label: "Pay [visa]", neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "" }],
             },
         ],
     };
@@ -257,7 +254,7 @@ test("SYN-40: a choice named like options (Pay [visa]) is written with [] and re
 test("CALC-83: a flow without choices still gets one scenario in every mode", () => {
     const flow: Flow = { steps: [{ id: "s0", name: "Open", conds: [] }, { id: "s1", name: "Close", conds: [] }] };
     const g = generate(flow, 1000, 1e9);
-    for (const mode of ["all", "ep", "pair", "min"] as const) assert.equal(pick(g, mode).length, 1, mode);
+    for (const mode of ["all", "pair", "min"] as const) assert.equal(pick(g, mode).length, 1, mode);
 });
 
 test("SYN-13: \\[ in a choice's label is a plain [, not the start of the options", () => {
@@ -269,7 +266,7 @@ test("SYN-13: \\[ in a choice's label is a plain [, not the start of the options
 
 test("SYN-40: a label with an unclosed [ is written with \\[ and read back whole", () => {
     const flow: Flow = {
-        steps: [{ id: "s0", name: "A", conds: [{ id: "s0c0", label: "a [b", neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "1", variant: false }] }],
+        steps: [{ id: "s0", name: "A", conds: [{ id: "s0c0", label: "a [b", neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "1" }] }],
     };
     const text = formatFlow(flow);
     assert.match(text, /- a \\\[b \[P1\]/);
@@ -303,7 +300,7 @@ test("CALC-30, CALC-33, CALC-34, CALC-36 (property): each mode keeps every choic
             const pairGot = pairs(pick(g, "pair"));
             for (const p of everyPair) assert.ok(pairGot.has(p), `pair ${p} is covered by All but not by Pair`);
 
-            for (const mode of ["ep", "pair", "min"] as const) {
+            for (const mode of ["pair", "min"] as const) {
                 const sel = pick(g, mode);
                 const have = ids(sel);
                 for (const id of all) assert.ok(have.has(id), `${mode}: choice ${id} is covered by All but not by this mode`);
@@ -365,7 +362,7 @@ test("CALC-17 (property): in the rounds of a distinct loop, its target step neve
 
 test("CALC-90 to CALC-92 (property): the decision table has a column for every scenario of the mode, marks only what the path takes", () => {
     fc.assert(
-        fc.property(small, fc.constantFrom("all", "ep", "pair", "min") as fc.Arbitrary<"all" | "ep" | "pair" | "min">, (flow, mode) => {
+        fc.property(small, fc.constantFrom("all", "pair", "min") as fc.Arbitrary<"all" | "pair" | "min">, (flow, mode) => {
             const list = pick(generate(flow, 1000, 1e9), mode);
             const dt = buildDecisionTable(flow, list);
             // CALC-91: a column for each scenario, Happy first

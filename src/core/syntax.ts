@@ -17,7 +17,7 @@
 //                 - Login ok [P1]
 //                 - Login failed -> end [P2]
 //              2. Pick an item
-//                 - shirt [variant]
+//                 - shirt
 //                 - sold out -> loop to step 2 max 2 [negative]
 //   compact  the one-liner:  Login (ok | !fail) > Pick (a | b) > Pay
 //
@@ -45,7 +45,6 @@ export type ParseOptions = {
 };
 
 const MODE_ALIASES: Record<string, Mode> = {
-    ep: "ep",
     all: "all",
     pair: "pair",
     pairwise: "pair",
@@ -71,7 +70,6 @@ function newCond(id: string, label: string): Cond {
         tags: "",
         need: "",
         pri: "",
-        variant: false,
         data: "",
         exp: "",
         pre: "",
@@ -229,7 +227,10 @@ const COND_FIELD_KEYS: Record<string, "need" | "tags"> = {
     set: "tags",
 };
 
-const BRACKET_WORDS =["variant", "negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
+/** options that no longer exist: said so, not "unknown" (the text keeps working) */
+const VARIANT_REMOVED = '"variant" was removed (EP mode is gone, version 0.6.0); it is ignored, delete it';
+
+const BRACKET_WORDS = ["negative", "distinct", "sets", "needs", "P1", "P2", "P3"];
 
 /** `-> end`, `-> loop`, `-> loop to step 3 max 2`, `-> next` at the end of a condition line */
 /**
@@ -286,7 +287,7 @@ function parseBlocks(
             const name = dm[1].toLowerCase();
             if (name === "builder") continue;
             if (name === "title") title = oneLine(dm[2]);
-            else if (name === "mode" || MODE_ALIASES[name])
+            else if (name === "mode" || name === "ep" || MODE_ALIASES[name])
                 warn(ln, "@" + dm[1] + " is not used; pick the mode in the panel");
             else warn(ln, `Unknown directive @${dm[1]}${didYouMean(name, ["builder", "title"])}`);
             continue;
@@ -459,13 +460,13 @@ function parseCondLine(
     cond.label = unescapeBracket(cond.label);
     if (!cond.label) warn(ln, "A condition has no name");
 
-    // [P1, variant, negative, sets lv1, needs !master or lv2]
+    // [P1, negative, sets lv1, needs !master or lv2]
     for (const raw of inner.split(/[,;]/)) {
         const it = raw.trim();
         if (!it) continue;
         let m: RegExpMatchArray | null;
         if (/^p[123]$/i.test(it)) cond.pri = it.slice(1);
-        else if (/^variant$/i.test(it)) cond.variant = true;
+        else if (/^variant$/i.test(it)) warn(ln, VARIANT_REMOVED);
         else if (/^(negative|neg)$/i.test(it)) cond.neg = true;
         else if (/^distinct$/i.test(it)) cond.distinct = true;
         else if ((m = it.match(/^sets?\s+(.+)$/i))) cond.tags = tagsFromWords(m[1]);
@@ -482,7 +483,7 @@ function parseCondLine(
 
 /* ------------------------------ compact form ------------------------------- */
 
-/** Trailing options of a compact condition: `[P1 tag=x need=y variant max=2]`. */
+/** Trailing options of a compact condition: `[P1 tag=x need=y max=2]`. */
 function takeCompactOptions(
     raw: string,
     where: string,
@@ -497,14 +498,14 @@ function takeCompactOptions(
         .forEach((tok) => {
             const t = tok.toLowerCase();
             if (/^p[123]$/.test(t)) opts.pri = t.slice(1);
-            else if (t === "variant") opts.variant = true;
+            else if (t === "variant") warnings.push(`${where}: ${VARIANT_REMOVED}`);
             else if (/^max=\d+$/.test(t)) opts.max = Math.min(9, Math.max(1, +t.slice(4)));
             else if (t.indexOf("tag=") === 0) opts.tags = tok.slice(4);
             // `|` separates conditions here, so `/` means "or" inside need
             else if (t.indexOf("need=") === 0) opts.need = tok.slice(5).replace(/\//g, "|");
             else
                 warnings.push(
-                    `${where}: unknown option "${clip(tok, 24)}" in [ ]${didYouMean(t.split("=")[0], ["variant", "max", "tag", "need", "P1", "P2", "P3"])}`
+                    `${where}: unknown option "${clip(tok, 24)}" in [ ]${didYouMean(t.split("=")[0], ["max", "tag", "need", "P1", "P2", "P3"])}`
                 );
         });
     return { label: unescapeBracket(m[1]), opts };
@@ -515,9 +516,10 @@ function parseCompact(
     id: () => string,
     warnings: string[]
 ): { steps: Step[]; mode: Mode | null } {
-    // the first word may pick the mode: @ep @all @pair @min
+    // the first word may pick the mode: @all @pair @min (@ep is gone: read, said so, not used)
     const sm = src.match(/^\s*@(ep|all|pairwise|pair|min|each)\b\s*/i);
-    const mode = sm ? MODE_ALIASES[sm[1].toLowerCase()] : null;
+    const mode = sm ? MODE_ALIASES[sm[1].toLowerCase()] ?? null : null;
+    if (sm && sm[1].toLowerCase() === "ep") warnings.push("@ep is not used (EP mode was removed, version 0.6.0); pick the mode in the panel");
     const txt = sm ? src.slice(sm[0].length) : src;
 
     const segs = txt
@@ -634,7 +636,6 @@ export function formatFlow(flow: Flow, opts: { title?: string } = {}): string {
             }
             const o: string[] = [];
             if (c.pri) o.push("P" + c.pri);
-            if (c.variant) o.push("variant");
             if (c.neg && c.action !== "end") o.push("negative");
             if (c.distinct) o.push("distinct");
             if (o.length) line += " [" + o.join(", ") + "]";

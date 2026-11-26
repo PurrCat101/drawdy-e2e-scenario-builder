@@ -58,10 +58,10 @@ panel's paste box, or in any note, sticky note or text box, that starts with `@b
 2. Select Products
    req: R-02
    setup: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
-   - Shirt [variant]
+   - Shirt
      data: SKU-001, quantity 1
      expect: the product page shows price 20.00
-   - Shoes [variant]
+   - Shoes
      data: SKU-002, quantity 1
      expect: the product page shows price 50.00
 3. Add to Shopping Cart
@@ -99,9 +99,9 @@ of scenarios.
    flow check, updated as you edit it; with nothing selected it counts
    the paste box.
 3. **Watch the numbers.** While you type, the panel shows the number of steps
-   and of test scenarios in every mode (All, EP, Pairwise, Each-Choice), the problems
+   and of test scenarios in every mode (All, Pairwise, Each-Choice), the problems
    found in the text (with their line) and in the flow.
-4. **Pick the mode** with the switch (All, EP, Pair, Each; EP is the default). Under
+4. **Pick the mode** with the switch (All, Pair, Each; Pair is the default). Under
    it the panel says how many scenarios that mode makes, and warns above 50.
 5. **Press a button.**
 6. **Put the result down.** With **Place: By hand** (the default) an outline follows
@@ -187,7 +187,6 @@ This is the starter template, the note that **Start with a template** drops on t
 # -> end            the flow stops here: a negative scenario
 # -> loop to step 2 max 1   go back to step 2, at most 1 round
 # [distinct]        on a loop: a round offers only choices not picked yet
-# [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
 # needs: x          a choice only a path with tag x can take (and, or, not / !)
 # sets: x           this choice tags the path with x
@@ -207,10 +206,10 @@ This is the starter template, the note that **Start with a template** drops on t
 2. Select Products
    req: R-02
    setup: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
-   - Shirt [variant]
+   - Shirt
      data: SKU-001, quantity 1
      expect: the product page shows price 20.00
-   - Shoes [variant]
+   - Shoes
      data: SKU-002, quantity 1
      expect: the product page shows price 50.00
 3. Add to Shopping Cart
@@ -336,7 +335,6 @@ Optional, in square brackets at the end of a condition, separated by commas. `se
 | Write | Meaning |
 | --- | --- |
 | `P1` `P2` `P3` | priority of the scenario: a scenario takes the most important (lowest) number on its path, so a path with a P1 choice is P1. Choices without a `P` do not count; no `P` on the whole path = P2 |
-| `variant` | this choice does not multiply with the others, so equivalence partitioning keeps one representative scenario |
 | `negative` | a failing choice that does not end the flow (`end` is already negative) |
 | `distinct` | on a `loop to step N`: the next round offers only the choices not taken yet at the step it goes back to (the steps after it are free), and rounds that differ only in order count once. For "add another item": `- add more -> loop to step 3 [distinct]` gives A, B, A+B, not A+A or B+A as well. Ends and loops at those steps stay available |
 | `sets lv1` (or the line `sets: lv1`) | marks the path with a tag (several: `sets lv1 lv2`) |
@@ -357,15 +355,15 @@ Select Products (Shirt | Shoes) > Add to Shopping Cart (Added | !Out of stock) >
 | `!label` | negative, the flow ends |
 | `-label` | negative, the flow continues |
 | `~3 label` | go back to step 3 (`~` alone repeats the same step); `!~4` / `-~4` is negative and loops |
-| `label [P1 tag=x need=a,b variant max=2]` | options. `need`: `,` = and, `/` = or, `!` = not. `max` = rounds of a loop |
-| `@ep` `@all` `@pair` `@min` (first word) | the mode, instead of the panel's switch |
+| `label [P1 tag=x need=a,b max=2]` | options. `need`: `,` = and, `/` = or, `!` = not. `max` = rounds of a loop |
+| `@all` `@pair` `@min` (first word) | the mode, instead of the panel's switch |
 
 A text is read in the block form when any line starts with a number or a `- `
 bullet, and as the one-line form otherwise.
 
 ### Reading problems
 
-A problem in the text is shown with its line (in the panel while you type), for example `Line 5: Unknown option "varient" in [ ] (did you mean variant?)`.
+A problem in the text is shown with its line (in the panel while you type), for example `Line 5: Unknown option "negativ" in [ ] (did you mean negative?)`.
 The extension points out unknown words with the closest known one, a `loop to step` pointing to a
 step that does not exist, repeated or out-of-order step numbers, a condition with
 no step, a field with a typo, and so on.
@@ -377,7 +375,7 @@ priority): the Happy ones are `TSS-001`, `TSS-002`, `TSS-003`..., the Negative o
 `TSN-001`, `TSN-002`... With 3 Happy and 2 Negative scenarios you get `TSS-001` to
 `TSS-003` and `TSN-001`, `TSN-002`.
 
-Each mode numbers what it picks. The scenarios of EP, Pair or Each count again from
+Each mode numbers what it picks. The scenarios of Pair or Each count again from
 `001`, so the biggest ID of a mode is its count: Each-Choice with 5 scenarios, 3 Happy
 and 2 Negative, ends at `TSS-003` and `TSN-002`, however many All has. The scenario
 notes, the tables, the copied text and the decision table of one mode all use these IDs,
@@ -463,7 +461,7 @@ Level 1 can only be blocked, level 2 can only be allowed, so there are **2** sce
 (1 Happy, 1 Negative) instead of 4.
 
 The other modes pick from these scenarios (see Modes below). They never invent a
-scenario: EP, Pair and Each give a subset of what All lists.
+scenario: Pair and Each give a subset of what All lists.
 
 ## Modes
 
@@ -471,12 +469,11 @@ Choose the mode with the panel's switch; the line under it says what the mode pi
 
 | Mode | What you get |
 | --- | --- |
-| EP (equivalence partitioning) | one representative per group of equivalent paths. Only choices marked `variant` are grouped, so without any `variant` EP stays close to All; the panel says so |
-| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the panel shows the All count as `N+` and EP as partial, and the flow check says so |
-| Pairwise (2-wise) | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
+| All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the panel shows the All count as `N+` and the plan line says it is partial, and the flow check says so |
+| Pairwise (2-wise), the default | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
 | Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
 
-The header of the scenario frame always shows the counts of all four modes, so
+The header of the scenario frame always shows the counts of all three modes, so
 you can compare them.
 
 ### What each mode guarantees
@@ -491,7 +488,6 @@ take it on trust. The panel shows an `ERROR` if any mode ever misses what it pro
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |
 | All | every path, up to 1,000 (past that: the first 1,000, plus a path found for each choice, loop end and pair the first 1,000 missed) | every path while under 1,000 | every path past 1,000 |
-| EP | one scenario per group of paths that use the same choices once `variant` choices are left out (order ignored), then one more for any choice or loop end still uncovered | every choice, every loop at its full `max`, and every group your `variant` marks define | every pair of choices |
 | Pairwise | greedy: take the scenario that covers the most choices, loop ends and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, every loop at its full `max`, and every pair of choices that can share a path | three choices together, order, every number of rounds in between |
 | Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice and loop end is covered | every choice, every loop at its full `max` | any two choices together, every number of rounds in between |
 
@@ -520,10 +516,6 @@ C(k, r)·q^r paths (C is "k choose r", the number of ways to pick r different ch
 
 For k = 3 choices, m = 2 and nothing in between (q = 1): 3 + 3 + 1 = 7, against
 3 + 9 + 27 = 39 without `distinct`.
-
-**EP.** The number of scenarios is the number of different sets of non-`variant`
-choices on the paths (a `variant` choice that sets a tag another choice on the path `needs` still counts),
-plus a few more where a choice would otherwise be left out.
 
 **Each and Pairwise (greedy set cover).** Each scenario "covers" some items: its
 choices (Each), or its choices and every pair of its choices (Pairwise). Greedy keeps
@@ -603,7 +595,7 @@ How to read it:
   not cover.
 
 A frame holds up to 10 scenarios; more are drawn in more frames, one under the other. A
-decision table is drawn for at most 60 scenarios: pick EP, Pair or Each for a bigger flow,
+decision table is drawn for at most 60 scenarios: pick Pair or Each for a bigger flow,
 or press **Copy decision table** to get it as text for a spreadsheet with no limit.
 A flow with no step that has two or more choices has no decision table.
 
@@ -687,7 +679,7 @@ every push and pull request:
 - `test/specs.test.ts`: the specs themselves: rule IDs are unique and every rule a
   test names exists. `npm run spec:coverage` lists the rules no test names yet.
 - `test/oracle.test.ts`: the scenario generator against a second, independent
-  enumerator on random flows, plus checks that EP, Pair and Each keep every choice and
+  enumerator on random flows, plus checks that Pair and Each keep every choice and
   pair, and `distinct` against its closed form.
 - `test/property.test.ts`: rules that hold for every flow, with flows made by
   fast-check: writing a flow and reading it back, scenario IDs, the modes, loops and
@@ -701,7 +693,7 @@ release, check by hand in Drawdy (about five minutes):
 
 1. Add the dev server, allow the permissions, click the extension's button: the
    panel opens in English.
-2. Type a flow with `setup:` / `data:` / `expect:`: the counts and the "Mode EP: N
+2. Type a flow with `setup:` / `data:` / `expect:`: the counts and the "Mode Pair: N
    scenarios" line appear; a typo shows `Line N: ...`.
 3. **Flow + Scenarios** with **Place: By hand**: an outline follows the pointer and the
    view does not move. Pan the board (nothing is placed), then click an empty spot: a

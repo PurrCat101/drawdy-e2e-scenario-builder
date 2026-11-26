@@ -45,7 +45,7 @@ packages).
   5000 or more before a release). Labels are generated with `[`, `]` and `\` in them.
 
 - **TEST-13** `test/golden.test.ts` keeps a snapshot (`test/golden/pipeline.json`) of what the
-  whole pipeline gives for a few fixed flows (a loop flow, a quantity flow with `variant`,
+  whole pipeline gives for a few fixed flows (a loop flow, a quantity flow,
   the template): for each mode the scenarios and their IDs, the coverage and requirement
   lines, the copied test steps and decision table, and every element the board drawing
   sends to Drawdy, as short fingerprints, with the counts and IDs in full. A change that

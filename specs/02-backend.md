@@ -36,7 +36,7 @@ There is no server: nothing leaves the user's browser.
 
   | Message | Fields | Meaning |
   | --- | --- | --- |
-  | `counts` | `counts` {all, ep, pair, min} or null, `steps`, `capped` (past the limit, UI-46), `issues`, `ms`, `from` ("note" or absent) | the counts and issues to show |
+  | `counts` | `counts` {all, pair, min} or null, `steps`, `capped` (past the limit, UI-46), `issues`, `ms`, `from` ("note" or absent) | the counts and issues to show |
   | `counting` | | the selected note is changing; counts will follow |
   | `recount` | | the note was unselected; count your paste box again |
   | `target` | `kind`, `n` | the selection (UI-30) |
@@ -122,7 +122,7 @@ Code: `src/placement.ts`.
   scenario notes selected, only those scenarios; with several `@builder` notes selected,
   one table for each. Nothing is drawn, and the status says why, when the flow has no
   step with two or more choices ("Cannot draw a decision table: ...") or when there are
-  more than 60 scenarios ("Could not draw: ... pick EP, Pair or Each, or press Copy decision
+  more than 60 scenarios ("Could not draw: ... pick Pair or Each, or press Copy decision
   table"). On success the
   status is "Decision table drawn (N scenarios)" and the view flies to the table.
 - **DRV-58** Copy decision table: sends `clip` with the text of the decision table (OUT-64)
@@ -155,8 +155,8 @@ Code: `src/placement.ts`.
   give a table each, in one frame. On success the status is "Steps list drawn (N steps)".
   A selected table is not a source (UI-31); Copy to clipboard copies a selected steps
   list as it copies any table (DRV-25) and says "Copied N steps".
-- **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
-  wins over the panel's switch.
+- **DRV-26** A mode written in the text (`@all`, `@pair`, `@min`, one-line form)
+  wins over the panel's switch. `@ep` is not a mode any more (SYN-22).
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the
   box first, or select a sticky note on the board"; when a selection is not usable, a
   red hint text box explains what to select and describes what is selected.

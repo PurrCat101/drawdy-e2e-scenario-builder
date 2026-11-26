@@ -35,7 +35,7 @@ The README's "Text syntax" is the user's guide to the same rules.
   can be `->`, `→` or `=>`; `back N` is an older spelling of `loop to step N`.
   `max` is clamped to 1 … 9 and only means something on a loop.
 - **SYN-13** Options in square brackets at the end, separated by `,` or `;`: `P1`
-  `P2` `P3`, `variant`, `negative` (or `neg`), `distinct`, `sets a b`, `needs …` with
+  `P2` `P3`, `negative` (or `neg`), `distinct`, `sets a b`, `needs …` with
   `and`, `or`, `not`/`!`. To use a `[` in a label, write `\[`: it is read as a plain
   `[`, never as the start of the options (a `\` before any other character is kept as
   it is). `sets` and `needs` can also be written as fields on their own lines (SYN-17);
@@ -73,9 +73,15 @@ The README's "Text syntax" is the user's guide to the same rules.
 - **SYN-20** `Step (a | b) > Step (c | d)`: steps separated by `>`, choices in
   parentheses separated by `|`. `!label` ends negative, `-label` is negative and
   continues, `~N label` loops back to step N (`~` alone: the same step), options in
-  `[ ]` as `P1 tag=x need=a,b variant max=2` (`need`: `,` and, `/` or, `!` not).
-- **SYN-21** A first word `@ep`, `@all`, `@pair` or `@min` picks the mode for that
+  `[ ]` as `P1 tag=x need=a,b max=2` (`need`: `,` and, `/` or, `!` not).
+- **SYN-21** A first word `@all`, `@pair` or `@min` picks the mode for that
   text, over the panel's switch.
+- **SYN-22** Two things of version 0.5.0 are gone with EP (CALC-39) and are read, said so,
+  and not used, so an old text still reads: the option `variant` (in `[ ]`, either form)
+  gives the warning `"variant" was removed (EP mode is gone, version 0.6.0); it is
+  ignored, delete it`, and a first word `@ep` in the one-line form is stripped and gives
+  `@ep is not used (EP mode was removed, version 0.6.0); pick the mode in the panel`.
+  Writing a flow back never writes `variant`.
 
 ## Reading problems
 
@@ -95,12 +101,12 @@ The README's "Text syntax" is the user's guide to the same rules.
   `[...]` and has no options gets an empty `[]` after it, so the label is not read as
   options. A `[` with no `]` after it, or after a backslash, is written `\[` (SYN-13).
   A choice's `needs` and `sets` are written as `needs:` and `sets:` fields under it
-  (in that order), not in the brackets (SYN-17), before its `setup:` field; `P`, `variant`,
+  (in that order), not in the brackets (SYN-17), before its `setup:` field; `P`,
   `negative` and `distinct` stay in the brackets. The text fields are written under their
   first names, `setup:`, `data:`, `expect:` and `req:`, whichever name was read (SYN-19).
 - **SYN-41** The starter note (OUT-40) reads without any warning, has no flow check item, gives scenarios and uses
-  every kind of choice and field the syntax has (a distinct loop with max, an end, a
-  variant, sets, needs with or and not, a req); its
+  every kind of choice and field the syntax has (a distinct loop with max, an end,
+  sets, needs with or and not, a req); its
   `#` lines explain the syntax and do not change the flow. Every step has an expected
   result (`expect:`), on the step or on each of its choices, written as a value to assert
   (a number, a status, a code), and the test data is concrete (such as `user_001`), so

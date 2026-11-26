@@ -30,13 +30,13 @@ test("CORE-01: no file in src/core imports from outside it, from @drawdy or node
 });
 
 test("CORE-02 CORE-10: buildReport gives plain data with the flow, counts, scenarios and both copy texts", () => {
-    const r = buildReport(TEMPLATES[0].text, "ep");
+    const r = buildReport(TEMPLATES[0].text, "pair");
     const back = JSON.parse(JSON.stringify(r));
     assert.deepEqual(back.counts, r.counts);
     assert.equal(back.scenarios.length, r.scenarios.length);
     assert.equal(back.stepsTsv, r.stepsTsv);
     assert.equal(back.decisionTsv, r.decisionTsv);
-    assert.ok(r.scenarios.length > 0 && r.scenarios.length === r.counts.ep, "EP picks as many as its count says");
+    assert.ok(r.scenarios.length > 0 && r.scenarios.length === r.counts.pair, "Pair picks as many as its count says");
     const ids = r.scenarios.map((s) => s.id);
     assert.equal(new Set(ids).size, ids.length, "IDs are unique");
     for (const s of r.scenarios) {
@@ -50,7 +50,7 @@ test("CORE-02 CORE-10: buildReport gives plain data with the flow, counts, scena
 });
 
 test("CORE-10: every mode of buildReport picks as many scenarios as the counts say", () => {
-    for (const mode of ["all", "ep", "pair", "min"] as const) {
+    for (const mode of ["all", "pair", "min"] as const) {
         const r = buildReport(TEMPLATES[0].text, mode);
         assert.equal(r.scenarios.length, r.counts[mode], mode);
         assert.equal(r.mode, mode);
@@ -66,7 +66,7 @@ test("CORE-10: a flow with no step that decides has no decision table", () => {
 test("CORE-11: the report has the scenarios, order and copied text the pieces give for the same text and mode", () => {
     const text = TEMPLATES[0].text;
     const flow = parseFlowText(text).flow;
-    for (const mode of ["all", "ep", "pair", "min"] as const) {
+    for (const mode of ["all", "pair", "min"] as const) {
         const shown = orderScenarios(pick(generate(flow), mode));
         const r = buildReport(text, mode);
         assert.deepEqual(r.scenarios.map((s) => s.id), shown.map((s) => s.id), mode);
@@ -82,14 +82,14 @@ test("CORE-11: the report has the scenarios, order and copied text the pieces gi
 
 test("CORE-12: a text with no step gives no scenarios and does not throw", () => {
     for (const text of ["", "   \n", "@builder\n"]) {
-        const r = buildReport(text, "ep");
+        const r = buildReport(text, "pair");
         assert.equal(r.scenarios.length, 0, JSON.stringify(text));
-        assert.deepEqual(r.counts, { all: 0, ep: 0, pair: 0, min: 0 }, JSON.stringify(text));
+        assert.deepEqual(r.counts, { all: 0, pair: 0, min: 0 }, JSON.stringify(text));
         assert.equal(r.decisionTsv, null);
         assert.ok(r.warnings.length > 0, "says why: " + JSON.stringify(text));
     }
     // any other text is read as one step
-    assert.equal(buildReport("just some words", "ep").scenarios.length, 1);
+    assert.equal(buildReport("just some words", "pair").scenarios.length, 1);
 });
 
 test("OUT-67 CORE-10: the steps list has a row per choice, a row per step with no choice, and the requirement IDs of step and choice", () => {

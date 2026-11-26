@@ -29,7 +29,6 @@ const SHOP = `@builder
 # -> end            the flow stops here: a negative scenario
 # -> loop to step 2 max 1   go back to step 2, at most 1 round
 # [distinct]        on a loop: a round offers only choices not picked yet
-# [variant]         choices marked variant do not multiply each other in EP
 # [negative]        a choice that fails but the flow goes on
 # needs: x          a choice only a path with tag x can take (and, or, not / !)
 # sets: x           this choice tags the path with x
@@ -49,10 +48,10 @@ const SHOP = `@builder
 2. Select Products
    req: R-02
    setup: the catalog has SKU-001 Shirt 20.00 and SKU-002 Shoes 50.00, both in stock
-   - Shirt [variant]
+   - Shirt
      data: SKU-001, quantity 1
      expect: the product page shows price 20.00
-   - Shoes [variant]
+   - Shoes
      data: SKU-002, quantity 1
      expect: the product page shows price 50.00
 3. Add to Shopping Cart

@@ -1,4 +1,4 @@
-import type { Mode } from "./core/flow";
+import { modeOr, type Mode } from "./core/flow";
 import { hasMarker } from "./core/syntax";
 import { previewOf } from "./core/preview";
 import { templateById } from "./core/templates";
@@ -134,7 +134,7 @@ export async function onPanelMessage(m: any) {
     setBusy(true);
     try {
         const text = String(m.text ?? "").trim();
-        const uiMode: Mode = ["ep", "all", "pair", "min"].includes(m.mode) ? m.mode : "ep";
+        const uiMode: Mode = modeOr(m.mode, "pair");
         let status = "";
         // a new press replaces a block still waiting to be placed
         await cancelPlacement();

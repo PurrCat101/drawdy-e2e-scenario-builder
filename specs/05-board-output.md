@@ -37,7 +37,7 @@ the board, `src/actions.ts` decides what to draw for each button.
 - **OUT-21** A header note first (a text box, blue; pink when the flow check has errors), with:
   1. the mode name;
   2. `N of M paths · H happy · K negative`;
-  3. `All a · EP b · Pairwise c · Each-Choice d`;
+  3. `All a · Pairwise c · Each-Choice d`;
      past the limit (CALC-20, CALC-24) line 2 reads `N of M listed paths (the flow has
      more) · …` and line 3 reads `All a+ · …`;
   4. the coverage line: `Coverage of N scenarios: choice x/y (p%) · loop end x/y (p%)
@@ -53,8 +53,7 @@ the board, `src/actions.ts` decides what to draw for each button.
   colour: pink = Negative, orange = Happy with loops, green = other Happy.
 - **OUT-23** A scenario note is itself in the flow syntax: `@builder`, `@title <ID> ·
   Happy|Negative · P<n>[ · via negative][ · loop xN]`, then the steps it passes with
-  only the choice it takes and their fields (no priority, tags or rules). An EP note
-  ends with `# also stands for N similar` when it represents others.
+  only the choice it takes and their fields (no priority, tags or rules).
 - **OUT-24** Selecting a scenario note and pressing Flow draws that scenario's flow
   and its table (DRV-23).
 - **OUT-25** Requirements: `Requirements: x/y covered`, then for up to 12

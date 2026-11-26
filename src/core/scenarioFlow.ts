@@ -84,7 +84,6 @@ export function scenarioFromText(
                 tags: "",
                 need: "",
                 pri: "",
-                variant: false,
             });
         });
         return { id: idOf(n), name: mine[0].name, conds };

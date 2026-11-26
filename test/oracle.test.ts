@@ -46,7 +46,6 @@ function randomFlow(r: ReturnType<typeof rng>, loops = true): Flow {
                 tags: r.next() < 0.3 ? TAGS[r.int(0, 2)] : "",
                 need,
                 pri: "",
-                variant: r.next() < 0.3,
             });
         }
         steps.push({ id: `s${i}`, name: `S${i}`, conds });
@@ -124,7 +123,7 @@ test("CALC-01 CALC-02 CALC-03 CALC-05 CALC-07 CALC-08 CALC-10 CALC-11 CALC-20: t
     assert.ok(compared > 1000, "enough flows were small enough to compare: " + compared);
 });
 
-test("CALC-30 CALC-31 CALC-33 CALC-34 CALC-36: EP, Pair and Each only choose from All, and keep every choice, loop end and pair they promise", () => {
+test("CALC-30 CALC-33 CALC-34 CALC-36: Pair and Each only choose from All, and keep every choice, loop end and pair they promise", () => {
     const r = rng(77);
     const idsOf = (list: { path: { c: Cond | null }[] }[]) => {
         const x = new Set<string>();
@@ -145,7 +144,7 @@ test("CALC-30 CALC-31 CALC-33 CALC-34 CALC-36: EP, Pair and Each only choose fro
         if (!g.list.length || g.capped) continue;
         checked++;
         const all = idsOf(g.list);
-        for (const mode of ["ep", "pair", "min"] as const) {
+        for (const mode of ["pair", "min"] as const) {
             const sel = pick(g, mode);
             const allIds = new Set(g.list.map((sc) => sc.id));
             assert.ok(sel.every((sc) => allIds.has(sc.id)), mode + ": only scenarios that All lists");
@@ -157,7 +156,7 @@ test("CALC-30 CALC-31 CALC-33 CALC-34 CALC-36: EP, Pair and Each only choose fro
         for (const p of pairsOf(g.list)) assert.ok(got.has(p), `pair: ${p} is still covered`);
         // the last round of every loop (max 2 or more) that All has
         const ends = new Set(g.list.flatMap((sc) => singles(sc).filter((x) => x.startsWith("end:"))));
-        for (const mode of ["ep", "pair", "min"] as const) {
+        for (const mode of ["pair", "min"] as const) {
             const have = new Set(pick(g, mode).flatMap((sc) => singles(sc)));
             for (const e of ends) assert.ok(have.has(e), `${mode}: ${e} is covered`);
         }
@@ -172,7 +171,7 @@ test("CALC-17: distinct matches the closed form: picking k items over at most m+
         return Math.round(x);
     };
     const cond = (id: string, over: Partial<Cond> = {}): Cond => ({
-        id, label: id, neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", variant: false, ...over,
+        id, label: id, neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", ...over,
     });
     for (let k = 1; k <= 5; k++)
         for (let m = 1; m <= 4; m++) {
@@ -197,7 +196,7 @@ test("CALC-12 CALC-17: distinct, in general: sum over r of C(k, r) * q^r (plain 
         return Math.round(x);
     };
     const c = (id: string, over: Partial<Cond> = {}): Cond => ({
-        id, label: id, neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", variant: false, ...over,
+        id, label: id, neg: false, action: "next", target: null, max: 1, tags: "", need: "", pri: "", ...over,
     });
     const build = (k: number, q: number, m: number, distinct: boolean): Flow => ({
         steps: [
@@ -274,7 +273,6 @@ function bigFlow(r: ReturnType<typeof rng>): Flow {
                 tags: r.next() < 0.25 ? TAGS[r.int(0, 2)] : "",
                 need: r.next() < 0.2 ? lit() : "",
                 pri: "",
-                variant: r.next() < 0.3,
             });
         }
         steps.push({ id: `s${i}`, name: `S${i}`, conds });
@@ -309,7 +307,7 @@ test("CALC-21 CALC-23: past the limit, every mode still covers every choice and 
             flow.steps.flatMap((s) => s.conds.map((c) => c.id)).filter((id) => !can.has(id)).sort(),
             "unreachable = what no path takes"
         );
-        for (const mode of ["ep", "pair", "min"] as const) {
+        for (const mode of ["pair", "min"] as const) {
             const got = new Set<string>();
             pick(g, mode).forEach((sc) => sc.path.forEach((v) => v.c && got.add(v.c.id)));
             for (const id of can) assert.ok(got.has(id), `${mode} covers ${id}`);

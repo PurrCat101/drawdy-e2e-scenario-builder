@@ -10,11 +10,11 @@ control: flows are written on the board, not in the panel.
 - **UI-01** Title "E2E Scenario Builder".
 - **UI-02** The target line: what the buttons will use, from the board selection
   (UI-30).
-- **UI-03** Counts: steps, All, EP, Pairwise, Each-Choice, for the selected flow note
+- **UI-03** Counts: steps, All, Pairwise, Each-Choice, for the selected flow note
   or the paste box (UI-40), then the issues line (flow problems, tip, errors).
 - **UI-04** The plan line: "Mode X: N scenarios". Above 50 it adds "(a lot; the board
   may get slow. …)", naming only the modes that would draw fewer, fewest first.
-- **UI-05** The mode switch: All, EP (default), Pair, Each.
+- **UI-05** The mode switch: All, Pair (default), Each.
 - **UI-06** Under the Place switch (UI-60), the action buttons, in three groups, each under a small heading: **Draw**
   (Flow, Scenarios, Flow + Scenarios, which is primary and full width), **Tables** (Test
   steps, Steps list and Decision table, each full width) and **Export** (Copy to clipboard and
@@ -95,14 +95,13 @@ control: flows are written on the board, not in the panel.
 ## Big flows and modes
 
 - **UI-46** When the flow is past the limit (CALC-20, CALC-24): the All count reads
-  `N+`, the EP count `N (partial)`, the plan line of All and EP adds "(partial: not
-  every path is listed)", and a limit line says "Too big to list every path. Pair and
+  `N+`, the plan line of All adds "(partial: not every path is listed)", and a limit line says "Too big to list every path. Pair and
   Each still cover the flow; add needs / sets to cut paths." When the search could not
   finish (CALC-22) it says "Too big to list every path: some choices or pairs may be
   missing (see the flow check)." instead, and never claims coverage.
-- **UI-47** Under the mode switch, one line says what the chosen mode picks. For EP:
-  "EP: groups paths that differ only in [variant] choices, and still uses every
-  choice."
+- **UI-47** Under the mode switch, one line says what the chosen mode picks: "All: every path
+  the flow allows.", "Pair: every choice, and every pair of choices that can meet.",
+  "Each: every choice at least once."
 
 ## Placing
 

@@ -29,7 +29,7 @@ const FLOW = `@builder
    - no funds -> end
 `;
 
-const table = (text: string, mode: "all" | "ep" | "pair" | "min" = "all") => {
+const table = (text: string, mode: "all" | "pair" | "min" = "all") => {
     const flow = parseFlowText(text).flow;
     const list = pick(generate(flow), mode);
     return { flow, list, dt: buildDecisionTable(flow, list) };
@@ -48,7 +48,7 @@ test("CALC-90: a condition is a step with two or more choices; its values are it
 
 test("CALC-90: the starter template has a condition for every step with two or more choices", () => {
     const flow = parseFlowText(TEMPLATES[0].text).flow;
-    const dt = buildDecisionTable(flow, pick(generate(flow), "ep"));
+    const dt = buildDecisionTable(flow, pick(generate(flow), "pair"));
     assert.equal(dt.conditions.length, flow.steps.filter((s) => s.conds.length >= 2).length);
     assert.ok(dt.conditions.length >= 8);
 });
@@ -95,7 +95,7 @@ test("CALC-94: a flow without a step that decides has no condition", () => {
 
 test("CALC-91: the modes give their own scenarios as columns", () => {
     const all = table(FLOW, "all").dt.columns.length;
-    const ep = table(FLOW, "ep").dt.columns.length;
+    const ep = table(FLOW, "pair").dt.columns.length;
     const min = table(FLOW, "min").dt.columns.length;
     assert.ok(all >= ep && ep >= min && min >= 1);
 });
@@ -124,7 +124,7 @@ test("CALC-92: a label with a tab, a quote or a line break is quoted in the TSV"
 
 /* ------------------------------ drawing (OUT-60 to 64) ------------------------------ */
 
-const draw = (text: string, mode: "all" | "ep" | "pair" | "min" = "all") => {
+const draw = (text: string, mode: "all" | "pair" | "min" = "all") => {
     const { flow, dt } = table(text, mode);
     let n = 0;
     const out = renderDecisionTables({ table: dt, flow, mode, name: "Decision table · All Paths", origin: [100, 200], generateId: () => "e" + ++n });
@@ -153,9 +153,9 @@ test("OUT-60: a decision table is plain text boxes with a fill and black text, i
 });
 
 test("OUT-61: Success and Negative bars, a box named by the scenario ID for each column, at most 10 columns a frame", () => {
-    const { dt, frames, boxes } = draw(TEMPLATES[0].text, "ep");
+    const { dt, frames, boxes } = draw(TEMPLATES[0].text, "all");
     const n = dt.columns.length;
-    assert.ok(n > 10, "the template makes more than 10 scenarios in EP");
+    assert.ok(n > 10, "the template makes more than 10 scenarios in All");
     assert.equal(frames.length, Math.ceil(n / 10));
     frames.slice(0, -1).forEach((f) => assert.match(f.name, /Scenarios \d+ to \d+ of \d+$/));
     // a box for every column, named by its scenario ID, once
@@ -173,14 +173,14 @@ test("OUT-61: Success and Negative bars, a box named by the scenario ID for each
 });
 
 test("OUT-65: column k of the decision table and note k of the Scenarios frame are the same scenario", () => {
-    for (const [text, mode] of [[FLOW, "all"], [TEMPLATES[0].text, "ep"], [TEMPLATES[0].text, "pair"], [TEMPLATES[0].text, "min"]] as const) {
+    for (const [text, mode] of [[FLOW, "all"], [TEMPLATES[0].text, "all"], [TEMPLATES[0].text, "pair"], [TEMPLATES[0].text, "min"]] as const) {
         const flow = parseFlowText(text).flow;
         const gen = generate(flow);
         const shown = pick(gen, mode);
         let n = 0;
         const id = () => `i${n++}`;
         const board = renderScenarios({
-            flow, mode, shown, gen, counts: { all: 1, ep: 1, pair: 1, min: 1 }, issues: [], origin: [0, 0], generateId: id,
+            flow, mode, shown, gen, counts: { all: 1, pair: 1, min: 1 }, issues: [], origin: [0, 0], generateId: id,
         });
         const noteIds = (board.elements as any[]).filter((e) => e.meta && e.meta.kind === "scenario").map((e) => e.meta.id);
         const dt = buildDecisionTable(flow, shown);
@@ -189,10 +189,10 @@ test("OUT-65: column k of the decision table and note k of the Scenarios frame a
 });
 
 test("OUT-66: every frame keeps the flow and mode, and every column head is a scenario with its path and mode", () => {
-    const { flow, dt, frames, boxes } = draw(TEMPLATES[0].text, "ep");
+    const { flow, dt, frames, boxes } = draw(TEMPLATES[0].text, "all");
     assert.ok(frames.length > 1, "a table in several frames");
     for (const f of frames) {
-        assert.equal(f.meta.mode, "ep");
+        assert.equal(f.meta.mode, "all");
         assert.deepEqual(f.meta.flow, flow);
     }
     const heads = boxes.filter((b) => b.meta?.kind === "scenario");
@@ -200,7 +200,7 @@ test("OUT-66: every frame keeps the flow and mode, and every column head is a sc
     heads.forEach((h, k) => {
         const c = dt.columns[k];
         assert.equal(h.text, c.id);
-        assert.deepEqual(h.meta, { kind: "scenario", id: c.id, type: c.type, pri: c.pri, path: c.path, mode: "ep" });
+        assert.deepEqual(h.meta, { kind: "scenario", id: c.id, type: c.type, pri: c.pri, path: c.path, mode: "all" });
         // the head sits in the frame that holds the flow
         assert.ok(frames.some((f) => f.drawdyElementId === h.frameId));
     });
@@ -244,7 +244,7 @@ test("OUT-60 OUT-62: the boxes of a frame stay inside it, do not overlap, and ar
 });
 
 test("OUT-64: every frame carries the TSV of the whole table and the number of scenarios", () => {
-    const { dt, frames } = draw(TEMPLATES[0].text, "ep");
+    const { dt, frames } = draw(TEMPLATES[0].text, "all");
     assert.ok(frames.length > 1);
     for (const f of frames) {
         assert.equal(f.meta.e2eDecision, true);
@@ -254,7 +254,7 @@ test("OUT-64: every frame carries the TSV of the whole table and the number of s
 });
 
 test("OUT-61: frames of one table are one under the other, the same width at the left edge, and do not overlap", () => {
-    const { frames } = draw(TEMPLATES[0].text, "ep");
+    const { frames } = draw(TEMPLATES[0].text, "all");
     for (let i = 1; i < frames.length; i++) {
         assert.equal(frames[i].position[0], frames[0].position[0]);
         assert.ok(frames[i].position[1] >= frames[i - 1].position[1] + frames[i - 1].height, "a frame starts below the one before");

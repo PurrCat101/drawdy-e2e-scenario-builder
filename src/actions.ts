@@ -1,4 +1,4 @@
-import type { Flow, Mode } from "./core/flow";
+import { modeOr, type Flow, type Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
 import { renderScenarioTables } from "./scenarioTable";
 import { flowStepRows, scenariosToTsv, type ScenarioItem } from "./core/testSteps";
@@ -119,7 +119,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
     const flowFrame = sel.find((x) => x.meta?.e2eFlow);
     if (frame) {
-        const mode = (frame.meta.mode as Mode) ?? uiMode;
+        const mode = modeOr(frame.meta.mode, uiMode);
         fromList(frame.meta.flow as Flow, mode);
         anchor = frame;
         label = `Test steps · ${mode.toUpperCase()}`;
@@ -232,7 +232,7 @@ async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSour
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
     const flowFrame = sel.find((x) => x.meta?.e2eFlow);
     const of = (flow: Flow, mode: Mode, anchor: Box): DecisionSource => ({ flow, mode, scenarios: analyze(flow).pick(mode), anchor });
-    if (frame) return [of(frame.meta.flow as Flow, (frame.meta.mode as Mode) ?? uiMode, frame)];
+    if (frame) return [of(frame.meta.flow as Flow, modeOr(frame.meta.mode, uiMode), frame)];
     if (scenarioNotes.length) {
         // the notes of the first frame: their flow is stored on it
         const first = scenarioNotes[0];
@@ -241,7 +241,7 @@ async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSour
         if (!flow?.steps?.length) return "Could not draw: the selected scenario notes no longer know their flow";
         // the notes' paths, not their IDs, say which scenarios they are: an ID counts within
         // one mode (CALC-57), so it is not unique across modes (OUT-66)
-        const mode = (fr?.meta?.mode as Mode) ?? uiMode;
+        const mode = modeOr(fr?.meta?.mode, uiMode);
         const key = (path: unknown) => JSON.stringify(path);
         const paths = new Set(scenarioNotes.filter((p) => p.frameId === first.frameId).map((p) => key(p.meta.path)));
         const scenarios = analyze(flow).pick(mode).filter((s) => paths.has(key(scenarioPath(s))));
@@ -278,7 +278,7 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
         const dt = buildDecisionTable(src.flow, src.scenarios);
         if (!dt.conditions.length) return "Cannot draw a decision table: the flow has no step with two or more choices";
         if (dt.columns.length > MAX_DECISION_SCENARIOS)
-            return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each, or press Copy decision table`;
+            return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick Pair or Each, or press Copy decision table`;
         const name = `Decision table · ${MODE_LABEL[src.mode]}`;
         const size = renderDecisionTables({ table: dt, flow: src.flow, mode: src.mode, name, origin: [0, 0], generateId });
         const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
@@ -322,7 +322,7 @@ const HINT_BOARD =
     "Notes that do not start with @builder are not read";
 
 /** Button 1: flow diagram + scenarios from the selected notes, or scenarios again. */
-export async function actionBoard(sel: Picked[], uiMode: Mode = "ep", withFlow = true) {
+export async function actionBoard(sel: Picked[], uiMode: Mode = "pair", withFlow = true) {
     if (!sel.length) {
         await note(HINT_BOARD, 0, 0, "red");
         return;

@@ -7,7 +7,7 @@
 import type { Flow, Mode } from "./flow";
 import { generate, pick, validate, type Generated, type Issue, type Scenario } from "./scenarios";
 
-export type Counts = { all: number; ep: number; pair: number; min: number };
+export type Counts = { all: number; pair: number; min: number };
 
 export type Analysis = {
     flow: Flow;
@@ -59,7 +59,6 @@ function build(flow: Flow, budgetMs: number): Analysis {
         counts() {
             return (counts ??= {
                 all: gen.list.length,
-                ep: a.pick("ep").length,
                 pair: a.pick("pair").length,
                 min: a.pick("min").length,
             });

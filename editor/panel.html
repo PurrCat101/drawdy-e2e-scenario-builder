@@ -68,12 +68,11 @@
     <span class="lbl">Mode</span>
     <span class="seg" id="mode">
       <button data-m="all" title="Every path">All</button>
-      <button data-m="ep" class="on" title="Equivalence Partitioning (default)">EP</button>
-      <button data-m="pair" title="Pairwise (2-wise)">Pair</button>
+      <button data-m="pair" class="on" title="Pairwise (2-wise) (default)">Pair</button>
       <button data-m="min" title="Each-Choice (1-wise)">Each</button>
     </span>
   </div>
-  <div class="hint" id="modehint">EP: groups paths that differ only in [variant] choices, and still uses every choice.</div>
+  <div class="hint" id="modehint">Pair: every choice, and every pair of choices that can meet.</div>
 
   <div class="row">
     <span class="lbl">Place</span>
@@ -131,14 +130,14 @@
     <p>The first line of a sticky note must be <code>@builder</code> (not needed in the paste box)</p>
     <p><code>1. Step name</code> · <code>- choice</code> · fields <code>setup:</code> <code>data:</code> <code>expect:</code> <code>req:</code></p>
     <p>After a choice: <code>-&gt; end</code> (ends the flow) · <code>-&gt; loop</code> (same step again) · <code>-&gt; loop to step 3</code> (back to step 3) · <code>max 2</code> (most rounds)</p>
-    <p>In <code>[ ]</code>: <code>P1</code> <code>variant</code> <code>negative</code> <code>sets lv1</code> <code>needs !a or b</code></p>
+    <p>In <code>[ ]</code>: <code>P1</code> <code>negative</code> <code>sets lv1</code> <code>needs !a or b</code></p>
   </details>
 
 <script>
 (function () {
   var api = acquireDrawdyApi();
   var $ = function (id) { return document.getElementById(id); };
-  var mode = 'ep';
+  var mode = 'pair';
   var timer = null;
   // by hand: the result follows the pointer until a click; auto: free space and fly to it
   var place = 'hand';
@@ -150,14 +149,13 @@
     s.className = 'status' + (bad ? ' bad' : '');
   }
   var lastCounts = null;
-  var MODE_NAME = { ep: 'EP', all: 'All', pair: 'Pair', min: 'Each' };
+  var MODE_NAME = { all: 'All', pair: 'Pair', min: 'Each' };
   var MODE_HINT = {
     all: 'All: every path the flow allows.',
-    ep: 'EP: groups paths that differ only in [variant] choices, and still uses every choice.',
     pair: 'Pair: every choice, and every pair of choices that can meet.',
     min: 'Each: every choice at least once.'
   };
-  // the flow is too big to list every path: All is a part of it, and EP may miss groups
+  // the flow is too big to list every path: All is a part of it
   var capped = false;
   // one line per issue, coloured by kind; past the first two, the rest fold away so
   // the buttons stay in view in Drawdy's small window
@@ -192,11 +190,11 @@
     var n = lastCounts[mode];
     var many = n > 50;
     // suggest only modes that would draw fewer scenarios than the one picked
-    var fewer = ['ep', 'pair', 'min']
+    var fewer = ['pair', 'min']
       .filter(function (m) { return m !== mode && lastCounts[m] < n; })
       .sort(function (a, b) { return lastCounts[a] - lastCounts[b]; })
       .map(function (m) { return MODE_NAME[m] + ' has ' + lastCounts[m]; });
-    var partial = capped && (mode === 'all' || mode === 'ep');
+    var partial = capped && mode === 'all';
     el.textContent = 'Mode ' + MODE_NAME[mode] + ': ' + n + ' scenarios' +
       (partial ? ' (partial: not every path is listed)' : '') +
       (many ? ' (a lot; the board may get slow' + (fewer.length ? '. ' + fewer.join(', ') : '') + ')' : '');
@@ -347,7 +345,6 @@
         }
         box.appendChild(chip('steps', m.steps));
         box.appendChild(chip('All', m.capped ? m.counts.all + '+' : m.counts.all));
-        box.appendChild(chip('EP', m.capped ? m.counts.ep + ' (partial)' : m.counts.ep));
         box.appendChild(chip('Pairwise', m.counts.pair));
         box.appendChild(chip('Each-Choice', m.counts.min));
       }
@@ -361,7 +358,7 @@
       }
       box.style.opacity = '';
       capped = !!m.capped;
-      lastCounts = m.counts ? { all: m.counts.all, ep: m.counts.ep, pair: m.counts.pair, min: m.counts.min } : null;
+      lastCounts = m.counts ? { all: m.counts.all, pair: m.counts.pair, min: m.counts.min } : null;
       updatePlan();
       updateTarget();
       showIssues(m.issues || []);

@@ -3,7 +3,7 @@
 // The sample flow is a shop checkout with the same structure as a real, large
 // flow (12 steps, loops, negative ends, tags and `need` rules). Written in both
 // forms it must give the same flow, and the scenario counts must stay
-// All 231 / EP 29 / Pairwise 17 / Each-Choice 11.
+// All 231 / Pairwise 17 / Each-Choice 11.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -19,14 +19,14 @@ import { validate } from "../src/core/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
-    "Check the account (Verified level 1 [tag=lv1 variant P1] | Verified level 2 [tag=lv2 variant P1] | !Not verified [P1] | !Under review [P2]) >",
-    "Pick from the catalog (Pick a digital item [variant] | Pick a normal item [variant] | Pick a premium item [variant tag=premium P1]) >",
+    "Check the account (Verified level 1 [tag=lv1 P1] | Verified level 2 [tag=lv2 P1] | !Not verified [P1] | !Under review [P2]) >",
+    "Pick from the catalog (Pick a digital item | Pick a normal item | Pick a premium item [tag=premium P1]) >",
     "Add to bag >",
-    "Buy more? (~3 Pick more [P2 variant] | Done shopping) >",
+    "Buy more? (~3 Pick more [P2] | Done shopping) >",
     "Open the bag and check out >",
     "Purchase rules API (All rules pass [need=!premium/lv2 P1] | !Level required [need=premium,lv1 P1] | !Service down 503 [P2] | !Out of stock [need=!premium/lv2 P2] | !Not enough funds [need=!premium/lv2 P1]) >",
     "Save purchase and shipment pending >",
-    "Shipping worker creates label (Got tracking number [P1] | -~9 Provider down retry [P2 variant max=2] | !Retries used up [P2]) >",
+    "Shipping worker creates label (Got tracking number [P1] | -~9 Provider down retry [P2 max=2] | !Retries used up [P2]) >",
     "Check the orders page >",
     "Provider updates the shipment >",
     "Delivery result (Delivered [P1] | !Delivery failed [P2])",
@@ -39,17 +39,17 @@ const BLOCKS = `@builder
    - Sign in ok [P1]
    - Sign in failed -> end [P2]
 2. Check the account
-   - Verified level 1 [P1, variant, sets lv1]
-   - Verified level 2 [P1, variant, sets lv2]
+   - Verified level 1 [P1, sets lv1]
+   - Verified level 2 [P1, sets lv2]
    - Not verified -> end [P1]
    - Under review -> end [P2]
 3. Pick from the catalog
-   - Pick a digital item [variant]
-   - Pick a normal item [variant]
-   - Pick a premium item [P1, variant, sets premium]
+   - Pick a digital item
+   - Pick a normal item
+   - Pick a premium item [P1, sets premium]
 4. Add to bag
 5. Buy more?
-   - Pick more -> loop to step 3 [P2, variant]
+   - Pick more -> loop to step 3 [P2]
    - Done shopping
 6. Open the bag and check out
 7. Purchase rules API
@@ -61,7 +61,7 @@ const BLOCKS = `@builder
 8. Save purchase and shipment pending
 9. Shipping worker creates label
    - Got tracking number [P1]
-   - Provider down retry -> loop max 2 [P2, variant, negative]
+   - Provider down retry -> loop max 2 [P2, negative]
    - Retries used up -> end [P2]
 10. Check the orders page
 11. Provider updates the shipment
@@ -83,7 +83,6 @@ const shape = (flow: Flow) =>
             tags: c.tags,
             need: c.need,
             pri: c.pri,
-            variant: c.variant,
         })),
     }));
 
@@ -91,14 +90,13 @@ const counts = (flow: Flow) => {
     const all = generate(flow).list.length;
     return {
         all,
-        ep: pick(generate(flow), "ep").length,
         pair: pick(generate(flow), "pair").length,
         min: pick(generate(flow), "min").length,
     };
 };
 
 test("SYN-16 SYN-20: the sample flow gives the same counts in both forms", () => {
-    const want = { all: 231, ep: 29, pair: 17, min: 11 };
+    const want = { all: 231, pair: 17, min: 11 };
     const compact = parseFlowText(COMPACT);
     const blocks = parseFlowText(BLOCKS);
     assert.equal(compact.format, "compact");
@@ -116,7 +114,7 @@ test("SYN-20: both forms describe the same flow", () => {
 test("CALC-06: without any option the counts are what the plain text gives", () => {
     const plain = COMPACT.replace(/ ?\[[^\]]*\]/g, "");
     const c = counts(parseFlowText(plain).flow);
-    assert.deepEqual(c, { all: 243, ep: 183, pair: 17, min: 11 });
+    assert.deepEqual(c, { all: 243, pair: 17, min: 11 });
 });
 
 test("SYN-01: only a note that starts with @builder is marked", () => {
@@ -200,7 +198,7 @@ test("SYN-30 SYN-31: mistakes are reported with their line", () => {
 @mod pair
 1. a
    datta: x
-   - ok [varient]
+   - ok [negativ]
    - bad -> loop to step 9
    - odd -> loop to step
 5. b
@@ -209,7 +207,7 @@ test("SYN-30 SYN-31: mistakes are reported with their line", () => {
     const w = r.warnings.join("\n");
     assert.match(w, /Line 2: Unknown directive @mod/);
     assert.match(w, /Line 4: Unknown field "datta:" \(did you mean data:\?\)/);
-    assert.match(w, /Line 5: Unknown option "varient" in \[ \] \(did you mean variant\?\)/);
+    assert.match(w, /Line 5: Unknown option "negativ" in \[ \] \(did you mean negative\?\)/);
     assert.match(w, /Line 6: There is no step 9 to loop to/);
     assert.match(w, /Line 7: Give the step number/);
     assert.match(w, /Line 9: Cannot read the end of the line/);
@@ -234,8 +232,8 @@ test("SYN-31: step numbers: duplicates and gaps", () => {
 });
 
 test("SYN-31: compact form: unknown options are reported", () => {
-    const r = parseFlowText("a (ok [varient] | !bad)");
-    assert.match(r.warnings.join("\n"), /unknown option "varient"/);
+    const r = parseFlowText("a (ok [negativ] | !bad)");
+    assert.match(r.warnings.join("\n"), /unknown option "negativ"/);
 });
 
 test("CALC-07 SYN-13: need in words and back", () => {
@@ -252,7 +250,7 @@ test("SYN-40: writing the flow back and reading it again gives the same flow", (
     assert.deepEqual(again.warnings, []);
     assert.deepEqual(shape(again.flow), shape(first.flow));
     assert.equal(again.title, "Shop checkout");
-    assert.deepEqual(counts(again.flow), { all: 231, ep: 29, pair: 17, min: 11 });
+    assert.deepEqual(counts(again.flow), { all: 231, pair: 17, min: 11 });
     // and writing it twice changes nothing
     assert.equal(formatFlow(again.flow, { title: again.title }), text);
 });
@@ -382,13 +380,13 @@ test("CALC-60: an empty or step-less text says so", () => {
 test("OUT-23 DRV-55: a scenario note is written in the flow syntax and reads back as that scenario", () => {
     const flow = parseFlowText(BLOCKS).flow;
     const gen = generate(flow);
-    const shown = pick(gen, "ep");
+    const shown = pick(gen, "pair");
     const out = renderScenarios({
         flow,
-        mode: "ep",
+        mode: "pair",
         shown,
         gen,
-        counts: { all: 231, ep: 29, pair: 17, min: 11 },
+        counts: { all: 231, pair: 17, min: 11 },
         issues: [],
         origin: [0, 0],
         generateId: (() => {
@@ -397,7 +395,7 @@ test("OUT-23 DRV-55: a scenario note is written in the flow syntax and reads bac
         })(),
     });
     const notes = out.elements.filter((e: any) => e.meta?.kind === "scenario") as any[];
-    assert.equal(notes.length, 29);
+    assert.equal(notes.length, 17);
     // happy first, then negative; P1 before P2 inside each group
     const types = notes.map((n) => n.meta.type);
     assert.equal(types.indexOf("neg"), types.lastIndexOf("happy") + 1);
@@ -438,7 +436,7 @@ test("OUT-31: scenario notes carry setup, data and expected result, and the tabl
         mode: "all",
         shown,
         gen,
-        counts: { all: 2, ep: 2, pair: 2, min: 2 },
+        counts: { all: 2, pair: 2, min: 2 },
         issues: [],
         origin: [0, 0],
         generateId: (() => {
@@ -528,7 +526,6 @@ test("SYN-41 OUT-40: starter templates: marked, read without warnings, make scen
     assert.ok(has((c) => c.action === "loop" && c.distinct), "a distinct loop");
     assert.ok(TEMPLATES[0].text.includes("-> loop to step 2 max 1 [distinct]"), "written with max");
     assert.ok(has((c) => c.action === "end" && c.neg), "an end (negative)");
-    assert.ok(has((c) => c.variant), "a variant");
     assert.ok(has((c) => !!c.tags), "a sets");
     assert.ok(has((c) => !!c.need && /[|,!]/.test(c.need)), "a needs with or / not");
     assert.ok(shop.steps.some((s) => s.req), "a req on a step");
@@ -717,7 +714,7 @@ test("CALC-41: a happy scenario that passes a [negative] choice says so in its t
         mode: "all",
         shown: gen.list,
         gen,
-        counts: { all: gen.list.length, ep: 0, pair: 0, min: 0 },
+        counts: { all: gen.list.length, pair: 0, min: 0 },
         issues: [],
         origin: [0, 0],
         generateId: () => "e" + ++n,
@@ -813,7 +810,7 @@ test("CALC-21 CALC-64: past 1,000 paths: the late choices are found, and the mes
     const g = generate(flow);
     assert.ok(g.capped);
     assert.ok((g.extra ?? 0) > 0);
-    for (const mode of ["ep", "pair", "min"] as const) {
+    for (const mode of ["pair", "min"] as const) {
         const got = new Set(pick(g, mode).flatMap((sc) => sc.path.filter((v) => v.c).map((v) => v.c!.label)));
         for (const l of ["b0", "c0", "late"]) assert.ok(got.has(l), `${mode} has ${l}`);
     }
@@ -842,7 +839,7 @@ test("CALC-24 CALC-64 OUT-21: when the walk stops at its bound, the warning and 
     const msgs = validate(flow, g).map((i) => i.msg);
     assert.ok(msgs.some((m) => m.includes(`All lists the ${g.list.length} scenarios found first`)), msgs.join(" / "));
     assert.ok(!msgs.some((m) => /first 1,000/.test(m)));
-    const counts = { all: 20, ep: 20, pair: 1, min: 2 };
+    const counts = { all: 20, pair: 1, min: 2 };
     const head = reportHeader({ flow, mode: "all", shown: g.list, gen: g, counts, issues: [] });
     assert.ok(head[1].startsWith(`${g.list.length} of ${g.list.length} listed paths (the flow has more)`), head[1]);
     assert.match(head[2], /^All 20\+ · /);
@@ -852,7 +849,7 @@ test("CALC-24 CALC-64 OUT-21: when the walk stops at its bound, the warning and 
 test("CALC-36: every mode tests the last round a loop allows", () => {
     const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 3\n- done\n3. pay\n- ok").flow;
     const g = generate(flow);
-    for (const mode of ["ep", "pair", "min"] as const)
+    for (const mode of ["pair", "min"] as const)
         assert.equal(Math.max(...pick(g, mode).map((s) => s.loops)), 3, mode);
 });
 
@@ -867,7 +864,7 @@ test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name 
     const { coverageLines } = await import("../src/core/scenarioText.ts");
     const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 2\n- done\n3. pay\n- ok\n- no -> end").flow;
     const g = generate(flow);
-    for (const mode of ["all", "ep", "pair", "min"] as const) {
+    for (const mode of ["all", "pair", "min"] as const) {
         const lines = coverageLines(pick(g, mode), g, mode);
         assert.match(lines[0], /^Coverage of \d+ scenarios: choice (\d+)\/\1 \(100%\) · loop end 1\/1 \(100%\) · pair/);
         assert.match(lines[1], /^OK: every choice, every loop end/, mode);
@@ -928,7 +925,7 @@ test("CALC-56: the same flow gives the same IDs; a new scenario moves only the o
     assert.ok(after.length > before.length);
 });
 
-test("CALC-57: a mode numbers only what it picks (EP: 3 Happy and 2 Negative end at TSS-003 and TSN-002)", () => {
+test("CALC-57: a mode numbers only what it picks (Pair: 3 Happy and 2 Negative end at TSS-003 and TSN-002)", () => {
     // All: 9 Happy and 2 Negative. Each-choice needs 3 Happy (3 picks x 3 sizes) + 2 Negative.
     const flow = parseFlowText(
         "1. Sign in\n- ok\n- bad1 -> end\n- bad2 -> end\n2. Pick\n- shirt\n- shoes\n- hat\n3. Size\n- s\n- m\n- l"
@@ -1051,4 +1048,37 @@ test("CALC-66: errors are listed before warnings", () => {
     assert.ok(res.some((i) => i.lv === "err") && res.some((i) => i.lv === "warn"));
     const firstWarn = res.findIndex((i) => i.lv === "warn");
     assert.ok(res.slice(firstWarn).every((i) => i.lv === "warn"), JSON.stringify(res));
+});
+
+test("SYN-22: [variant] and @ep of version 0.5.0 are read, said so, and not used; a flow is never written with variant", () => {
+    const block = parseFlowText("@builder\n1. a\n   - x [variant, P1]\n   - y");
+    assert.equal(block.warnings.length, 1);
+    assert.match(block.warnings[0], /^Line 3: "variant" was removed \(EP mode is gone, version 0\.6\.0\); it is ignored, delete it$/);
+    assert.equal(block.flow.steps[0].conds.length, 2);
+    assert.equal(block.flow.steps[0].conds[0].pri, "1", "the other options on the line still count");
+    assert.ok(!formatFlow(block.flow).includes("variant"), "written back without it");
+
+    const compact = parseFlowText("a (x [variant] | y)");
+    assert.equal(compact.warnings.length, 1);
+    assert.match(compact.warnings[0], /"variant" was removed/);
+    assert.equal(compact.flow.steps[0].conds.length, 2);
+
+    const ep = parseFlowText("@ep a (x | y)");
+    assert.equal(ep.mode, null, "no mode of its own: the panel's switch decides");
+    assert.equal(ep.flow.steps.length, 1, "the @ep word is not a step");
+    assert.equal(ep.flow.steps[0].name, "a");
+    assert.match(ep.warnings.join("\n"), /@ep is not used \(EP mode was removed, version 0\.6\.0\); pick the mode in the panel/);
+    // the modes that stay are still read
+    assert.equal(parseFlowText("@pair a (x | y)").mode, "pair");
+    assert.deepEqual(parseFlowText("@all a (x | y)").warnings, []);
+});
+
+test("CALC-39: there is no EP: the default is Pairwise, and a mode that is not All or Each picks what Pairwise picks", () => {
+    const flow = parseFlowText("@builder\n1. a\n   - x\n   - y\n2. b\n   - p\n   - q\n   - r").flow;
+    const g = generate(flow);
+    const ids = (m: string) => pick(g, m as any).map((sc) => sc.id);
+    assert.deepEqual(ids("ep"), ids("pair"));
+    assert.deepEqual(ids("anything"), ids("pair"));
+    assert.notDeepEqual(ids("min"), ids("pair"));
+    assert.equal(ids("all").length, 6);
 });

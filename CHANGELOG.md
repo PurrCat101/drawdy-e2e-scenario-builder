@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.6.0
+
+### Read this before upgrading
+
+- **EP mode is gone, and Pair is the default.** The modes are All, Pair and Each. EP
+  grouped only choices marked `[variant]`, and then added back every choice it had
+  dropped, so it removed little (a flow without `variant` got almost what All gives)
+  and its name promised more than it did. For a range of values (age 18 to 60) write
+  the few values you want to test, the usual way: a boundary and one value from inside.
+  A text that still has `[variant]` or `@ep` reads, says so in a warning, and does not
+  use them; delete them. A board frame drawn in EP keeps working: it follows the
+  panel's switch (CALC-39, SYN-22).
+- **What does not change:** the scenarios, IDs, test steps and decision table of All,
+  Pair and Each are the same as in 0.5.0 for the same text (the golden snapshot shows
+  it; only the data kept inside board frames lost the `variant` and `covers` fields).
+
+### Removed
+
+- The EP mode, its count in the panel and in the frame header (`All a · Pairwise c ·
+  Each-Choice d`), its `# also stands for N similar` line in a scenario note, and the
+  `variant` option. Rules CALC-31 and CALC-32 are marked removed.
+
+### Changed
+
+- The starter template no longer has `[variant]` on its two products.
+
 ## 0.5.0
 
 ### Read this before upgrading

@@ -19,8 +19,6 @@ export type Cond = {
     need: string;
     /** "1" | "2" | "3" | "" (empty = P2) */
     pri: string;
-    /** does not multiply with other scenarios (collapsed by EP) */
-    variant: boolean;
     /**
      * loop: on the next round, the step it goes back to offers only the choices not
      * taken there yet, and rounds that differ only in order count once (pick A then
@@ -48,4 +46,10 @@ export type Step = {
 
 export type Flow = { steps: Step[] };
 
-export type Mode = "ep" | "all" | "pair" | "min";
+export type Mode = "all" | "pair" | "min";
+
+/**
+ * The mode a board's frame was drawn with, or `fallback` when it holds none we know:
+ * a frame drawn before 0.6.0 may say "ep", a mode that no longer exists (CALC-39).
+ */
+export const modeOr = (m: unknown, fallback: Mode): Mode => (m === "all" || m === "pair" || m === "min" ? m : fallback);
