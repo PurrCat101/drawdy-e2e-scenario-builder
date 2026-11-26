@@ -29,7 +29,7 @@ There is no server: nothing leaves the user's browser.
   | `target` | | what is selected? (polled every 1.2 s) |
   | `pull` | | send me the selected `@builder` note's text |
   | `template` | `id` | drop a starter note |
-  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
+  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
 
 - **DRV-11** Driver → panel:
 
@@ -111,6 +111,15 @@ There is no server: nothing leaves the user's browser.
   "Flow only" (UI-34). For each selected scenario note it draws the flow of that scenario
   next to its frame, as Flow does (DRV-23), and nothing under it: no Test steps table. The
   status is "Done". A scenario that cannot be read gets the same red hint as with Flow.
+- **DRV-61** Steps list: draws every step and every choice of the whole flow as one table
+  (OUT-67), below the selection or in view, from the first of these that applies, as for
+  the Decision table button (DRV-57): a selected scenario frame, selected scenario notes
+  (or decision table column heads, DRV-59), selected `@builder` notes, a selected flow
+  frame, the paste box text. The result does not depend on the mode and has no limit on
+  size. Several scenarios or notes of one flow give one table; notes of different flows
+  give a table each, in one frame. On success the status is "Steps list drawn (N steps)".
+  A selected table is not a source (UI-31); Copy to clipboard copies a selected steps
+  list as it copies any table (DRV-25) and says "Copied N steps".
 - **DRV-26** A mode written in the text (`@ep`, `@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch.
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the

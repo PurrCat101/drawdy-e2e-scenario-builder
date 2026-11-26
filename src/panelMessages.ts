@@ -13,6 +13,7 @@ import {
     copyDecisionAction,
     decisionAction,
     drawFromText,
+    stepsListAction,
     tableAction,
 } from "./actions";
 
@@ -134,6 +135,8 @@ export async function onPanelMessage(m: any) {
         );
         if (m.action === "table") {
             status = await tableAction(text, uiMode);
+        } else if (m.action === "stepslist") {
+            status = await stepsListAction(text, uiMode);
         } else if (m.action === "decision") {
             status = await decisionAction(text, uiMode);
         } else if (m.action === "copy") {

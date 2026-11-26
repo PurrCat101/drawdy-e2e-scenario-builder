@@ -17,7 +17,7 @@ control: flows are written on the board, not in the panel.
 - **UI-05** The mode switch: All, EP (default), Pair, Each.
 - **UI-06** The action buttons, in three groups, each under a small heading: **Draw**
   (Flow, Scenarios, Flow + Scenarios, which is primary and full width), **Tables** (Test
-  steps and Decision table, each full width) and **Export** (Copy to clipboard and
+  steps, Steps list and Decision table, each full width) and **Export** (Copy to clipboard and
   Copy decision table, each full width).
 - **UI-07** The status line, right under the buttons.
 - **UI-08** "Start a flow on the board": one Starter note button, "Start with a template",
@@ -51,15 +51,15 @@ control: flows are written on the board, not in the panel.
   (a scenario frame), `flowframe` (a flow frame), `table`.
 - **UI-31** Which buttons are on:
 
-  | Selection | Flow | Scenarios | Flow + Scenarios | Test steps | Decision table | Copy to clipboard | Copy decision table |
-  | --- | --- | --- | --- | --- | --- | --- | --- |
-  | none, paste box empty | off | off | off | off | off | off | off |
-  | none, text in the paste box | on | on | on | on | on | on | on |
-  | flows | on | on | on | on | on | on | on |
-  | scenarios | on ("Flow + Test steps") | off | on ("Flow only") | on | on | on | on |
-  | frame | off | on | off | on | on | on | on |
-  | flowframe | off | on | on | on | on | on | on |
-  | table (a table or a decision table) | off | off | off | off | off | on | off |
+  | Selection | Flow | Scenarios | Flow + Scenarios | Test steps | Steps list | Decision table | Copy to clipboard | Copy decision table |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | none, paste box empty | off | off | off | off | off | off | off | off |
+  | none, text in the paste box | on | on | on | on | on | on | on | on |
+  | flows | on | on | on | on | on | on | on | on |
+  | scenarios | on ("Flow + Test steps") | off | on ("Flow only") | on | on | on | on | on |
+  | frame | off | on | off | on | on | on | on | on |
+  | flowframe | off | on | on | on | on | on | on | on |
+  | table (a table or a decision table) | off | off | off | off | off | off | on | off |
 
   A button that is off says "Not available for what is selected".
 - **UI-32** With scenario notes selected, the Flow button reads "Flow + Test steps".

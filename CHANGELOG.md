@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **New button: Steps list** (under Tables). Draws every step and every choice of the whole
+  flow as one table, with the usual columns and a **Req** column (the requirement IDs of the
+  step and of the choice). Not scenarios: it does not depend on the mode and has no limit on
+  size. Select the table and press **Copy to clipboard** to paste it into a spreadsheet (the
+  status says "Copied N steps"). The other buttons work as before (DRV-61, OUT-67).
 - Internal, nothing changes for users: the code that reads the syntax, works out scenarios
   and makes the texts and tables moved to `src/core/`, apart from Drawdy, so a web page can
   use it (`npm run build:core`). A snapshot test (TEST-13) shows that scenarios, IDs, copied

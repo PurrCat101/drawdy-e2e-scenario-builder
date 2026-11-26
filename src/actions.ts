@@ -1,7 +1,7 @@
 import type { Flow, Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
 import { renderScenarioTables } from "./scenarioTable";
-import { scenariosToTsv, type ScenarioItem } from "./core/testSteps";
+import { flowStepRows, scenariosToTsv, type ScenarioItem } from "./core/testSteps";
 import { analyze } from "./core/analysis";
 import { MODE_LABEL, orderScenarios } from "./core/scenarioText";
 import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./core/decisionTable";
@@ -209,7 +209,7 @@ export async function copyAction(text: string, uiMode: Mode): Promise<string> {
     const sel = await readElements(await currentSelectionIds());
     const table = sel.find((p) => typeof p.meta?.tsv === "string");
     if (table) {
-        await toPanel({ type: "clip", text: table.meta.tsv, scenarios: tableCount(table.meta) });
+        await toPanel({ type: "clip", text: table.meta.tsv, scenarios: tableCount(table.meta), what: table.meta.unit });
         return "";
     }
     const got = await collectScenarios(text, uiMode);
@@ -307,6 +307,30 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
     }
     await run("command:camera:fly-to-elements", { drawdyElementIds: [first], flyDurationMs: 400, zoom: 0.3 });
     return `Decision table drawn (${drawn} scenarios)`;
+}
+
+/**
+ * Steps list: every step and every choice of the whole flow as one table, with a Req
+ * column (DRV-61, OUT-67), drawn below the selection. Not scenarios: nothing here depends
+ * on the mode, and there is no limit on size.
+ */
+export async function stepsListAction(text: string, uiMode: Mode): Promise<string> {
+    const got = await collectDecision(text, uiMode);
+    if (typeof got === "string") return got;
+    // one flow, however many of its scenarios or notes are selected
+    const flows: DecisionSource[] = [];
+    for (const src of got) if (!flows.some((f) => JSON.stringify(f.flow) === JSON.stringify(src.flow))) flows.push(src);
+    const scenarios = flows.map((f, k) => ({ title: flows.length > 1 ? `Flow ${k + 1}` : "All steps", flow: f.flow }));
+    const steps = scenarios.reduce((a, cs) => a + flowStepRows(cs.flow).length, 0);
+    const name = `Steps list · ${steps} ${steps === 1 ? "step" : "steps"}`;
+    const anchor = flows[0].anchor;
+    const size = renderScenarioTables({ scenarios, name, origin: [0, 0], generateId, stepsList: true });
+    const origin = findFree(await occupiedRects(), anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
+    const out = renderScenarioTables({ scenarios, name, origin, generateId, stepsList: true });
+    const failed = await addInBatches(out.elements);
+    if (failed) return "Could not draw the steps list: " + failed;
+    await run("command:camera:fly-to-elements", { drawdyElementIds: [out.frameId], flyDurationMs: 400, zoom: 0.3 });
+    return `Steps list drawn (${steps} steps)`;
 }
 
 const HINT_BOARD =
