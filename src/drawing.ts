@@ -1,8 +1,8 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import type { Flow, Mode } from "./flow";
+import type { Flow, Mode } from "./core/flow";
 import { renderFlow } from "./render";
-import { VIA_NEGATIVE } from "./scenarios";
-import { analyze } from "./analysis";
+import { VIA_NEGATIVE } from "./core/scenarios";
+import { analyze } from "./core/analysis";
 import { renderScenarios } from "./scenarioBoard";
 import { renderScenarioTables, type ScenarioItem } from "./scenarioTable";
 import { generateId, note, run } from "./host";

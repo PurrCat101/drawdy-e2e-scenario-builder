@@ -3,10 +3,10 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseFlowText } from "../src/syntax.ts";
-import { generate, pick } from "../src/scenarios.ts";
+import { parseFlowText } from "../src/core/syntax.ts";
+import { generate, pick } from "../src/core/scenarios.ts";
 import { buildDecisionTable, decisionToTsv } from "../src/decisionTable.ts";
-import { TEMPLATES } from "../src/templates.ts";
+import { TEMPLATES } from "../src/core/templates.ts";
 import { renderDecisionTables } from "../src/decisionBoard.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
 import { textRows } from "../src/textBox.ts";

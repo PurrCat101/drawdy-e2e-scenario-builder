@@ -1,5 +1,5 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import type { Flow } from "./flow";
+import type { Flow } from "./core/flow";
 
 const W = 220;
 const GAP = 160;
