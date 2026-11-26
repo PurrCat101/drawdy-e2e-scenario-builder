@@ -3,7 +3,7 @@
 // in an embedded page, they can be edited on the board (OUT-60 and the rules after it).
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import { decisionToTsv, type DecisionTable } from "./decisionTable";
+import { decisionToTsv, type DecisionTable } from "./core/decisionTable";
 import type { Flow, Mode } from "./core/flow";
 import { fitHeight, textBox, type Tone } from "./textBox";
 

@@ -1,9 +1,10 @@
 import type { Flow, Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
-import { scenariosToTsv, renderScenarioTables, type ScenarioItem } from "./scenarioTable";
+import { renderScenarioTables } from "./scenarioTable";
+import { scenariosToTsv, type ScenarioItem } from "./core/testSteps";
 import { analyze } from "./core/analysis";
-import { MODE_LABEL, orderScenarios } from "./scenarioBoard";
-import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./decisionTable";
+import { MODE_LABEL, orderScenarios } from "./core/scenarioText";
+import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./core/decisionTable";
 import { renderDecisionTables } from "./decisionBoard";
 import type { Scenario } from "./core/scenarios";
 import { scenarioFlow, scenarioFromText, pathFails } from "./core/scenarioFlow";

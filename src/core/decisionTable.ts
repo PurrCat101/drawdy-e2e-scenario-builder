@@ -1,9 +1,9 @@
 // The decision table of a flow: the steps that decide (two or more choices) as rows,
 // the scenarios of a mode as columns. Pure logic; drawing it is decisionBoard.ts.
 
-import type { Flow } from "./core/flow";
-import type { Scenario } from "./core/scenarios";
-import { orderScenarios } from "./scenarioBoard";
+import type { Flow } from "./flow";
+import type { Scenario } from "./scenarios";
+import { orderScenarios } from "./scenarioText";
 
 export type DtValue = { id: string; label: string };
 export type DtCondition = {

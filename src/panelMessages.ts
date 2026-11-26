@@ -1,7 +1,7 @@
 import type { Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
 import { analyze, PREVIEW_BUDGET_MS } from "./core/analysis";
-import { coverageLines } from "./scenarioBoard";
+import { coverageLines } from "./core/scenarioText";
 import { templateById } from "./core/templates";
 import { isBusy, setBusy } from "./host";
 import { toPanel } from "./webview";

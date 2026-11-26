@@ -1077,7 +1077,7 @@ test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\""
 
 test("UI-21: no Thai text is left in what the user sees", () => {
     const thai = /[฀-๿]/;
-    for (const f of ["../editor/panel.html", "../src/index.ts", "../src/core/syntax.ts", "../src/scenarioBoard.ts", "../src/render.ts", "../README.md"])
+    for (const f of ["../editor/panel.html", "../src/index.ts", "../src/core/syntax.ts", "../src/scenarioBoard.ts", "../src/core/scenarioText.ts", "../src/render.ts", "../README.md"])
         assert.ok(!thai.test(readFileSync(new URL(f, import.meta.url), "utf8")), f);
 });
 

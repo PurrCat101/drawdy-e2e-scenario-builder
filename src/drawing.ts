@@ -4,7 +4,8 @@ import { renderFlow } from "./render";
 import { VIA_NEGATIVE } from "./core/scenarios";
 import { analyze } from "./core/analysis";
 import { renderScenarios } from "./scenarioBoard";
-import { renderScenarioTables, type ScenarioItem } from "./scenarioTable";
+import { renderScenarioTables } from "./scenarioTable";
+import type { ScenarioItem } from "./core/testSteps";
 import { generateId, note, run } from "./host";
 import { findFree, frameSize, occupiedRects, type Box } from "./selection";
 
