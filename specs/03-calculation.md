@@ -1,7 +1,7 @@
 # 03 · Calculation
 
-How a flow becomes scenarios. Code: `src/scenarios.ts` (paths, modes, IDs, flow
-check), `src/analysis.ts` (remembering results).
+How a flow becomes scenarios. Code: `src/core/scenarios.ts` (paths, modes, IDs, flow
+check), `src/core/analysis.ts` (remembering results).
 
 ## Paths (All)
 

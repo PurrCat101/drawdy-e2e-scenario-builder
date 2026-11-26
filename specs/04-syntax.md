@@ -1,6 +1,6 @@
 # 04 · Syntax
 
-The text a flow is written in. Code: `src/syntax.ts` (`parseFlowText`, `formatFlow`).
+The text a flow is written in. Code: `src/core/syntax.ts` (`parseFlowText`, `formatFlow`).
 The README's "Text syntax" is the user's guide to the same rules.
 
 ## The note

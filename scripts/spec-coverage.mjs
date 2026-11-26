@@ -5,8 +5,8 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 
-const RULE = /\*\*((?:TERM|UI|DRV|CALC|SYN|OUT|TEST)-\d{2})\*\*([^\n]*)/g;
-const ID = /\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST)-\d{2})\b/g;
+const RULE = /\*\*((?:TERM|UI|DRV|CALC|SYN|OUT|TEST|CORE)-\d{2})\*\*([^\n]*)/g;
+const ID = /\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST|CORE)-\d{2})\b/g;
 
 const rules = [];
 for (const f of readdirSync("specs").filter((f) => f.endsWith(".md")).sort())

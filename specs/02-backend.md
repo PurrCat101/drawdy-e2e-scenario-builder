@@ -175,8 +175,12 @@ the old one.
   - `actions.ts`: what each button does (Flow, Scenarios, Flow + Scenarios, Test
     steps, Decision table, Copy to clipboard, starter note).
   - `drawing.ts`: drawing the flow, the scenario frame and the tables on the board.
-  - `decisionTable.ts` (the decision table of a flow's scenarios) and `decisionBoard.ts`
-    (drawing it as text boxes), used by the Decision table button; `textBox.ts`: the
-    filled text boxes every note and the decision table are made of.
+  - `decisionBoard.ts` (drawing the decision table as text boxes), used by the Decision
+    table button; `textBox.ts`: the filled text boxes every note and the decision table
+    are made of. `scenarioBoard.ts`, `scenarioTable.ts` and `render.ts` draw the scenario
+    frame, the test steps tables and the flow diagram.
+  - `core/`: everything that is not Drawdy: reading the text, the scenarios and modes, the
+    texts of a report, the test steps and the decision table (CORE-01 to CORE-12, spec
+    07). Files outside `core/` may import it; `core/` imports nothing from them.
   - `selection.ts`: reading the selection and the board, finding free space.
   A change of behaviour goes in the file of its job; no file may import `index.ts`.

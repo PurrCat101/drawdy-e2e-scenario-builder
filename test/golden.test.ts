@@ -153,7 +153,7 @@ function snapshot() {
     return JSON.parse(JSON.stringify(out));
 }
 
-test("TEST-13: the pipeline gives the same scenarios, IDs, copied text and board elements as the snapshot", () => {
+test("TEST-13 CORE-03 CORE-11: the pipeline gives the same scenarios, IDs, copied text and board elements as the snapshot", () => {
     const now = snapshot();
     if (process.env.GOLDEN_UPDATE || !existsSync(FILE)) {
         mkdirSync(dirname(FILE), { recursive: true });
