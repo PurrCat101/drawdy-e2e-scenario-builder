@@ -1,27 +1,33 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
-- **Fixed: the starter template raised a flow check warning.** Its loop asked for
-  `max 2` different products where the step has two; it is `max 1` now. The scenarios
-  are the same, and the diagram says `up to 1 time`.
-- **The `TIP:` line is gone** from the panel and from the scenario frame header; it
-  took room and the line under the mode switch says what each mode picks.
+### Read this before upgrading
+
 - **You choose where results go.** A new **Place** switch: **By hand** (now the
   default) holds what a button draws as an outline that follows the pointer; click the
   board to put it down, press Esc to cancel. The camera no longer moves. **Auto** is
   the earlier behaviour: free space, then fly there (DRV-70 to DRV-76, UI-60, UI-61).
+
+### Changed
+
 - **The panel says what each mode picks**, under the mode switch. For EP: it groups
   paths that differ only in `[variant]` choices, and still uses every choice (UI-47).
 - **Flows too big to list are marked as such.** The All count reads `N+`, EP says
   `(partial)`, one line explains it before the other warnings, and the scenario frame
-  header says `listed paths (the flow has more)` instead of `paths`. The tip no longer
-  says "run them all" for such a flow (UI-46, OUT-21, CALC-70).
-- **Fixed: a `distinct` loop could list far fewer paths than there are.** Rounds in
-  another order counted toward the limit of 1,000 before they were merged, so a flow
-  with 255 different paths listed 59. Only different paths count now; the walk stops
-  after 200,000 walked paths, and the flow check then says how many it found
-  (CALC-24).
+  header says `listed paths (the flow has more)` instead of `paths` (UI-46, OUT-21).
+- **The `TIP:` line is gone** from the panel and from the scenario frame header; it
+  took room and the line under the mode switch says what each mode picks.
+
+### Fixed
+
+- **A `distinct` loop could list far fewer paths than there are.** Rounds in another
+  order counted toward the limit of 1,000 before they were merged, so a flow with 255
+  different paths listed 59. Only different paths count now; the walk stops after
+  200,000 walked paths, and the flow check then says how many it found (CALC-24).
+- **The starter template raised a flow check warning.** Its loop asked for `max 2`
+  different products where the step has two; it is `max 1` now. The scenarios are the
+  same, and the diagram says `up to 1 time`.
 
 ## 0.4.0
 
