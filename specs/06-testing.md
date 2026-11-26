@@ -32,7 +32,7 @@ packages).
 ## The independent enumerator
 
 - **TEST-10** The enumerator in `test/oracle.test.ts` shares no code with
-  `src/scenarios.ts`: an explicit stack, its own reading of `sets`/`needs`. It catches
+  `src/core/scenarios.ts`: an explicit stack, its own reading of `sets`/`needs`. It catches
   slips in the implementation; it cannot tell whether a rule is the one you meant —
   that is what the specs are for.
 - **TEST-11** Random flows are seeded, so a failure can be reproduced from its seed.

@@ -1,8 +1,10 @@
 # 05 · Board output
 
 What the extension draws. Code: `src/render.ts` (flow diagram), `src/scenarioBoard.ts`
-(scenario frame), `src/scenarioTable.ts` (tables, copy text), `src/scenarioFlow.ts`
-(one scenario's flow), `src/templates.ts` (starter notes). `src/drawing.ts` puts them on
+(scenario frame), `src/scenarioTable.ts` (tables), `src/decisionBoard.ts` (decision
+table); the words they draw come from the core (`src/core/scenarioText.ts`: note text,
+header, coverage; `src/core/testSteps.ts`: rows and copy text; `src/core/decisionTable.ts`;
+`src/core/scenarioFlow.ts`: one scenario's flow; `src/core/templates.ts`: starter notes). `src/drawing.ts` puts them on
 the board, `src/actions.ts` decides what to draw for each button.
 
 ## Placement

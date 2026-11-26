@@ -13,6 +13,7 @@ fixed to match it (or the spec is changed on purpose, in the same commit).
 | [04-syntax.md](04-syntax.md) | The text a flow is written in |
 | [05-board-output.md](05-board-output.md) | What is drawn on the board: flow diagrams, scenario frames and notes, tables, the copied text, placement |
 | [06-testing.md](06-testing.md) | How the specs are checked: test files, the independent enumerator, mutation checks, the manual check in Drawdy |
+| [07-core.md](07-core.md) | The core: what the extension and any other front end share, and the boundary that keeps drawing out of it |
 
 ## Rules
 
@@ -30,6 +31,7 @@ keeps its number with the text "(removed)".
 | `SYN` | 04-syntax.md |
 | `OUT` | 05-board-output.md |
 | `TEST` | 06-testing.md |
+| `CORE` | 07-core.md |
 
 ## Changing the extension
 

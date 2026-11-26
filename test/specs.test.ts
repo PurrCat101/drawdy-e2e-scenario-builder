@@ -9,8 +9,8 @@ import { test } from "node:test";
 const dir = new URL("../specs/", import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
 const read = (f: string) => readFileSync(new URL(f, dir), "utf8");
-const PREFIX = { TERM: "00-", UI: "01-", DRV: "02-", CALC: "03-", SYN: "04-", OUT: "05-", TEST: "06-" } as const;
-const RULE = /\*\*((TERM|UI|DRV|CALC|SYN|OUT|TEST)-\d{2})\b/g;
+const PREFIX = { TERM: "00-", UI: "01-", DRV: "02-", CALC: "03-", SYN: "04-", OUT: "05-", TEST: "06-", CORE: "07-" } as const;
+const RULE = /\*\*((TERM|UI|DRV|CALC|SYN|OUT|TEST|CORE)-\d{2})\b/g;
 
 /** Rule IDs defined in the specs (written in bold where the rule starts). */
 const defined = new Map<string, string>();
@@ -39,7 +39,7 @@ test("TEST-04: every rule ID named in the tests or the code exists in the specs"
     ];
     for (const u of sources) {
         const text = readFileSync(u, "utf8");
-        for (const m of text.matchAll(/\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST)-\d{2})\b/g))
+        for (const m of text.matchAll(/\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST|CORE)-\d{2})\b/g))
             assert.ok(defined.has(m[1]), `${u.pathname.split("/").slice(-2).join("/")} names ${m[1]}, which no spec defines`);
     }
 });
@@ -48,6 +48,6 @@ test("TEST-04: the spec index lists every spec file, and every rule a spec refer
     const index = read("README.md");
     for (const f of files) if (f !== "README.md") assert.ok(index.includes(`(${f})`), `specs/README.md lists ${f}`);
     for (const f of files)
-        for (const m of read(f).matchAll(/\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST)-\d{2})\b/g))
+        for (const m of read(f).matchAll(/\b((?:TERM|UI|DRV|CALC|SYN|OUT|TEST|CORE)-\d{2})\b/g))
             assert.ok(defined.has(m[1]), `${f} refers to ${m[1]}, which is not defined`);
 });

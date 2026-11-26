@@ -724,9 +724,14 @@ release, check by hand in Drawdy (about five minutes):
    runs on Drawdy's main thread: report it). Then press **Flow + Scenarios**: it
    should not wait again for the count.
 
-`src/syntax.ts` is the only place that reads the text syntax, so the panel and
-the board actions always agree. `gen:editor` only embeds `editor/panel.html`
-into `src/panelHtml.ts`.
+The code has two halves. `src/core/` knows nothing about Drawdy: it reads the text syntax
+(`syntax.ts`, the only place that does, so the panel and the board actions always agree),
+works out the scenarios and modes, and makes the texts, test steps and decision table.
+Everything else in `src/` is the Drawdy extension: it draws what the core gives and talks
+to the board. A web page can use the core as it is: `npm run build:core` writes
+`dist-core/e2e-core.js` (one ES module; `buildReport(text, mode)` is the call to start
+with, see `specs/07-core.md`). `gen:editor` only embeds `editor/panel.html` into
+`src/panelHtml.ts`.
 
 ## Credits
 
