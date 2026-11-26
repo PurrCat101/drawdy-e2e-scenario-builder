@@ -415,7 +415,7 @@ test("OUT-23 DRV-55: a scenario note is written in the flow syntax and reads bac
 });
 
 test("OUT-31: scenario notes carry setup, data and expected result, and the table rows match", async () => {
-    const { scenarioRows } = await import("../src/scenarioTable.ts");
+    const { scenarioRows } = await import("../src/core/testSteps.ts");
     const flow = parseFlowText(`@builder
 1. Login
    setup: stack is up
@@ -508,7 +508,7 @@ test("SYN-19 SYN-41: the starter template and the README example use the first n
 });
 
 test("OUT-32: scenarios as tab-separated text for a spreadsheet", async () => {
-    const { scenariosToTsv } = await import("../src/scenarioTable.ts");
+    const { scenariosToTsv } = await import("../src/core/testSteps.ts");
     const flow = parseFlowText("@builder\n1. Login\n   given: g\n   data: line one\n   line two\n   then: t\n   - ok\n").flow;
     const tsv = scenariosToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
     const lines = tsv.split("\n");
@@ -828,7 +828,7 @@ test("CALC-09 CALC-63: a choice that can never be taken says why, and is listed 
 });
 
 test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name what is missing when not", async () => {
-    const { coverageLines } = await import("../src/scenarioBoard.ts");
+    const { coverageLines } = await import("../src/core/scenarioText.ts");
     const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 2\n- done\n3. pay\n- ok\n- no -> end").flow;
     const g = generate(flow);
     for (const mode of ["all", "ep", "pair", "min"] as const) {
@@ -844,7 +844,7 @@ test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name 
 });
 
 test("OUT-25: requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
-    const { requirementLines } = await import("../src/scenarioBoard.ts");
+    const { requirementLines } = await import("../src/core/scenarioText.ts");
     const flow = parseFlowText("1. Sign in\n   req: R-1\n- ok\n- bad -> end\n  req: R-2\n2. Pay\n   req: R-3, R-4\n- paid").flow;
     const g = generate(flow);
     const lines = requirementLines(g.list, flow);
