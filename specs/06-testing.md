@@ -44,6 +44,15 @@ packages).
   example in the same file. `PBT_RUNS` sets the runs per property (default 300; use
   5000 or more before a release). Labels are generated with `[`, `]` and `\` in them.
 
+- **TEST-13** `test/golden.test.ts` keeps a snapshot (`test/golden/pipeline.json`) of what the
+  whole pipeline gives for a few fixed flows (a loop flow, a quantity flow with `variant`,
+  the template): for each mode the scenarios and their IDs, the coverage and requirement
+  lines, the copied test steps and decision table, and every element the board drawing
+  sends to Drawdy, as short fingerprints, with the counts and IDs in full. A change that
+  moves code without changing behaviour (the split into `src/core` and the Drawdy side)
+  must leave the snapshot as it is. A change on purpose is written with `GOLDEN_UPDATE=1`
+  and its diff is read like any other change.
+
 ## Mutation checks
 
 - **TEST-20** A new test for a calculation rule is checked once by breaking the code
