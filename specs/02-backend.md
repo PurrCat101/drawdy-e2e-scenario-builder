@@ -28,8 +28,9 @@ There is no server: nothing leaves the user's browser.
   | `preview` | `text` | count the paste box text |
   | `target` | | what is selected? (polled every 1.2 s) |
   | `pull` | | send me the selected `@builder` note's text |
-  | `template` | `id` | drop a starter note |
-  | `action` | `action`, `text`, `mode` | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
+  | `template` | `id`, `place` | drop a starter note |
+  | `place` | `how` (`auto` or `cancel`) | what to do with the held block (DRV-73, DRV-74) |
+  | `action` | `action`, `text`, `mode`, `place` (`hand` or `auto`, DRV-70) | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
 
 - **DRV-11** Driver → panel:
 
@@ -43,6 +44,7 @@ There is no server: nothing leaves the user's browser.
   | `status` | `text`, `bad` | a line for the status bar |
   | `clip` | `text`, `scenarios` | text to copy to the clipboard |
   | `theme` | `css` | new theme variables |
+  | `placing` | `on` | a block is held, or no longer (DRV-71, DRV-76) |
 
 - **DRV-12** Unknown messages are ignored.
 
@@ -52,8 +54,41 @@ There is no server: nothing leaves the user's browser.
   `command:scene:get-drawdy-elements`, `command:scene:add-drawdy-elements`,
   `command:scene:update-drawdy-elements`, `command:camera:get-viewport-rect`,
   `command:camera:fly-to-elements`, `command:dom:create-action-button`,
-  `command:webview:create`, `command:webview:post-message`, and the subscriptions
-  `dom:element-clicked`, `dom:theme-changed`, `webview:message`.
+  `command:webview:create`, `command:webview:post-message`,
+  `command:scene:create-drawdy-preview-elements`,
+  `command:scene:update-drawdy-preview-elements`,
+  `command:scene:delete-drawdy-preview-elements`, `command:subscription:remove`, and
+  the subscriptions `dom:element-clicked`, `dom:theme-changed`, `webview:message`,
+  and only while a block is held (DRV-71): `scene:pointer-position`, `scene:click`,
+  `scene:pointer`, `keyboard:control-keys`. None needs a permission beyond DRV-01.
+
+## Placing what a button draws
+
+Code: `src/placement.ts`.
+
+- **DRV-70** Every press that draws (and the starter note) says where with `place`:
+  `hand` (the panel's default, UI-60) or `auto`. A message without it is `auto`.
+  `auto` draws at once into free space and flies there (OUT-01, OUT-02).
+- **DRV-71** `hand`: nothing is added to the board and the camera does not move. All
+  the drawings of the press are held as one block, stacked top to bottom with 100
+  units between them, whatever is on the board. One outline the size of the block, a
+  preview element that is never saved on the board and reads "Click to place · Esc to
+  cancel", follows the pointer with its top left corner. The status says to click the
+  board, and the panel gets `placing` on. Hint and error notes (DRV-27) are not held.
+  A press with nothing to hold (an error, a copy) behaves as in `auto`.
+- **DRV-72** A click on the board draws the block with its top left corner at the
+  click, keeping the drawings' places relative to each other: `scene:click`, or a
+  pointer down and up that moved at most 5 screen pixels (a longer move is a drag and
+  places nothing). One click places the block once. The status is the one the button
+  gives in `auto`, or "Could not draw: …".
+- **DRV-73** Esc on the board, or the panel's Cancel (`place` with `how: "cancel"`),
+  draws nothing: "Cancelled: nothing was drawn".
+- **DRV-74** The panel's "Place automatically" (`how: "auto"`) draws the block in free
+  space, from where it was made (OUT-01), without moving the camera. The same happens
+  at once when the outline cannot be created.
+- **DRV-75** Pressing any button while a block is held drops that block first.
+- **DRV-76** When a block stops being held, the outline is deleted, the subscriptions
+  of DRV-71 are removed and the panel gets `placing` off.
 
 ## What a button uses
 

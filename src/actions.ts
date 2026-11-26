@@ -12,11 +12,10 @@ import type { Template } from "./core/templates";
 import { generateId, note, run } from "./host";
 import { fitHeight, textBox } from "./textBox";
 import { toPanel } from "./webview";
+import { flyTo, moved, placeFor, put } from "./placement";
 import {
     anchorFor,
     currentSelectionIds,
-    findFree,
-    occupiedRects,
     readElements,
     tableCount,
     type Box,
@@ -48,11 +47,7 @@ async function drawFromFlow(
     const box = await drawFlow(flow, anchor);
     if (!box) return "Could not draw the flow (see the note on the board)";
     if (kind === "flow") {
-        await run("command:camera:fly-to-elements", {
-            drawdyElementIds: [box.id],
-            flyDurationMs: 400,
-            zoom: 0.5,
-        });
+        await flyTo([box.id], 0.5);
         return `Flow drawn (${flow.steps.length} steps)`;
     }
     await drawScenarios(flow, mode, box);
@@ -78,8 +73,8 @@ export async function drawFromText(
 const TEMPLATE_W = 520;
 
 /**
- * Drop a starter note (a ready-made `@builder` text) on the board, in free space
- * inside the view, and fly to it. The writer edits it on the board, where there is
+ * Drop a starter note (a ready-made `@builder` text) on the board, where the placing
+ * switch says (placement.ts). The writer edits it on the board, where there is
  * room, then selects it and presses Flow + Scenarios.
  */
 export async function addTemplateNote(t: Template): Promise<string> {
@@ -87,27 +82,15 @@ export async function addTemplateNote(t: Template): Promise<string> {
     const r = vp.value?.rect ?? { x: 0, y: 0, width: 1400, height: 900 };
     // a filled text box, as tall as its text needs (OUT-40, OUT-50)
     const height = fitHeight(t.text, TEMPLATE_W, 14);
-    const [x, y] = findFree(await occupiedRects(), r.x + 60, r.y + 60, TEMPLATE_W, height);
+    const [x, y] = await placeFor(r.x + 60, r.y + 60, TEMPLATE_W, height);
     const id = generateId();
-    await run("command:scene:add-drawdy-elements", {
-        elements: [
-            textBox({
-                id,
-                x,
-                y,
-                width: TEMPLATE_W,
-                height,
-                text: t.text,
-                fontSize: 14,
-                tone: "yellow",
-            }),
-        ],
+    const box = textBox({ id, x, y, width: TEMPLATE_W, height, text: t.text, fontSize: 14, tone: "yellow" });
+    const failed = await put(async (dx, dy) => {
+        const add = await run("command:scene:add-drawdy-elements", { elements: moved([box], dx, dy) });
+        return add.error ?? "";
     });
-    await run("command:camera:fly-to-elements", {
-        drawdyElementIds: [id],
-        flyDurationMs: 400,
-        zoom: 0.5,
-    });
+    if (failed) return "Could not add the starter note: " + failed;
+    await flyTo([id], 0.5);
     return `Starter note added. Edit it on the board, then select it and press Flow + Scenarios`;
 }
 
@@ -191,11 +174,11 @@ export async function tableAction(text: string, uiMode: Mode): Promise<string> {
     if (typeof got === "string") return got;
     const { scenarios, anchor, label } = got;
     const size = renderScenarioTables({ scenarios, name: label, origin: [0, 0], generateId });
-    const origin = findFree(await occupiedRects(), anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
+    const origin = await placeFor(anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
     const out = renderScenarioTables({ scenarios, name: `${label} · ${scenarios.length} scenarios`, origin, generateId });
-    const failed = await addInBatches(out.elements);
+    const failed = await put((dx, dy) => addInBatches(moved(out.elements, dx, dy)));
     if (failed) return "Could not draw the table: " + failed;
-    await run("command:camera:fly-to-elements", { drawdyElementIds: [out.frameId], flyDurationMs: 400, zoom: 0.3 });
+    await flyTo([out.frameId], 0.3);
     return `Table drawn (${scenarios.length} scenarios)`;
 }
 
@@ -298,14 +281,14 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
             return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick EP, Pair or Each, or press Copy decision table`;
         const name = `Decision table · ${MODE_LABEL[src.mode]}`;
         const size = renderDecisionTables({ table: dt, flow: src.flow, mode: src.mode, name, origin: [0, 0], generateId });
-        const origin = findFree(await occupiedRects(), src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
+        const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
         const out = renderDecisionTables({ table: dt, flow: src.flow, mode: src.mode, name, origin, generateId });
-        const failed = await addInBatches(out.elements);
+        const failed = await put((dx, dy) => addInBatches(moved(out.elements, dx, dy)));
         if (failed) return "Could not draw the decision table: " + failed;
         drawn += dt.columns.length;
         first = first || out.frameIds[0];
     }
-    await run("command:camera:fly-to-elements", { drawdyElementIds: [first], flyDurationMs: 400, zoom: 0.3 });
+    await flyTo([first], 0.3);
     return `Decision table drawn (${drawn} scenarios)`;
 }
 
@@ -325,11 +308,11 @@ export async function stepsListAction(text: string, uiMode: Mode): Promise<strin
     const name = `Steps list · ${steps} ${steps === 1 ? "step" : "steps"}`;
     const anchor = flows[0].anchor;
     const size = renderScenarioTables({ scenarios, name, origin: [0, 0], generateId, stepsList: true });
-    const origin = findFree(await occupiedRects(), anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
+    const origin = await placeFor(anchor.x, anchor.y + anchor.height + 120, size.width, size.height);
     const out = renderScenarioTables({ scenarios, name, origin, generateId, stepsList: true });
-    const failed = await addInBatches(out.elements);
+    const failed = await put((dx, dy) => addInBatches(moved(out.elements, dx, dy)));
     if (failed) return "Could not draw the steps list: " + failed;
-    await run("command:camera:fly-to-elements", { drawdyElementIds: [out.frameId], flyDurationMs: 400, zoom: 0.3 });
+    await flyTo([out.frameId], 0.3);
     return `Steps list drawn (${steps} steps)`;
 }
 
@@ -475,10 +458,6 @@ export async function actionFlow(sel: Picked[], withTable = true) {
         if (box && isScenario && withTable) await drawScenarioTable(sub, name ?? "E2E Flow", box);
     }
     if (last) {
-        await run("command:camera:fly-to-elements", {
-            drawdyElementIds: [last],
-            flyDurationMs: 400,
-            zoom: 0.5,
-        });
+        await flyTo([last], 0.5);
     }
 }

@@ -15,7 +15,7 @@ control: flows are written on the board, not in the panel.
 - **UI-04** The plan line: "Mode X: N scenarios". Above 50 it adds "(a lot; the board
   may get slow. …)", naming only the modes that would draw fewer, fewest first.
 - **UI-05** The mode switch: All, EP (default), Pair, Each.
-- **UI-06** The action buttons, in three groups, each under a small heading: **Draw**
+- **UI-06** Under the Place switch (UI-60), the action buttons, in three groups, each under a small heading: **Draw**
   (Flow, Scenarios, Flow + Scenarios, which is primary and full width), **Tables** (Test
   steps, Steps list and Decision table, each full width) and **Export** (Copy to clipboard and
   Copy decision table, each full width).
@@ -103,6 +103,15 @@ control: flows are written on the board, not in the panel.
 - **UI-47** Under the mode switch, one line says what the chosen mode picks. For EP:
   "EP: groups paths that differ only in [variant] choices, and still uses every
   choice."
+
+## Placing
+
+- **UI-60** Under the mode line, a switch **Place**: **By hand** (default) and
+  **Auto**. Every action button and the starter note send the choice as `place`
+  (DRV-70). The choice lasts while the panel is open; it is not stored.
+- **UI-61** While a block is held (`placing` on), two buttons show under the switch:
+  "Place automatically" and "Cancel", sending `place` with `how` `auto` or `cancel`.
+  Otherwise they are hidden.
 
 ## Theme
 

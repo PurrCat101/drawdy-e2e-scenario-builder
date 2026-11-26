@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **You choose where results go.** A new **Place** switch: **By hand** (now the
+  default) holds what a button draws as an outline that follows the pointer; click the
+  board to put it down, press Esc to cancel. The camera no longer moves. **Auto** is
+  the earlier behaviour: free space, then fly there (DRV-70 to DRV-76, UI-60, UI-61).
 - **The panel says what each mode picks**, under the mode switch. For EP: it groups
   paths that differ only in `[variant]` choices, and still uses every choice (UI-47).
 - **Flows too big to list are marked as such.** The All count reads `N+`, EP says

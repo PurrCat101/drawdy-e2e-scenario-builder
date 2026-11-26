@@ -35,11 +35,14 @@ const FLOW = `@builder
 
 type El = Record<string, any>;
 
-async function makeHost() {
+async function makeHost(opts: { noPreview?: boolean } = {}) {
     const scene = new Map<string, El>();
     let selection: string[] = [];
     const toPanel: any[] = [];
     let n = 0;
+    /** every command the driver issued, to see what moved the camera or was subscribed */
+    const commands: { type: string; req: any }[] = [];
+    let subs = 0;
     const idOf = (e: El) => e.drawdyElementId ?? e.id;
     const flat = (e: El) => ({
         ...e,
@@ -51,7 +54,13 @@ async function makeHost() {
     const issueCommand = async (r: any) => {
         const ok = (value?: any) => ({ res: { value } });
         const q = r.req ?? {};
+        commands.push({ type: r.type, req: q });
+        if (r.type.startsWith("subscription:")) return ok({ subscriptionId: "s" + ++subs });
         switch (r.type) {
+            case "command:scene:create-drawdy-preview-elements":
+                return opts.noPreview
+                    ? { res: { error: { type: "unsupported" } } }
+                    : ok({ previewed: q.elements.length, previewId: "pv" });
             case "command:scene:get-current-selected-drawdy-elements":
                 return ok({ drawdyElementIds: selection });
             case "command:scene:get-drawdy-elements": {
@@ -102,7 +111,7 @@ async function makeHost() {
     const lastClip = () => [...toPanel].reverse().find((m) => m.type === "clip");
     // put an element on the board as if the user had drawn it
     const add = (e: El) => void scene.set(idOf(e), e);
-    return { scene, toPanel, panel, action, select, find, frames, tables, lastTarget, lastClip, idOf, add };
+    return { commands, scene, toPanel, panel, action, select, find, frames, tables, lastTarget, lastClip, idOf, add };
 }
 
 /** a host with the flow and its scenario notes already drawn (Flow + Scenarios) */
@@ -864,6 +873,155 @@ test("OUT-60 OUT-01: the decision table is placed below what is selected, not on
     await h.action("decision", "", "all");
     const f = decisionFrames(h)[0];
     assert.ok(f.position[1] >= 100 + 100, "the table starts below the note");
+});
+
+/* ------------------------------- placing by hand ---------------------------- */
+
+type Host = Awaited<ReturnType<typeof makeHost>>;
+const press = (h: Host, a: string, place = "hand", text = FLOW) =>
+    h.panel({ type: "action", action: a, text, mode: "ep", place });
+const issued = (h: Host, type: string) => h.commands.filter((c) => c.type === type);
+const canvas = (x: number, y: number) => ({ canvasSpace: { x, y }, domSpace: { x: x / 10, y: y / 10 } });
+const event = (type: string, body: any) => driver.onEvent({ type, body } as any);
+const click = (x: number, y: number) =>
+    event("subscription:scene:click", { drawdyElementIds: [], cursor: canvas(x, y) });
+const placingNow = (h: Host) => [...h.toPanel].reverse().find((m) => m.type === "placing")?.on;
+const at = (e: El) => [e.x ?? e.position?.[0], e.y ?? e.position?.[1]];
+
+test("DRV-70 DRV-71: by hand nothing is drawn and the camera stays: an outline waits for a click", async () => {
+    const h = await makeHost();
+    await press(h, "board");
+    assert.equal(h.scene.size, 0);
+    assert.equal(issued(h, "command:camera:fly-to-elements").length, 0);
+    const [made] = issued(h, "command:scene:create-drawdy-preview-elements");
+    assert.equal(made.req.elements.length, 1);
+    assert.match(made.req.elements[0].text, /Click to place · Esc to cancel/);
+    assert.equal(placingNow(h), true);
+    assert.match(lastStatus(h)!.text, /click the board/);
+    await event("subscription:scene:pointer-position", { position: canvas(500, 700) });
+    const upd = issued(h, "command:scene:update-drawdy-preview-elements").at(-1)!.req.elements[0];
+    assert.deepEqual([upd.x, upd.y], [500, 700]);
+    assert.equal(upd.drawdyElementId, made.req.elements[0].drawdyElementId);
+});
+
+test("DRV-71 DRV-72 DRV-76: a click draws the whole block there, once, stacked with 100 units between", async () => {
+    const auto = await makeHost();
+    await press(auto, "board", "auto");
+    assert.ok(issued(auto, "command:camera:fly-to-elements").length > 0, "auto still flies (OUT-02)");
+    assert.equal(issued(auto, "command:scene:create-drawdy-preview-elements").length, 0);
+
+    const h = await makeHost();
+    await press(h, "board");
+    await click(5000, -300);
+    const frames = h.frames();
+    assert.equal(h.scene.size, auto.scene.size);
+    assert.deepEqual(at(frames[0]), [5000, -300], "the block's top left corner is at the click");
+    // the same drawings as in auto, the scenarios under the flow
+    assert.deepEqual(frames.map((f) => f.name), auto.frames().map((f) => f.name));
+    assert.deepEqual(at(frames[1]), [5000, -300 + frames[0].height + 100]);
+    // every element inside a frame moved with it
+    for (const e of h.find((e) => !!e.frameId && typeof e.x === "number")) {
+        const f = h.scene.get(e.frameId)!;
+        assert.ok(e.x >= at(f)[0] && e.y >= at(f)[1] - 1, e.type);
+    }
+    assert.equal(issued(h, "command:camera:fly-to-elements").length, 0);
+    assert.equal(issued(h, "command:scene:delete-drawdy-preview-elements").length, 1);
+    assert.equal(issued(h, "command:subscription:remove").length, 4);
+    assert.equal(placingNow(h), false);
+    assert.equal(lastStatus(h)!.text, "Flow and scenarios drawn");
+    const size = h.scene.size;
+    await click(0, 0);
+    assert.equal(h.scene.size, size, "a second click places nothing");
+});
+
+test("DRV-72: pointer down and up places the block; a drag does not", async () => {
+    const h = await makeHost();
+    await press(h, "flow");
+    const pointer = (type: string, x: number, y: number) =>
+        event("subscription:scene:pointer", { type, drawdyElementIds: [], pressure: 0, cursor: canvas(x, y) });
+    await pointer("down", 100, 100);
+    await pointer("up", 900, 900);
+    assert.equal(h.scene.size, 0, "a drag pans the board");
+    await pointer("down", 100, 100);
+    await pointer("up", 120, 100); // 2 screen pixels
+    assert.deepEqual(at(h.frames()[0]), [120, 100]);
+});
+
+test("DRV-73 DRV-75: Esc and Cancel draw nothing; a new press drops the held block", async () => {
+    const h = await makeHost();
+    await press(h, "flow");
+    await event("subscription:keyboard:control-keys", { key: "escape" });
+    await click(0, 0);
+    assert.equal(h.scene.size, 0);
+    assert.match(lastStatus(h)!.text, /^Cancelled/);
+    await press(h, "flow");
+    await h.panel({ type: "place", how: "cancel" });
+    await click(0, 0);
+    assert.equal(h.scene.size, 0);
+    await press(h, "flow");
+    await press(h, "table");
+    await click(0, 0);
+    assert.equal(h.frames().length, 1, "only the second press is drawn");
+    assert.equal(h.tables().length, 1);
+    assert.deepEqual(at(h.frames()[0]), [0, 0]);
+    assert.deepEqual(at(h.tables()[0]), [40, 50], "the table page moved with its frame");
+});
+
+test("DRV-74: Place automatically, or no outline, puts the block in free space without moving the camera", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", drawdyElementId: "big", x: 0, y: 0, width: 5000, height: 2000, text: "" });
+    await press(h, "flow");
+    await h.panel({ type: "place", how: "auto" });
+    assert.ok(at(h.frames()[0])[1] >= 2000, "below what was there");
+    assert.equal(issued(h, "command:camera:fly-to-elements").length, 0);
+    const bare = await makeHost({ noPreview: true });
+    await press(bare, "flow");
+    assert.equal(bare.frames().length, 1);
+});
+
+test("DRV-71 DRV-72: the starter note, the decision table and the steps list are held too; a copy is not", async () => {
+    const h = await makeHost();
+    await h.panel({ type: "template", id: "shop", place: "hand" });
+    assert.equal(h.scene.size, 0);
+    await click(40, 60);
+    assert.deepEqual(at(h.find(isStarter)[0]), [40, 60]);
+    for (const a of ["decision", "stepslist", "scenarios"]) {
+        const b = await makeHost();
+        await press(b, a);
+        assert.equal(b.scene.size, 0, a);
+        await click(700, 800);
+        assert.deepEqual(at(b.frames()[0]), [700, 800], a);
+    }
+    const c = await makeHost();
+    await press(c, "copy");
+    assert.ok(c.lastClip());
+    assert.equal(issued(c, "command:scene:create-drawdy-preview-elements").length, 0);
+});
+
+test("UI-60 UI-61: panel: By hand is the default, and the placing buttons show only while a block is held", () => {
+    const p = loadPanel();
+    try {
+        p.sent.length = 0;
+        p.els.flow.onclick();
+        assert.equal(p.sent.at(-1).place, "hand");
+        p.els["place-auto"].onclick();
+        p.els.flow.onclick();
+        assert.equal(p.sent.at(-1).place, "auto");
+        p.els["tpl-shop"].onclick();
+        assert.equal(p.sent.at(-1).place, "auto");
+        p.send({ type: "placing", on: true });
+        assert.equal(p.els.placing.hidden, false);
+        p.els["place-now"].onclick();
+        assert.deepEqual(p.sent.at(-1), { type: "place", how: "auto" });
+        p.els["place-cancel"].onclick();
+        assert.deepEqual(p.sent.at(-1), { type: "place", how: "cancel" });
+        p.send({ type: "placing", on: false });
+        assert.equal(p.els.placing.hidden, true);
+        const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+        assert.match(html, /<div class="row" id="placing" hidden>/);
+    } finally {
+        p.restore();
+    }
 });
 
 /* ------------------------------ the panel page ----------------------------- */

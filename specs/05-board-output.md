@@ -9,10 +9,11 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 ## Placement
 
-- **OUT-01** Everything new goes into free space: under its anchor (the selected
+- **OUT-01** Placed automatically (DRV-70, DRV-74), everything new goes into free space: under its anchor (the selected
   note or frame, else the top left of the view), moved down past anything it would
   overlap, with a 100-unit gap. Nothing is drawn on top of existing elements.
-- **OUT-02** After drawing, the camera flies to what was drawn.
+- **OUT-02** After drawing automatically (DRV-70), the camera flies to what was drawn.
+  Placed by hand, the camera never moves (DRV-71).
 
 ## Flow diagram
 

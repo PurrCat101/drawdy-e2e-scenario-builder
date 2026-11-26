@@ -104,6 +104,11 @@ of scenarios.
 4. **Pick the mode** with the switch (All, EP, Pair, Each; EP is the default). Under
    it the panel says how many scenarios that mode makes, and warns above 50.
 5. **Press a button.**
+6. **Put the result down.** With **Place: By hand** (the default) an outline follows
+   the pointer: click the board where it should go, or press Esc to cancel. Everything
+   one press makes moves as one block, and the view stays where it is. The panel also
+   offers **Place automatically** and **Cancel** while you hold it. With **Place:
+   Auto** the result goes into free space and the view flies to it.
 
 | Button | Result |
 | --- | --- |
@@ -142,8 +147,9 @@ in the panel does not need the marker.)
 
 ### What is drawn
 
-- New results are placed in free space: under the selected note, or in view if
-  nothing is selected. If something is already there, the result moves down.
+- With **Place: Auto**, new results are placed in free space: under the selected note,
+  or in view if nothing is selected. If something is already there, the result moves
+  down. With **By hand** they go where you click.
 - Scenario notes are text boxes filled with a colour: green = happy path, pink = negative, orange = loop. Each is as tall as its text needs.
   They are ordered happy scenarios first, then negative, each by priority. IDs are
   `TSS-…` (success) and `TSN-…` (negative), running numbers from 001.
@@ -703,7 +709,10 @@ release, check by hand in Drawdy (about five minutes):
    panel opens in English.
 2. Type a flow with `setup:` / `data:` / `expect:`: the counts and the "Mode EP: N
    scenarios" line appear; a typo shows `Line N: ...`.
-3. **Flow + Scenarios**: a flow frame and a scenario frame appear, happy scenarios first.
+3. **Flow + Scenarios** with **Place: By hand**: an outline follows the pointer and the
+   view does not move. Pan the board (nothing is placed), then click an empty spot: a
+   flow frame and a scenario frame appear there, happy scenarios first. Press it again
+   and press Esc: nothing is drawn. Switch to **Auto** for the steps below.
 4. Select one scenario note: the line says "1 scenario note(s) selected", **Flow** reads
    **Flow + Test steps**, **Scenarios** and **Flow + Scenarios** are greyed out. Press
    **Test steps** and **Flow + Test steps**: one table, and the scenario's flow with its test

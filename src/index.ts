@@ -3,6 +3,7 @@ import { ICON_PNG_DATA_URI } from "./iconData";
 import { initHost, isBusy, note, run, setBusy } from "./host";
 import { WV_ID, openWebview, setStyling, themeCss, toPanel, wvError } from "./webview";
 import { onPanelMessage, resetNoteState } from "./panelMessages";
+import { onPlacementEvent, resetPlacement } from "./placement";
 
 /**
  * E2E Scenario Builder.
@@ -17,6 +18,7 @@ import { onPanelMessage, resetNoteState } from "./panelMessages";
  *   actions.ts       what each button does
  *   drawing.ts       flow diagram, scenario frame and table on the board
  *   selection.ts     reading the selection, free-space search
+ *   placement.ts     where drawings go: free space, or held for a click
  */
 
 const BTN = "purrcat101.e2e-scenario-builder:button";
@@ -43,6 +45,7 @@ async function toggleMenu() {
 
 export const activate: DriverModule["activate"] = async (ctx) => {
     resetNoteState();
+    resetPlacement();
     initHost(ctx);
     setStyling(ctx.styling);
 
@@ -56,6 +59,7 @@ export const activate: DriverModule["activate"] = async (ctx) => {
 };
 
 export const onEvent: DriverModule["onEvent"] = async (event) => {
+    if (await onPlacementEvent(event)) return;
     if (event.type === "subscription:dom:theme-changed") {
         setStyling(event.body.styling);
         const m = { type: "theme", css: themeCss() };

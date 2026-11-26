@@ -13,6 +13,7 @@
   .sub { color: var(--mut); font-size: 12px; margin: 0 0 12px; }
   textarea { width: 100%; min-height: 90px; margin-top: 6px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
   textarea:focus { outline: 2px solid var(--lime); background: var(--bg); }
+  [hidden] { display: none !important; }
   .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 0 14px; height: 36px; }
   button:hover { background: var(--hover); }
@@ -74,6 +75,18 @@
   </div>
   <div class="hint" id="modehint">EP: groups paths that differ only in [variant] choices, and still uses every choice.</div>
 
+  <div class="row">
+    <span class="lbl">Place</span>
+    <span class="seg" id="place">
+      <button id="place-hand" class="on" title="Carry the result with the pointer and click the board to put it down">By hand</button>
+      <button id="place-auto" title="Put the result in free space and fly to it">Auto</button>
+    </span>
+  </div>
+  <div class="row" id="placing" hidden>
+    <button id="place-now" class="ghost" title="Draw it in free space without clicking the board">Place automatically</button>
+    <button id="place-cancel" class="ghost" title="Draw nothing">Cancel</button>
+  </div>
+
   <div class="acts">
     <div class="grp wide">Draw</div>
     <button id="flow" title="Draw only the flow diagram">Flow</button>
@@ -127,6 +140,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var mode = 'ep';
   var timer = null;
+  // by hand: the result follows the pointer until a click; auto: free space and fly to it
+  var place = 'hand';
 
   function send(m) { api.postMessage(m); }
   function setStatus(text, bad) {
@@ -280,14 +295,24 @@
       setStatus('Working...');
       // with scenario notes selected the Flow + Scenarios button reads "Flow only" and draws just the flow
       var action = id === 'board' && target.kind === 'scenarios' ? 'flowonly' : id;
-      send({ type: 'action', action: action, text: $('t').value, mode: mode });
+      send({ type: 'action', action: action, text: $('t').value, mode: mode, place: place });
     };
   });
 
   $('tpl-shop').onclick = function () {
     setStatus('Working...');
-    send({ type: 'template', id: 'shop' });
+    send({ type: 'template', id: 'shop', place: place });
   };
+
+  function setPlace(p) {
+    place = p;
+    $('place-hand').className = p === 'hand' ? 'on' : '';
+    $('place-auto').className = p === 'auto' ? 'on' : '';
+  }
+  $('place-hand').onclick = function () { setPlace('hand'); };
+  $('place-auto').onclick = function () { setPlace('auto'); };
+  $('place-now').onclick = function () { send({ type: 'place', how: 'auto' }); };
+  $('place-cancel').onclick = function () { send({ type: 'place', how: 'cancel' }); };
 
   function chip(label, n) {
     var c = document.createElement('span');
@@ -347,6 +372,8 @@
     } else if (m.type === 'recount') {
       // the flow note was unselected: show the paste box's counts again
       send({ type: 'preview', text: $('t').value });
+    } else if (m.type === 'placing') {
+      $('placing').hidden = !m.on;
     } else if (m.type === 'status') {
       setStatus(m.text, m.bad);
     } else if (m.type === 'clip') {

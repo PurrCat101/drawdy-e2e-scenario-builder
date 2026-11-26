@@ -5,6 +5,7 @@ import { templateById } from "./core/templates";
 import { isBusy, setBusy } from "./host";
 import { toPanel } from "./webview";
 import { currentSelectionIds, readElements, tableCount } from "./selection";
+import { abortCapture, cancelPlacement, endCapture, placeAutomatically, startCapture } from "./placement";
 import {
     actionBoard,
     actionFlow,
@@ -66,8 +67,12 @@ export async function onPanelMessage(m: any) {
         }
         setBusy(true);
         try {
-            await toPanel({ type: "status", text: await addTemplateNote(t) });
+            // a new press replaces a block still waiting to be placed
+            await cancelPlacement();
+            if (m.place === "hand") startCapture();
+            await toPanel({ type: "status", text: await endCapture(await addTemplateNote(t)) });
         } catch (e) {
+            abortCapture();
             await toPanel({ type: "status", text: "Error: " + String(e), bad: true });
         } finally {
             setBusy(false);
@@ -114,6 +119,13 @@ export async function onPanelMessage(m: any) {
         }
         return;
     }
+    if (m.type === "place") {
+        // the panel's buttons while a block is held: draw it automatically, or give up
+        if (isBusy()) return;
+        const text = m.how === "auto" ? await placeAutomatically() : await cancelPlacement();
+        if (text) await toPanel({ type: "status", text, bad: /^Could not/.test(text) });
+        return;
+    }
     if (m.type !== "action") return;
     if (isBusy()) {
         await toPanel({ type: "status", text: "Busy, please wait" });
@@ -124,6 +136,9 @@ export async function onPanelMessage(m: any) {
         const text = String(m.text ?? "").trim();
         const uiMode: Mode = ["ep", "all", "pair", "min"].includes(m.mode) ? m.mode : "ep";
         let status = "";
+        // a new press replaces a block still waiting to be placed
+        await cancelPlacement();
+        if (m.place === "hand") startCapture();
         // something selected on the board wins over the text left in the panel
         const picked = await readElements(await currentSelectionIds());
         const usable = picked.some(
@@ -143,7 +158,10 @@ export async function onPanelMessage(m: any) {
             status = await copyAction(text, uiMode);
         } else if (m.action === "copydecision") {
             status = await copyDecisionAction(text, uiMode);
-            if (!status) return; // the panel reports the result itself
+            if (!status) {
+                abortCapture(); // a copy draws nothing
+                return; // the panel reports the result itself
+            }
         } else if (text && !usable) {
             status = await drawFromText(
                 m.action === "flow" || m.action === "flowonly" ? "flow" : m.action === "scenarios" ? "scenarios" : "board",
@@ -162,8 +180,10 @@ export async function onPanelMessage(m: any) {
                 status = "Done";
             }
         }
-        await toPanel({ type: "status", text: status, bad: /^(Could not|Write a flow|Select|Cannot)/.test(status) });
+        const shown = await endCapture(status);
+        await toPanel({ type: "status", text: shown, bad: /^(Could not|Write a flow|Select|Cannot)/.test(shown) });
     } catch (e) {
+        abortCapture();
         await toPanel({ type: "status", text: "Error: " + String(e), bad: true });
     } finally {
         setBusy(false);
