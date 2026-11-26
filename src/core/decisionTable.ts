@@ -3,7 +3,7 @@
 
 import type { Flow } from "./flow";
 import type { Scenario } from "./scenarios";
-import { orderScenarios } from "./scenarioBoard";
+import { orderScenarios } from "./scenarioText";
 
 export type DtValue = { id: string; label: string };
 export type DtCondition = {

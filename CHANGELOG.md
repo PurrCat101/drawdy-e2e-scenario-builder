@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Internal, nothing changes for users: the code that reads the syntax, works out scenarios
+  and makes the texts and tables moved to `src/core/`, apart from Drawdy, so a web page can
+  use it (`npm run build:core`). A snapshot test (TEST-13) shows that scenarios, IDs, copied
+  text and the elements drawn on the board are the same as before.
+
 ## 0.3.0
 
 ### Read this before upgrading

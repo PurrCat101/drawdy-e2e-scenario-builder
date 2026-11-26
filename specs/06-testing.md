@@ -32,7 +32,7 @@ packages).
 ## The independent enumerator
 
 - **TEST-10** The enumerator in `test/oracle.test.ts` shares no code with
-  `src/scenarios.ts`: an explicit stack, its own reading of `sets`/`needs`. It catches
+  `src/core/scenarios.ts`: an explicit stack, its own reading of `sets`/`needs`. It catches
   slips in the implementation; it cannot tell whether a rule is the one you meant —
   that is what the specs are for.
 - **TEST-11** Random flows are seeded, so a failure can be reproduced from its seed.
@@ -43,6 +43,15 @@ packages).
   flow that still fails and printed with its seed; that flow is then kept as a plain
   example in the same file. `PBT_RUNS` sets the runs per property (default 300; use
   5000 or more before a release). Labels are generated with `[`, `]` and `\` in them.
+
+- **TEST-13** `test/golden.test.ts` keeps a snapshot (`test/golden/pipeline.json`) of what the
+  whole pipeline gives for a few fixed flows (a loop flow, a quantity flow with `variant`,
+  the template): for each mode the scenarios and their IDs, the coverage and requirement
+  lines, the copied test steps and decision table, and every element the board drawing
+  sends to Drawdy, as short fingerprints, with the counts and IDs in full. A change that
+  moves code without changing behaviour (the split into `src/core` and the Drawdy side)
+  must leave the snapshot as it is. A change on purpose is written with `GOLDEN_UPDATE=1`
+  and its diff is read like any other change.
 
 ## Mutation checks
 

@@ -8,13 +8,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/syntax.ts";
-import { generate, pick } from "../src/scenarios.ts";
-import type { Flow } from "../src/flow.ts";
+import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/core/syntax.ts";
+import { generate, pick } from "../src/core/scenarios.ts";
+import type { Flow } from "../src/core/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
 import { renderFlow } from "../src/render.ts";
-import { TEMPLATES, templateById } from "../src/templates.ts";
-import { validate } from "../src/scenarios.ts";
+import { TEMPLATES, templateById } from "../src/core/templates.ts";
+import { validate } from "../src/core/scenarios.ts";
 
 const COMPACT = [
     "Open the shop and sign in (Sign in ok [P1] | !Sign in failed [P2]) >",
@@ -415,7 +415,7 @@ test("OUT-23 DRV-55: a scenario note is written in the flow syntax and reads bac
 });
 
 test("OUT-31: scenario notes carry setup, data and expected result, and the table rows match", async () => {
-    const { scenarioRows } = await import("../src/scenarioTable.ts");
+    const { scenarioRows } = await import("../src/core/testSteps.ts");
     const flow = parseFlowText(`@builder
 1. Login
    setup: stack is up
@@ -508,7 +508,7 @@ test("SYN-19 SYN-41: the starter template and the README example use the first n
 });
 
 test("OUT-32: scenarios as tab-separated text for a spreadsheet", async () => {
-    const { scenariosToTsv } = await import("../src/scenarioTable.ts");
+    const { scenariosToTsv } = await import("../src/core/testSteps.ts");
     const flow = parseFlowText("@builder\n1. Login\n   given: g\n   data: line one\n   line two\n   then: t\n   - ok\n").flow;
     const tsv = scenariosToTsv([{ title: "TSS-001 · Happy · P1   ok", flow }]);
     const lines = tsv.split("\n");
@@ -828,7 +828,7 @@ test("CALC-09 CALC-63: a choice that can never be taken says why, and is listed 
 });
 
 test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name what is missing when not", async () => {
-    const { coverageLines } = await import("../src/scenarioBoard.ts");
+    const { coverageLines } = await import("../src/core/scenarioText.ts");
     const flow = parseFlowText("1. pick\n- A\n- B\n2. more\n- again -> loop to step 1 max 2\n- done\n3. pay\n- ok\n- no -> end").flow;
     const g = generate(flow);
     for (const mode of ["all", "ep", "pair", "min"] as const) {
@@ -844,7 +844,7 @@ test("OUT-21: the coverage lines say OK when a mode keeps its promise, and name 
 });
 
 test("OUT-25: requirements: each req lists the scenarios that pass it, and a missing one is named", async () => {
-    const { requirementLines } = await import("../src/scenarioBoard.ts");
+    const { requirementLines } = await import("../src/core/scenarioText.ts");
     const flow = parseFlowText("1. Sign in\n   req: R-1\n- ok\n- bad -> end\n  req: R-2\n2. Pay\n   req: R-3, R-4\n- paid").flow;
     const g = generate(flow);
     const lines = requirementLines(g.list, flow);
@@ -921,7 +921,7 @@ test("CALC-50: a running number past 999 just grows (TSS-1000)", () => {
 });
 
 test("CALC-70 CALC-71 CALC-72: the mode tip fits the flow", async () => {
-    const { modeTip } = await import("../src/scenarios.ts");
+    const { modeTip } = await import("../src/core/scenarios.ts");
     const small = parseFlowText("1. a\n- x\n- y").flow;
     assert.match(modeTip(small, { all: 2, ep: 2, pair: 1, min: 1 }), /All has only 2 scenarios/);
     const plain = parseFlowText("1. a\n- x\n- y").flow;
@@ -950,7 +950,7 @@ const messages = (text: string) => {
 };
 
 test("CALC-22: the search past 1,000 paths has a time budget; when it runs out the result says so and the flow check says what is uncertain", async () => {
-    const { analyze, clearCache, FULL_BUDGET_MS, PREVIEW_BUDGET_MS } = await import("../src/analysis.ts");
+    const { analyze, clearCache, FULL_BUDGET_MS, PREVIEW_BUDGET_MS } = await import("../src/core/analysis.ts");
     assert.equal(FULL_BUDGET_MS, 3000);
     assert.equal(PREVIEW_BUDGET_MS, 300);
     const flow = parseFlowText(BIG_FLOW).flow;

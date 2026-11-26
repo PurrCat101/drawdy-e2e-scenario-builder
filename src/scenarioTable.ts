@@ -1,29 +1,19 @@
 // The detail of one case as a table on the board: for every step it passes,
-// the choice taken, its setup, test data and expected result. Pure logic.
+// the choice taken, its setup, test data and expected result. The rows and the copy
+// text come from core/testSteps.ts; this file draws them.
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
-import type { Flow } from "./flow";
+import type { Flow } from "./core/flow";
+import { scenarioRows, scenariosToTsv, STEP_COLUMNS, type ScenarioItem } from "./core/testSteps";
 
-const COLS: { key: string; title: string; w: number }[] = [
-    { key: "n", title: "#", w: 44 },
-    { key: "step", title: "Step", w: 190 },
-    { key: "cond", title: "Condition", w: 170 },
-    { key: "pre", title: "Setup", w: 230 },
-    { key: "data", title: "Test data", w: 320 },
-    { key: "exp", title: "Expected result", w: 320 },
-];
+const COL_W = [44, 190, 170, 230, 320, 320];
+const COLS: { key: string; title: string; w: number }[] = STEP_COLUMNS.map((c, i) => ({ ...c, w: COL_W[i] }));
 const FONT = 12;
 const MAX_H = 200000; // the board cannot scroll an embedded page, so a table is drawn full height
 const CHAR_W = 7.6; // approx width of a character at FONT
 const LINE_H = 17;
 const PAD = 10;
 const HEAD_H = 36;
-
-const join = (...xs: (string | undefined)[]) =>
-    xs
-        .map((x) => (x ?? "").trim())
-        .filter(Boolean)
-        .join("\n");
 
 /** Width of a text in the table's font (13px): Thai letters are narrower than Latin ones. */
 function textWidth(t: string): number {
@@ -40,44 +30,8 @@ function linesIn(text: string, w: number): number {
         .reduce((n, l) => n + Math.max(1, Math.ceil((textWidth(l) * 0.97) / room)), 0);
 }
 
-export type Row = Record<string, string>;
-
-/** One row per choice taken (a step without choices is one row). */
-export function scenarioRows(flow: Flow): Row[] {
-    const rows: Row[] = [];
-    flow.steps.forEach((s, i) => {
-        const base = { step: `${i + 1}. ${s.name}` };
-        if (!s.conds.length)
-            rows.push({ ...base, cond: "", pre: join(s.pre), data: join(s.data), exp: join(s.exp) });
-        else
-            for (const c of s.conds)
-                rows.push({
-                    ...base,
-                    cond: c.label + (c.action === "end" ? "  ✖" : c.action === "loop" ? "  ↻" : ""),
-                    pre: join(s.pre, c.pre),
-                    data: join(s.data, c.data),
-                    exp: join(s.exp, c.exp),
-                });
-    });
-    rows.forEach((r, k) => (r.n = String(k + 1)));
-    return rows;
-}
-
-export type ScenarioItem = { title: string; flow: Flow };
-
 const esc = (x: string) =>
     x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-/** The scenarios as text for a spreadsheet: tab-separated, a Scenario column first, one header row. */
-export function scenariosToTsv(scenarios: ScenarioItem[]): string {
-    const q = (v: string) => (/[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
-    const rows: string[][] = [["Scenario", ...COLS.map((c) => c.title)]];
-    for (const cs of scenarios) {
-        const id = cs.title.split("   ")[0];
-        for (const r of scenarioRows(cs.flow)) rows.push([id, ...COLS.map((c) => r[c.key] ?? "")]);
-    }
-    return rows.map((r) => r.map(q).join("\t")).join("\n");
-}
 
 /** The tables as one HTML page: real table cells, so rows size themselves. */
 function tablesHtml(scenarios: ScenarioItem[]): string {

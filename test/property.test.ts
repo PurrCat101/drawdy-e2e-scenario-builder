@@ -5,11 +5,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import fc from "fast-check";
-import type { Cond, Flow } from "../src/flow.ts";
-import { formatFlow, parseFlowText } from "../src/syntax.ts";
-import { generate, pick, singles } from "../src/scenarios.ts";
-import { analyze, clearCache } from "../src/analysis.ts";
-import { buildDecisionTable } from "../src/decisionTable.ts";
+import type { Cond, Flow } from "../src/core/flow.ts";
+import { formatFlow, parseFlowText } from "../src/core/syntax.ts";
+import { generate, pick, singles } from "../src/core/scenarios.ts";
+import { analyze, clearCache } from "../src/core/analysis.ts";
+import { buildDecisionTable } from "../src/core/decisionTable.ts";
 
 const RUNS = Number(process.env.PBT_RUNS ?? 300);
 

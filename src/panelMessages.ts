@@ -1,8 +1,7 @@
-import type { Mode } from "./flow";
-import { hasMarker, parseFlowText } from "./syntax";
-import { analyze, PREVIEW_BUDGET_MS } from "./analysis";
-import { coverageLines } from "./scenarioBoard";
-import { templateById } from "./templates";
+import type { Mode } from "./core/flow";
+import { hasMarker } from "./core/syntax";
+import { previewOf } from "./core/preview";
+import { templateById } from "./core/templates";
 import { isBusy, setBusy } from "./host";
 import { toPanel } from "./webview";
 import { currentSelectionIds, readElements, tableCount } from "./selection";
@@ -31,50 +30,6 @@ let notePending: { id: string; text: string } | null = null;
 export function resetNoteState() {
     noteShown = null;
     notePending = null;
-}
-
-/** Above this many scenarios, the live preview skips the coverage safety net. */
-const SAFETY_NET_MAX = 300;
-
-/**
- * Scenario counts and flow problems for a text, for the live preview. Kept light:
- * the search past 1,000 paths gets a short budget, and the coverage safety net runs
- * only for flows of a moderate size (the scenario frame always reports coverage).
- */
-function previewOf(text: string) {
-    const t0 = Date.now();
-    const r = parseFlowText(text);
-    const flow = r.flow;
-    const reading = r.warnings.slice(0, 4);
-    if (!flow.steps.length) return { counts: null, steps: 0, issues: reading, ms: Date.now() - t0 };
-    const a = analyze(flow, PREVIEW_BUDGET_MS);
-    const gen = a.gen;
-    const counts = a.counts();
-    // a safety net: each mode must keep its promise; say so loudly if one does not
-    const broken =
-        gen.list.length > SAFETY_NET_MAX
-            ? []
-            : (["ep", "pair", "min"] as const).flatMap((m) =>
-                  coverageLines(a.pick(m), gen, m)
-                      .filter((l) => l.startsWith("MISSING"))
-                      .map((l) => `ERROR: ${m.toUpperCase()} ${l}`)
-              );
-    return {
-        steps: flow.steps.length,
-        counts,
-        ms: Date.now() - t0,
-        issues: [
-            ...broken,
-            ...(a.complete
-                ? []
-                : ["INFO: a very big flow: these counts are what a quick search found; the full search runs when you press a button."]),
-            ...reading,
-            a.tip(),
-            ...a.issues()
-                .slice(0, 3)
-                .map((i) => (i.lv === "err" ? "ERROR: " : "WARN: ") + i.msg),
-        ],
-    };
 }
 
 /** Messages from the panel's page. */
