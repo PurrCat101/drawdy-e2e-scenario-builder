@@ -4,11 +4,13 @@
 
 ### Read this before upgrading
 
-- **Pair and Each always include the base path** (a Happy scenario with the fewest
-  loops, usually the plain way through the flow), and they **drop scenarios the others
-  already cover**. So the number of scenarios and the IDs of Pair and Each can change
-  for the same text: regenerate before you trust an ID from an earlier board
-  (CALC-28, CALC-29, CALC-56).
+- **Pair and Each can pick other scenarios than before.** Both always include the base
+  path (a Happy scenario with the fewest loops, usually the plain way through the flow)
+  and both drop scenarios the others already cover. So their number and IDs can change
+  for the same text: regenerate before you trust an ID from an earlier board (CALC-28,
+  CALC-29, CALC-56).
+- **The decision table has a row for every step**, so it is taller than before.
+- **The panel has a new layout**, and two of its buttons are gone.
 - **What does not change:** All, the syntax, the test steps of a given scenario and
   what each mode promised before (every choice, loop end and, for Pair, every pair).
 
@@ -20,25 +22,33 @@
 - **Pruning.** After the greedy picks, a scenario is dropped when the other picked
   scenarios already cover everything it covers (CALC-29). Each could pick a Happy path
   without loops first and then a looping Happy path that took the same choices too, so
-  it picked more than Pair on a small flow.
-- Pairwise and Each are still greedy, not the smallest possible set (CALC-35).
-- **The panel fits its window.** The buttons are all in view: the target line and the
-  mode switch (each button with its count) stay at the top, Place and the status at the
-  bottom. Each table has its **Copy** button beside it, the steps list can be copied
-  without drawing it, **Write flow** opens the text box over the buttons, and the
-  warnings fold under one line (UI-15, DRV-63).
-- The **Place automatically** and **Cancel** buttons are gone. While a drawing waits for
-  your click, choose **Auto** to place it, or press Esc (on the board or in the panel).
-- Fixed: after copying the test steps the "Copied …" line was cleared at once.
+  it picked more than Pair on a small flow. Both modes are still greedy, not the
+  smallest possible set (CALC-35).
 - **The decision table shows every step.** It used to leave out steps with fewer than
-  two choices, so a table could start at step 5. A step without choices now has an
-  no box under Combinations and an X in each scenario that passes it (CALC-90, CALC-92).
-  A flow with nothing to decide is drawn and copied too, with a warning (CALC-94).
-- **Copied notes are read as they are now.** A copy keeps the data of its original, so
-  an edited copy, or one moved into another frame, could give the old scenario. The
-  stored data is now used only while it matches the note; otherwise the text is read
-  (DRV-62). Such a note is a flow note: **Flow** draws only its flow, without a test
-  steps table (DRV-55).
+  two choices, so a table could start at step 5. A step without choices has nothing
+  under Combinations and an X in each scenario that passes it (CALC-90, CALC-92). A
+  flow with nothing to decide is drawn and copied too, with a warning (CALC-94).
+- **The panel fits its window.** The target line and the mode switch (each mode with
+  its count) stay at the top, Place and the status at the bottom. Each table has its
+  **Copy** button beside it, **Write flow** opens the text box over the buttons, and
+  the warnings fold under one line (UI-15).
+
+### Added
+
+- **Copy** for the steps list, without drawing it (DRV-63).
+
+### Removed
+
+- The **Place automatically** and **Cancel** buttons. While a drawing waits for your
+  click, choose **Auto** to place it, or press Esc, on the board or in the panel (UI-61).
+
+### Fixed
+
+- A copy keeps the data of its original, so an edited copy of a scenario note, or one
+  moved into another frame, could give the old scenario. The stored data is now used
+  only while it matches the note (DRV-62); otherwise the note is a flow note, and
+  **Flow** draws only its flow (DRV-55).
+- After copying the test steps the "Copied …" line was cleared at once.
 
 ## 0.6.0
 

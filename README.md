@@ -712,21 +712,23 @@ every push and pull request:
 - `test/property.test.ts`: rules that hold for every flow, with flows made by
   fast-check: writing a flow and reading it back, scenario IDs, the modes, loops and
   the decision table. A failing flow is shrunk and kept as a plain example.
-- `test/decision.test.ts`: the decision table on fixed flows: its rows, the marks and results, how it is drawn (text boxes, bars, one frame per ten
-  scenarios, the expected-results note) and the text it copies.
+- `test/decision.test.ts`: the decision table on fixed flows: its rows, the marks, how it is drawn (text boxes, bars, one frame per ten
+  scenarios) and the text it copies.
 
 These tests do not see how things *look*, or what Drawdy itself does. Before a
 release, check by hand in Drawdy (about five minutes):
 
 1. Add the dev server, allow the permissions, click the extension's button: the
    panel opens in English.
-2. Type a flow with `setup:` / `data:` / `expect:`: the counts and the "Mode Pair: N
-   scenarios" line appear; a typo shows `Line N: ...`.
+2. Press **Write flow** and type a flow with `setup:` / `data:` / `expect:`: the line at
+   the top reads "Text box flow · N steps" and the mode buttons show their counts; after
+   a typo, **← Back** shows a warning that reads `Line N: ...` when opened.
 3. **Flow + Scenarios** with **Place: By hand**: an outline follows the pointer and the
    view does not move. Pan the board (nothing is placed), then click an empty spot: a
    flow frame and a scenario frame appear there, happy scenarios first. Press it again
-   and press Esc: nothing is drawn. Switch to **Auto** for the steps below.
-4. Select one scenario note: the line says "1 scenario note(s) selected", **Flow** reads
+   and press Esc: nothing is drawn. Press it once more and choose **Auto**: it is placed at
+   once. Stay on **Auto** for the steps below.
+4. Select one scenario note: the line says "1 scenario note selected", **Flow** reads
    **Flow + Test steps**, **Scenarios** and **Flow + Scenarios** are greyed out. Press
    **Test steps** and **Flow + Test steps**: one table, and the scenario's flow with its test
    steps. The buttons sit under the headings **Draw** and **Tables**, and with nothing unfolded the
@@ -739,15 +741,17 @@ release, check by hand in Drawdy (about five minutes):
    the others, and an X where a scenario takes a choice. The boxes can be moved and edited. Select
    the frame and press **Copy** (beside Test steps): pasted into a spreadsheet it has the scenario
    IDs as heads and a **Group** row.
-8. Press **Start with a template**: a yellow note that starts with `@builder` appears in
+8. Copy a scenario note, change a step name in the copy and select it: the line says
+   "1 flow note", and **Flow** draws only the flow.
+9. Press **Start with a template**: a yellow note that starts with `@builder` appears in
    view and the camera flies to it; a second press puts the next note below the first,
    not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Open **Write flow** and press **← Back**.
-9. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
+10. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
    paths), select the note and type in it:
    `@builder` then ten steps `1. S0` … `10. S9`, each with `- a`, `- b`, `- c`, `- d`.
-   While typing, the counts in the panel fade and come back about a second after you
-   stop, with "counted in … s" if it took long. Drawdy must stay responsive while you
+   While typing, the mode buttons fade and come back about a second after you
+   stop, with "counted in … s" in the messages if it took long. Drawdy must stay responsive while you
    type and while it counts (if the whole page freezes for a moment, the extension
    runs on Drawdy's main thread: report it). Then press **Flow + Scenarios**: it
    should not wait again for the count.
