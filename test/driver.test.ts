@@ -185,20 +185,49 @@ test("DRV-24: Table: a selected scenario note gives one table, the text gives al
     assert.equal(g.tables().at(-1)!.meta.scenarios, 2);
 });
 
-test("UI-06: the buttons are in three groups under the headings Draw, Tables and Export", () => {
+test("UI-06 UI-18: the buttons are in two groups, Draw and Tables, each table with its copy button", () => {
     const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
-    const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="status"'));
+    const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="more">'));
     // headings and buttons, in the order the user sees them
     const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.deepEqual(order, ["Draw", "flow", "scenarios", "board", "Tables", "table", "stepslist", "decision", "Export", "copy", "copydecision"]);
+    assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "Tables", "table", "copy", "decision", "copydecision", "stepslist", "copysteps"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
-    assert.deepEqual(
-        ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision"].map(label),
-        ["Flow", "Scenarios", "Flow + Scenarios", "Test steps", "Steps list", "Decision table", "Copy to clipboard", "Copy decision table"]
-    );
-    // Flow + Scenarios is the primary button; the three tables and export buttons are full width
+    assert.deepEqual(order.filter((x) => !/^[A-Z]/.test(x)).map(label), [
+        "Flow + Scenarios", "Flow", "Scenarios", "Test steps", "Copy", "Decision table", "Copy", "Steps list", "Copy",
+    ]);
+    // Flow + Scenarios is the primary button
     assert.match(block, /<button id="board" class="primary wide"/);
-    for (const id of ["table", "stepslist", "decision", "copy", "copydecision"]) assert.match(block, new RegExp(`<button id="${id}" class="wide"`));
+});
+
+test("UI-15: panel: the target line and the mode stay at the top, Place and the status at the bottom", () => {
+    const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+    const part = (tag: string) => html.slice(html.indexOf(`<${tag}`), html.indexOf(`</${tag}>`));
+    for (const id of ["target", "mode"]) assert.ok(part("header").includes(`id="${id}"`), id);
+    for (const id of ["place", "status"]) assert.ok(part("footer").includes(`id="${id}"`), id);
+    for (const id of ["issues", "board", "write", "tpl-shop"]) assert.ok(part("main").includes(`id="${id}"`), id);
+    assert.match(html, /main, \.view \{[^}]*overflow: auto/);
+});
+
+test("DRV-63: Copy of the steps list copies the text of that table and draws nothing", async () => {
+    const h = await makeHost();
+    await h.action("stepslist", FLOW);
+    const drawnText = h.frames()[0].meta.tsv;
+    const before = h.scene.size;
+    h.toPanel.length = 0;
+    await h.action("copysteps", FLOW);
+    assert.equal(h.lastClip().text, drawnText);
+    assert.equal(h.lastClip().what, "steps");
+    assert.equal(h.scene.size, before);
+});
+
+test("UI-14: after a copy the driver sends no status, which would wipe the panel's Copied line", async () => {
+    for (const action of ["copy", "copydecision", "copysteps"]) {
+        const h = await makeHost();
+        await h.action(action, FLOW);
+        const after = h.toPanel.slice(h.toPanel.findIndex((m) => m.type === "clip") + 1);
+        assert.ok(h.lastClip(), action);
+        assert.ok(!after.some((m) => m.type === "status"), action);
+    }
 });
 
 test("OUT-30: the Test steps frame is named after the button, with the mode when it holds many scenarios", async () => {
@@ -1026,7 +1055,7 @@ test("DRV-73 DRV-75: Esc and Cancel draw nothing; a new press drops the held blo
     assert.deepEqual(at(h.tables()[0]), [40, 50], "the table page moved with its frame");
 });
 
-test("DRV-74: Place automatically, or no outline, puts the block in free space without moving the camera", async () => {
+test("DRV-74: Auto while a block is held, or no outline, puts the block in free space without moving the camera", async () => {
     const h = await makeHost();
     h.add({ type: "shape", drawdyElementId: "big", x: 0, y: 0, width: 5000, height: 2000, text: "" });
     await press(h, "flow");
@@ -1057,7 +1086,7 @@ test("DRV-71 DRV-72: the starter note, the decision table and the steps list are
     assert.equal(issued(c, "command:scene:create-drawdy-preview-elements").length, 0);
 });
 
-test("UI-60 UI-61: panel: By hand is the default, and the placing buttons show only while a block is held", () => {
+test("UI-60 UI-61: panel: By hand is the default; while a drawing waits Auto places it and Esc cancels", () => {
     const p = loadPanel();
     try {
         p.sent.length = 0;
@@ -1068,16 +1097,24 @@ test("UI-60 UI-61: panel: By hand is the default, and the placing buttons show o
         assert.equal(p.sent.at(-1).place, "auto");
         p.els["tpl-shop"].onclick();
         assert.equal(p.sent.at(-1).place, "auto");
+        // nothing waits: neither the switch nor Esc sends anything about it
+        const placed = () => p.sent.filter((m) => m.type === "place");
+        p.els["place-auto"].onclick();
+        p.key("Escape");
+        assert.deepEqual(placed(), []);
+        // a drawing waits: Esc in the panel cancels it, choosing Auto places it
         p.send({ type: "placing", on: true });
-        assert.equal(p.els.placing.hidden, false);
-        p.els["place-now"].onclick();
-        assert.deepEqual(p.sent.at(-1), { type: "place", how: "auto" });
-        p.els["place-cancel"].onclick();
-        assert.deepEqual(p.sent.at(-1), { type: "place", how: "cancel" });
+        p.key("a");
+        p.key("Escape");
+        assert.deepEqual(placed(), [{ type: "place", how: "cancel" }]);
+        p.els["place-hand"].onclick();
+        p.els["place-auto"].onclick();
+        assert.deepEqual(placed().at(-1), { type: "place", how: "auto" });
         p.send({ type: "placing", on: false });
-        assert.equal(p.els.placing.hidden, true);
+        p.key("Escape");
+        assert.equal(placed().length, 2);
         const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
-        assert.match(html, /<div class="row" id="placing" hidden>/);
+        assert.ok(!/id="(placing|place-now|place-cancel)"/.test(html), "no extra placing buttons");
     } finally {
         p.restore();
     }
@@ -1148,7 +1185,8 @@ function loadPanel() {
         g.setInterval = saved.si;
         g.setTimeout = saved.st;
     };
-    return { els, sent, send: (m: any) => onMessage(m), restore };
+    const doc = g.document;
+    return { els, sent, send: (m: any) => onMessage(m), key: (key: string) => doc.onkeydown({ key }), restore };
 }
 
 test("UI-45 OUT-21: neither the panel's issues nor the scenario frame header give a TIP line", async () => {
@@ -1174,17 +1212,22 @@ test("UI-46 UI-47: panel: a flow past the limit reads N+ and partial, and each m
     try {
         const counts = { all: 1330, pair: 336, min: 13 };
         // the stub keeps old children when the box is emptied: read the last four chips
-        const read = () => p.els.counts.children.slice(-4).map((c: any) => c.children.at(-1).textContent);
+        const read = () => ["all", "pair"].map((m) => p.els["m-" + m].textContent);
+        // the summary and the lines of the messages fold
+        const lines = () => (p.els.issues.children.at(-1)?.children ?? []).map((c: any) => c.textContent);
+        p.els.t.value = "x";
         p.send({ type: "counts", counts, steps: 10, capped: true, issues: [] });
-        assert.deepEqual(read().slice(1, 3), ["1330+", 336]);
+        assert.deepEqual(read(), ["All 1330+", "Pair 336"]);
         // only All is a part of the paths; Pair (the default) still covers the flow
-        assert.equal(p.els.plan.textContent, "Mode Pair: 336 scenarios (a lot; the board may get slow. Each has 13)");
+        assert.ok(lines().includes("Mode Pair: 336 scenarios (a lot; the board may get slow. Each has 13)"), lines().join(" / "));
+        assert.ok(!lines().some((t: string) => /partial/.test(t)));
+        p.els["m-all"].onclick();
+        assert.ok(lines().some((t: string) => /^Mode All: 1330 scenarios \(partial: not every path is listed\)/.test(t)));
         p.send({ type: "counts", counts, steps: 10, capped: false, issues: [] });
-        assert.deepEqual(read().slice(1, 3), [1330, 336]);
-        assert.doesNotMatch(p.els.plan.textContent, /partial/);
+        assert.deepEqual(read(), ["All 1330", "Pair 336"]);
+        assert.ok(!lines().some((t: string) => /partial/.test(t)));
         const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
-        assert.match(html, /id="modehint">Pair: every choice, and every pair of choices that can meet\./);
-        assert.match(html, /\$\('modehint'\)\.textContent = MODE_HINT\[m\]/);
+        assert.match(html, /id="m-pair" class="on" title="Pair: every choice, and every pair of choices that can meet\."/);
     } finally {
         p.restore();
     }
@@ -1195,21 +1238,21 @@ test("UI-31: panel: which buttons are on for each selection", () => {
     try {
         const row = (kind: string) => {
             p.send({ type: "target", kind, n: 1 });
-            return ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision"]
+            return ["flow", "scenarios", "board", "table", "stepslist", "decision", "copy", "copydecision", "copysteps"]
                 .map((id) => (p.els[id].disabled ? "-" : id))
                 .filter((x) => x !== "-")
                 .join(",");
         };
         assert.equal(row("none"), ""); // nothing to use yet
-        assert.equal(row("scenarios"), "flow,board,table,stepslist,decision,copy,copydecision"); // board reads "Flow only" (UI-34)
-        assert.equal(row("frame"), "scenarios,table,stepslist,decision,copy,copydecision");
-        assert.equal(row("flows"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision");
-        assert.equal(row("flowframe"), "scenarios,board,table,stepslist,decision,copy,copydecision");
+        assert.equal(row("scenarios"), "flow,board,table,stepslist,decision,copy,copydecision,copysteps"); // board reads "Flow only" (UI-34)
+        assert.equal(row("frame"), "scenarios,table,stepslist,decision,copy,copydecision,copysteps");
+        assert.equal(row("flows"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision,copysteps");
+        assert.equal(row("flowframe"), "scenarios,board,table,stepslist,decision,copy,copydecision,copysteps");
         assert.equal(row("table"), "copy");
         // with a flow typed and nothing selected, everything works
         p.els.t.value = "@builder\n1. a\n- b";
         p.send({ type: "counts", counts: { all: 5, pair: 2, min: 2 }, steps: 1, issues: [] });
-        assert.equal(row("none"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision");
+        assert.equal(row("none"), "flow,scenarios,board,table,stepslist,decision,copy,copydecision,copysteps");
     } finally {
         p.restore();
     }
@@ -1224,7 +1267,8 @@ test("UI-34 DRV-60: panel: with scenario notes selected Flow + Scenarios reads F
         assert.equal(p.els.board.textContent, "Flow only");
         assert.equal(p.els.board.disabled, false);
         assert.match(p.els.board.title, /only the flow/);
-        assert.match(p.els.target.textContent, /Flow only draws just the flow/);
+        assert.equal(p.els.target.textContent, "2 scenario notes selected");
+        assert.match(p.els.target.title, /Flow only draws just the flow/);
         p.sent.length = 0;
         p.els.board.onclick();
         assert.equal(p.sent.at(-1).action, "flowonly");
@@ -1246,71 +1290,78 @@ test("UI-34 DRV-60: panel: with scenario notes selected Flow + Scenarios reads F
     }
 });
 
-test("UI-32 UI-33: panel: labels follow the selection and say what will be used", () => {
+test("UI-02 UI-32 UI-33: panel: the line and the labels follow the selection and say what will be used", () => {
     const p = loadPanel();
     try {
+        const shown = () => [p.els.target.textContent, p.els.table.textContent, p.els.decision.textContent, p.els["m-pair"].textContent];
+        p.send({ type: "target", kind: "none", n: 0 });
+        assert.deepEqual(shown(), ["Select a note or frame on the board", "Test steps", "Decision table", "Pair"]);
         p.els.t.value = "x";
         p.send({ type: "counts", counts: { all: 231, pair: 17, min: 11 }, steps: 3, issues: [] });
-        p.send({ type: "target", kind: "none", n: 0 });
-        assert.equal(p.els.table.textContent, "Test steps · Pair · 17 scenarios");
-        assert.equal(p.els.decision.textContent, "Decision table · Pair · 17 scenarios");
-        assert.equal(p.els.copydecision.textContent, "Copy decision table · Pair · 17 scenarios");
-        assert.equal(p.els.copy.textContent, "Copy to clipboard · Pair · 17 scenarios");
+        assert.deepEqual(shown(), ["Text box flow · 3 steps", "Test steps · 17 scenarios", "Decision table · 17 scenarios", "Pair 17"]);
         assert.equal(p.els.flow.textContent, "Flow");
+        // the counts of the paste box say nothing about a selection: they leave the mode buttons
         p.send({ type: "target", kind: "scenarios", n: 2 });
-        assert.equal(p.els.table.textContent, "Test steps · 2 scenarios");
-        assert.equal(p.els.decision.textContent, "Decision table · 2 scenarios");
+        assert.deepEqual(shown(), ["2 scenario notes selected", "Test steps · 2 scenarios", "Decision table · 2 scenarios", "Pair"]);
         assert.equal(p.els.flow.textContent, "Flow + Test steps");
         p.send({ type: "target", kind: "frame", n: 28 });
-        assert.equal(p.els.copy.textContent, "Copy to clipboard · 28 scenarios");
-        assert.equal(p.els.decision.textContent, "Decision table · 28 scenarios");
+        assert.deepEqual(shown(), ["Scenario frame · 28 scenarios", "Test steps · 28 scenarios", "Decision table · 28 scenarios", "Pair"]);
         p.send({ type: "target", kind: "scenarios", n: 1 });
-        assert.equal(p.els.table.textContent, "Test steps · 1 scenario");
-        assert.equal(p.els.decision.textContent, "Decision table · 1 scenario");
-        assert.equal(p.els.copydecision.textContent, "Copy decision table · 1 scenario");
+        assert.deepEqual(shown().slice(0, 2), ["1 scenario note selected", "Test steps · 1 scenario"]);
         p.send({ type: "target", kind: "table", n: 1 });
-        assert.equal(p.els.copy.textContent, "Copy to clipboard · selected table");
+        assert.deepEqual(shown().slice(0, 2), ["Table selected · Copy only", "Selected table"]);
+        assert.equal(p.els.copy.disabled, false);
+        // one flow note selected: its own counts
+        p.send({ type: "target", kind: "flows", n: 1 });
+        p.send({ type: "counts", from: "note", counts: { all: 8, pair: 5, min: 5 }, steps: 17, issues: [] });
+        assert.deepEqual(shown(), ["1 flow note · 17 steps", "Test steps · 5 scenarios", "Decision table · 5 scenarios", "Pair 5"]);
+        p.send({ type: "target", kind: "flows", n: 3 });
+        assert.deepEqual(shown(), ["3 flow notes selected", "Test steps", "Decision table", "Pair"]);
     } finally {
         p.restore();
     }
 });
 
-test("UI-45: issues are one line each, coloured by kind, and past two they fold away", () => {
+test("UI-45: messages fold under one line that counts them, and stay open once opened", () => {
     const p = loadPanel();
     try {
-        p.send({
+        p.send({ type: "counts", counts: null, steps: 0, issues: ["No step found"] });
+        assert.equal(p.els.issues.children.length, 0, "an empty text box shows no messages");
+        const message = {
             type: "counts",
+            from: "note",
             counts: { all: 9, pair: 4, min: 3 },
             steps: 3,
-            issues: ["ERROR: PAIR MISSING choices: \"x\"", "INFO: a quick search", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
-        });
-        const kids = p.els.issues.children;
-        assert.deepEqual(kids.slice(0, 2).map((d: any) => d.className), ["iss err", "iss info"]);
-        const more = kids[2];
-        assert.equal(more.tag, "details");
-        assert.equal(more.children[0].textContent, "2 more");
-        assert.deepEqual(more.children.slice(1).map((d: any) => d.className), ["iss warn", "iss warn"]);
+            issues: ['ERROR: PAIR MISSING choices: "x"', "INFO: a quick search", "WARN: Step 2: duplicate", "Line 4: Unknown option"],
+        };
+        p.send(message);
+        const fold = p.els.issues.children.at(-1);
+        assert.equal(fold.tag, "details");
+        assert.equal(fold.open, false);
+        assert.equal(fold.children[0].textContent, "1 error · 2 warnings · 1 note");
+        assert.equal(fold.children[0].className, "err");
+        assert.deepEqual(fold.children.slice(1).map((d: any) => d.className), ["iss err", "iss info", "iss warn", "iss warn"]);
+        fold.open = true;
+        fold.ontoggle();
+        p.send(message);
+        assert.equal(p.els.issues.children.at(-1).open, true);
     } finally {
         p.restore();
     }
 });
 
-test("UI-04: a big mode suggests only modes with fewer scenarios", () => {
+test("UI-04: a big mode is warned about in the messages, suggesting only modes with fewer scenarios", () => {
     const p = loadPanel();
     try {
+        const lines = () => (p.els.issues.children.at(-1)?.children ?? []).map((c: any) => c.textContent);
+        p.els.t.value = "x";
         p.send({ type: "counts", counts: { all: 1624, pair: 64, min: 9 }, steps: 12, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode Pair: 64 scenarios (a lot; the board may get slow. Each has 9)");
-    } finally {
-        p.restore();
-    }
-});
-
-test("UI-04: panel: a lot of scenarios gets a warning, and the mode count follows the switch", () => {
-    const p = loadPanel();
-    try {
-        p.send({ type: "counts", counts: { all: 231, pair: 17, min: 11 }, steps: 3, issues: [] });
-        assert.equal(p.els.plan.textContent, "Mode Pair: 17 scenarios");
-        assert.equal(p.els.plan.className, "plan");
+        assert.ok(lines().includes("Mode Pair: 64 scenarios (a lot; the board may get slow. Each has 9)"), lines().join(" / "));
+        // a mode that is not big says nothing
+        p.els.issues.children.length = 0;
+        p.els["m-min"].onclick();
+        assert.deepEqual(lines(), []);
+        assert.equal(p.els["m-min"].textContent, "Each 9");
     } finally {
         p.restore();
     }
@@ -1325,7 +1376,12 @@ test("UI-12 UI-13: panel: the starter buttons ask the driver for a template; a p
             ["shop"]
         );
         p.send({ type: "fill", text: "@builder\n1. a\n- b" });
-        assert.equal(p.els.paste.open, true);
+        assert.equal(p.els.paste.hidden, false, "Write flow is shown");
+        assert.equal(p.els.main.hidden, true);
+        p.els.back.onclick();
+        assert.equal(p.els.main.hidden, false);
+        p.els.write.onclick();
+        assert.equal(p.els.paste.hidden, false);
         assert.equal(p.els.t.value, "@builder\n1. a\n- b");
     } finally {
         p.restore();
@@ -1336,9 +1392,9 @@ test("UI-41: panel: counts dim while the note is being typed in, and come back w
     const p = loadPanel();
     try {
         p.send({ type: "counting" });
-        assert.equal(p.els.counts.style.opacity, "0.5");
+        assert.equal(p.els.mode.style.opacity, "0.5");
         p.send({ type: "counts", from: "note", counts: { all: 9, pair: 4, min: 3 }, steps: 3, issues: [], ms: 1300 });
-        assert.equal(p.els.counts.style.opacity, "");
+        assert.equal(p.els.mode.style.opacity, "");
     } finally {
         p.restore();
     }
@@ -1348,12 +1404,12 @@ test("UI-40 UI-44: panel: counts from a note are labelled, and a recount asks fo
     const p = loadPanel();
     try {
         p.send({ type: "counts", from: "note", counts: { all: 9, pair: 4, min: 3 }, steps: 3, issues: [] });
-        assert.equal(p.els.counts.title, "Counts of the selected flow note");
+        assert.equal(p.els.mode.title, "Counts of the selected flow note");
         p.els.t.value = "1. a\n- b";
         p.send({ type: "recount" });
         assert.deepEqual(p.sent[p.sent.length - 1], { type: "preview", text: "1. a\n- b" });
         p.send({ type: "counts", counts: { all: 1, pair: 1, min: 1 }, steps: 1, issues: [] });
-        assert.equal(p.els.counts.title, "Counts of the text in the paste box");
+        assert.equal(p.els.mode.title, "Counts of the text in the text box");
     } finally {
         p.restore();
     }

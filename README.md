@@ -9,7 +9,7 @@ test steps of each scenario.
 Install the extension, click its button on the right edge of the board, press a
 **Start with a template** button to drop a ready-made flow note on the
 board, edit it there, select it and press **Flow + Scenarios**. (Or write a flow in the
-panel's paste box, or in any note, sticky note or text box, that starts with `@builder`.)
+panel's **Write flow** box, or in any note, sticky note or text box, that starts with `@builder`.)
 
 ![E2E Scenario Builder: a flow diagram, its scenario notes and test sequence tables drawn on a Drawdy board](assets/demo.jpg)
 
@@ -93,41 +93,45 @@ of scenarios.
    template** to drop a note with a ready-made online-shop checkout that uses every piece of
    the syntax, explained in `#` comment lines (they are ignored; delete them when done),
    and edit it there. Any note whose first line is `@builder` works the same.
-   You can also type in the panel's **Paste or type text here** box, or press
-   **Pull from selected note** in it to fill the box from a note.
-   While one flow note is selected, the panel shows that note's scenario counts, the
-   flow check, updated as you edit it; with nothing selected it counts
-   the paste box.
-3. **Watch the numbers.** While you type, the panel shows the number of steps
-   and of test scenarios in every mode (All, Pairwise, Each-Choice), the problems
-   found in the text (with their line) and in the flow.
-4. **Pick the mode** with the switch (All, Pair, Each; Pair is the default). Under
-   it the panel says how many scenarios that mode makes, and warns above 50.
+   You can also press **Write flow** and type in the panel's text box (**Pull from
+   selected note** fills it from a note; **← Back** returns to the buttons).
+   While one flow note is selected, the panel shows that note's scenario counts and
+   flow check, updated as you edit it; with nothing selected it counts the text box.
+3. **Watch the numbers.** The line at the top says what the buttons will use. Each
+   mode button carries its number of scenarios (`All 8`, `Pair 5`, `Each 5`). Problems
+   found in the text (with their line) and in the flow fold under one line, such as
+   "2 warnings"; click it to read them.
+4. **Pick the mode** with those buttons (Pair is the default; hover one to read what it
+   picks). Above 50 scenarios the warnings say so.
 5. **Press a button.**
 6. **Put the result down.** With **Place: By hand** (the default) an outline follows
    the pointer: click the board where it should go, or press Esc to cancel. Everything
-   one press makes moves as one block, and the view stays where it is. The panel also
-   offers **Place automatically** and **Cancel** while you hold it. With **Place:
+   one press makes moves as one block, and the view stays where it is. While you hold it, choose
+   **Auto** in the panel to place it at once; Esc also works with the panel focused. With **Place:
    Auto** the result goes into free space and the view flies to it.
+
+The target line and the mode stay at the top of the panel, **Place** and the status
+line at the bottom. Each table button has a **Copy** button beside it.
 
 | Button | Result |
 | --- | --- |
 | **Flow** | The flow diagram only. With a scenario note selected it reads **Flow + Test steps**: the flow of that scenario, and under it its test steps |
 | **Scenarios** | The scenario notes of the chosen mode, without the diagram |
-| **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover. With a scenario note (or a decision table's column head) selected it reads **Flow only**: just the flow of that scenario, without its test steps |
+| **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all three modes and how much of the flow the scenarios cover. With a scenario note (or a decision table's column head) selected it reads **Flow only**: just the flow of that scenario, without its test steps |
 | **Test steps** | The test steps of each scenario, in order, as tables: one row per test step (step, condition, setup, test data, expected result) |
-| **Steps list** | Every step and every choice of the whole flow as one table (step, condition, setup, test data, expected result, **Req**): a checklist of the flow itself, not of scenarios. It does not depend on the mode and has no limit on size. Select the table and press **Copy to clipboard** to paste it into a spreadsheet |
+| **Steps list** | Every step and every choice of the whole flow as one table (step, condition, setup, test data, expected result, **Req**): a checklist of the flow itself, not of scenarios. It does not depend on the mode and has no limit on size. Its **Copy** button copies the same text without drawing it |
 | **Decision table** | A decision table of the same scenarios: every step as a row, each scenario as a column. See [Decision table](#decision-table) |
-| **Copy to clipboard** | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
-| **Copy decision table** | Copies the decision table of the same scenarios, without drawing it and with no limit on scenarios: one long row of scenarios, so you can freeze the first two columns in the spreadsheet |
+| **Copy** beside Test steps | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
+| **Copy** beside Decision table | Copies the decision table of the same scenarios, without drawing it and with no limit on scenarios: one long row of scenarios, so you can freeze the first two columns in the spreadsheet |
 
 ### What the buttons use
 
-A selection on the board wins over the text left in the panel. The panel says what
-the buttons will use ("The buttons below will use ..."), the **Test steps**, **Decision table** and **Copy to clipboard**
-labels follow it (they end with how many scenarios they use), and buttons that do not fit the selection are greyed out.
+A selection on the board wins over the text left in the panel. The line at the top of
+the panel says what the buttons will use, the **Test steps** and **Decision table** labels
+follow it (they end with how many scenarios they use), and buttons that do not fit the
+selection are greyed out. In the table below, "Copy" means all three Copy buttons.
 
-| Selected on the board | Flow | Scenarios | Flow + Scenarios | Test steps / Decision table / Copy to clipboard / Copy decision table |
+| Selected on the board | Flow | Scenarios | Flow + Scenarios | Test steps / Decision table / Copy |
 | --- | --- | --- | --- | --- |
 | nothing, with a flow in the text box | on | on | on | all scenarios of the mode |
 | nothing, text box empty | off | off | off | off |
@@ -135,7 +139,7 @@ labels follow it (they end with how many scenarios they use), and buttons that d
 | a scenario frame | off | on (scenarios again, chosen mode) | off | all scenarios in the frame |
 | a drawn flow frame | off | on (new scenarios) | on | scenarios of the chosen mode |
 | a note that starts with `@builder` | on | on | on | its scenarios |
-| a table or a decision table | off | off | off | **Copy to clipboard** copies that table; the rest are off |
+| a table or a decision table | off | off | off | the **Copy** beside Test steps copies that table; the rest are off |
 
 **Steps list** is on wherever **Test steps** is, but it always lists the whole flow: with
 scenario notes, column heads or a scenario frame selected it takes the flow they came from,
@@ -162,7 +166,7 @@ in the panel does not need the marker.)
 - A table is one embedded page of the board. **Drawdy's canvas catches the mouse over
   embedded pages, so a table cannot be scrolled or clicked on the board**; it is
   drawn at its full height instead (worked out from the column widths, so there can
-  be some empty space below it). Copy it with the **Copy to clipboard** button.
+  be some empty space below it). Copy it with the **Copy** (beside Test steps) button.
 - A decision table is the exception: it is made of ordinary boxes, so it can be edited
   on the board (see [Decision table](#decision-table)).
 
@@ -465,7 +469,7 @@ scenario: Pair and Each give a subset of what All lists.
 
 ## Modes
 
-Choose the mode with the panel's switch; the line under it says what the mode picks.
+Choose the mode with the panel's buttons; each one's tooltip says what it picks.
 
 | Mode | What you get |
 | --- | --- |
@@ -561,7 +565,7 @@ loop that points forward, duplicate or empty labels.
 The **Decision table** button turns the scenarios of the chosen mode into a decision
 table: the steps of the flow are the rows and each scenario is a column. It takes the
 same scenarios as **Test steps**, so select a scenario frame, some scenario notes, a
-`@builder` note or a flow frame, or write the flow in the paste box.
+`@builder` note or a flow frame, or write the flow in the text box.
 
 For this flow, in the Each-Choice mode:
 
@@ -612,7 +616,7 @@ How to read it:
 
 A frame holds up to 10 scenarios; more are drawn in more frames, one under the other. A
 decision table is drawn for at most 60 scenarios: pick Pair or Each for a bigger flow,
-or press **Copy decision table** to get it as text for a spreadsheet with no limit.
+or press the **Copy** button beside **Decision table** to get it as text for a spreadsheet with no limit.
 A flow with no step that has two or more choices is still drawn and copied, with a
 warning that there is nothing to decide.
 
@@ -625,7 +629,7 @@ from edits made inside it.
 
 **From a column head to its test steps.** Select a column head (`TSS-001`) and use it like
 a scenario note: **Flow** draws that scenario's flow and its test steps, **Test steps** and
-**Copy to clipboard** give them, and **Decision table** draws a table of just the selected
+**Copy** (beside Test steps) give them, and **Decision table** draws a table of just the selected
 heads (hold Shift to select several). The table keeps its own copy of the flow and of the
 mode, so this works after you edit the note you wrote the flow in, and when you drew two
 tables from two notes: each head goes back to the flow *its* table was made from. That is
@@ -633,10 +637,10 @@ also why the same ID in two modes is not a problem: `TSS-003` of Each and `TSS-0
 Pair are two scenarios, and each head knows which. A table drawn by an earlier version has
 no copy of the flow: its heads say so, and the table has to be drawn again.
 
-Select a decision table and press **Copy to clipboard** to copy it for a spreadsheet: the same
+Select a decision table and press **Copy** (beside Test steps) to copy it for a spreadsheet: the same
 rows, with the scenario IDs as the column heads and a Group row under them.
 
-**Copy decision table** gives that text straight from the flow, a scenario frame or selected
+The **Copy** button beside **Decision table** gives that text straight from the flow, a scenario frame or selected
 scenario notes, without drawing anything. Past 60 scenarios (All Paths of a big flow) it
 is the way to get the table: paste it into a spreadsheet and freeze the first two columns
 (Condition, Combination) so the scenarios scroll sideways.
@@ -725,19 +729,20 @@ release, check by hand in Drawdy (about five minutes):
 4. Select one scenario note: the line says "1 scenario note(s) selected", **Flow** reads
    **Flow + Test steps**, **Scenarios** and **Flow + Scenarios** are greyed out. Press
    **Test steps** and **Flow + Test steps**: one table, and the scenario's flow with its test
-   steps. The buttons sit under the headings **Draw**, **Tables** and **Export**.
-5. Select the scenario frame and press **Copy to clipboard**, then paste into a
+   steps. The buttons sit under the headings **Draw** and **Tables**, and with nothing unfolded the
+   panel needs no scrolling.
+5. Select the scenario frame and press **Copy** (beside Test steps), then paste into a
    spreadsheet: one row per test step, a **Scenario** column first.
-6. Select a table and press **Copy to clipboard**: it copies that table.
+6. Select a table and press **Copy** (beside Test steps): it copies that table.
 7. Select the scenario frame and press **Decision table**: a frame of boxes appears under
    it, a green **Success** bar over the happy scenarios and a red **Negative** bar over
    the others, and an X where a scenario takes a choice. The boxes can be moved and edited. Select
-   the frame and press **Copy to clipboard**: pasted into a spreadsheet it has the scenario
+   the frame and press **Copy** (beside Test steps): pasted into a spreadsheet it has the scenario
    IDs as heads and a **Group** row.
 8. Press **Start with a template**: a yellow note that starts with `@builder` appears in
    view and the camera flies to it; a second press puts the next note below the first,
    not on top. Select a note and press **Flow + Scenarios**: a
-   flow and scenarios are drawn. Fold and unfold **Paste or type text here**.
+   flow and scenarios are drawn. Open **Write flow** and press **← Back**.
 9. **Speed with a big flow.** Paste this into a new note (it has more than 1,000
    paths), select the note and type in it:
    `@builder` then ten steps `1. S0` … `10. S9`, each with `- a`, `- b`, `- c`, `- d`.

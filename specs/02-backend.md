@@ -30,7 +30,7 @@ There is no server: nothing leaves the user's browser.
   | `pull` | | send me the selected `@builder` note's text |
   | `template` | `id`, `place` | drop a starter note |
   | `place` | `how` (`auto` or `cancel`) | what to do with the held block (DRV-73, DRV-74) |
-  | `action` | `action`, `text`, `mode`, `place` (`hand` or `auto`, DRV-70) | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (Copy to clipboard), `copydecision` (Copy decision table) |
+  | `action` | `action`, `text`, `mode`, `place` (`hand` or `auto`, DRV-70) | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (copy the test steps or a selected table), `copydecision` (copy the decision table), `copysteps` (copy the steps list) |
 
 - **DRV-11** Driver → panel:
 
@@ -81,9 +81,9 @@ Code: `src/placement.ts`.
   pointer down and up that moved at most 5 screen pixels (a longer move is a drag and
   places nothing). One click places the block once. The status is the one the button
   gives in `auto`, or "Could not draw: …".
-- **DRV-73** Esc on the board, or the panel's Cancel (`place` with `how: "cancel"`),
+- **DRV-73** Esc on the board, or Esc in the panel (`place` with `how: "cancel"`, UI-61),
   draws nothing: "Cancelled: nothing was drawn".
-- **DRV-74** The panel's "Place automatically" (`how: "auto"`) draws the block in free
+- **DRV-74** Choosing Auto in the panel while a block is held (`how: "auto"`, UI-61) draws the block in free
   space, from where it was made (OUT-01), without moving the camera. The same happens
   at once when the outline cannot be created.
 - **DRV-75** Pressing any button while a block is held drops that block first.
@@ -157,6 +157,10 @@ Code: `src/placement.ts`.
   give a table each, in one frame. On success the status is "Steps list drawn (N steps)".
   A selected table is not a source (UI-31); Copy to clipboard copies a selected steps
   list as it copies any table (DRV-25) and says "Copied N steps".
+- **DRV-63** Copy of the steps list (`copysteps`): sends `clip` with the text of the
+  steps list (OUT-67) of the same source as Steps list (DRV-61), `what` "steps", and
+  draws nothing. After any copy that sends `clip` no `status` follows, so the panel's
+  "Copied" line stays.
 - **DRV-26** A mode written in the text (`@all`, `@pair`, `@min`, one-line form)
   wins over the panel's switch. `@ep` is not a mode any more (SYN-22).
 - **DRV-27** Nothing usable selected and no text: the status says "Write a flow in the

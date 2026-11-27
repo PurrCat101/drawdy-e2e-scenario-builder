@@ -12,6 +12,7 @@ import {
     addTemplateNote,
     copyAction,
     copyDecisionAction,
+    copyStepsAction,
     decisionAction,
     drawFromText,
     stepsListAction,
@@ -154,13 +155,12 @@ export async function onPanelMessage(m: any) {
             status = await stepsListAction(text, uiMode);
         } else if (m.action === "decision") {
             status = await decisionAction(text, uiMode);
-        } else if (m.action === "copy") {
-            status = await copyAction(text, uiMode);
-        } else if (m.action === "copydecision") {
-            status = await copyDecisionAction(text, uiMode);
+        } else if (m.action === "copy" || m.action === "copydecision" || m.action === "copysteps") {
+            const copy = m.action === "copy" ? copyAction : m.action === "copydecision" ? copyDecisionAction : copyStepsAction;
+            status = await copy(text, uiMode);
             if (!status) {
                 abortCapture(); // a copy draws nothing
-                return; // the panel reports the result itself
+                return; // the panel reports the result itself: a status would wipe it
             }
         } else if (text && !usable) {
             status = await drawFromText(

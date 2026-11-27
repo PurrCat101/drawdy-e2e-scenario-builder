@@ -22,6 +22,14 @@
   without loops first and then a looping Happy path that took the same choices too, so
   it picked more than Pair on a small flow.
 - Pairwise and Each are still greedy, not the smallest possible set (CALC-35).
+- **The panel fits its window.** The buttons are all in view: the target line and the
+  mode switch (each button with its count) stay at the top, Place and the status at the
+  bottom. Each table has its **Copy** button beside it, the steps list can be copied
+  without drawing it, **Write flow** opens the text box over the buttons, and the
+  warnings fold under one line (UI-15, DRV-63).
+- The **Place automatically** and **Cancel** buttons are gone. While a drawing waits for
+  your click, choose **Auto** to place it, or press Esc (on the board or in the panel).
+- Fixed: after copying the test steps the "Copied …" line was cleared at once.
 - **The decision table shows every step.** It used to leave out steps with fewer than
   two choices, so a table could start at step 5. A step without choices now has an
   no box under Combinations and an X in each scenario that passes it (CALC-90, CALC-92).
