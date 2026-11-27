@@ -550,22 +550,13 @@ test("DRV-57: a @builder note selected gives a table for its flow, and two notes
     assert.equal(decisionFrames(h).length, 3, "one more for each of the two notes");
 });
 
-test("DRV-57: a flow with no step that decides draws nothing and says why", async () => {
+test("DRV-57 CALC-94: a flow with no step that decides is drawn, with a warning that is not an error", async () => {
     const h = await makeHost();
-    await h.action("decision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "pair");
-    assert.equal(decisionFrames(h).length, 0);
+    await h.action("decision", "@builder\n1. A\n   - only\n2. B\n", "pair");
+    assert.equal(decisionFrames(h).length, 1);
     const s = lastStatus(h);
-    assert.match(s.text, /^Cannot draw a decision table: the flow has no step with two or more choices/);
-    assert.ok(s.bad);
-});
-
-test("DRV-57: more than 60 scenarios draws nothing and names the smaller modes", async () => {
-    const h = await makeHost();
-    await h.action("decision", TEMPLATES[0].text, "all"); // 113 scenarios
-    assert.equal(decisionFrames(h).length, 0);
-    const s = lastStatus(h);
-    assert.match(s.text, /^Could not draw: \d+ scenarios is too many for one decision table \(at most 60\); pick Pair or Each, or press Copy decision table$/);
-    assert.ok(s.bad);
+    assert.equal(s.text, "Decision table drawn (1 scenarios). Warning: no step has two or more choices, so there is nothing to decide");
+    assert.ok(!s.bad);
 });
 
 test("DRV-58: Copy decision table copies the text of the table the Decision table button draws, and draws nothing", async () => {
@@ -603,12 +594,14 @@ test("DRV-58: Copy decision table with a scenario frame selected uses that frame
     assert.equal(h.lastClip().scenarios, frame.meta.count);
 });
 
-test("DRV-58: Copy decision table says why when the flow has no step that decides, and copies nothing", async () => {
+test("DRV-58 CALC-94: Copy decision table copies a flow with no step that decides, with the warning", async () => {
     const h = await makeHost();
-    await h.action("copydecision", "@builder\n1. A\n   - only\n2. B\n   - only too\n", "pair");
-    const s = lastStatus(h);
-    assert.match(s.text, /^Cannot copy a decision table: the flow has no step with two or more choices/);
-    assert.ok(s.bad);
+    await h.action("copydecision", "@builder\n1. A\n   - only\n2. B\n", "pair");
+    const clip = h.lastClip();
+    assert.match(clip.text, /^Condition\tCombination\tTSS-001\n/);
+    assert.match(clip.warning, /^Warning: no step has two or more choices/);
+    await h.action("copydecision", TEMPLATES[0].text, "pair");
+    assert.equal(h.lastClip().warning, undefined, "a flow that decides has no warning");
 });
 
 const stepsFrames = (h: Awaited<ReturnType<typeof makeHost>>) => h.frames().filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit === "steps");

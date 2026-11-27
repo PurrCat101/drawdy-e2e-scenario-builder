@@ -115,9 +115,12 @@ the board, `src/actions.ts` decides what to draw for each button.
   CALC-57), so a column is found on the board by its ID (OUT-65). At most 10 columns go
   in one frame: more are drawn in more frames, one under the other, named
   `Decision table · <mode name> · Scenarios a to b of N`.
-- **OUT-62** Down the left, a box `<n>. <step name>` for each condition, with a grey box
-  for each of its values to the right of it, and an `X` box in a column where that
-  scenario takes the value. A value box is as tall as its text needs (OUT-50).
+- **OUT-62** Down the left, a box `<n>. <step name>` for each step (CALC-90), with a grey
+  box for each of its values to the right of it, and an `X` box in a column where the
+  value is marked (CALC-92). A step without choices has no value box: the place is
+  left open, and its X boxes stand in the row of the step. Every step
+  box has the same colour, whether the step decides or not. A value box is as tall as its
+  text needs (OUT-50).
 - **OUT-63** (removed) A note of expected results under the decision table; they are in the
   Test steps table (OUT-31).
 - **OUT-66** Every frame of a decision table keeps a snapshot of the flow it was made

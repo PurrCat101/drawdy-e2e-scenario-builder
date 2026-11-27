@@ -57,9 +57,9 @@ test("CORE-10: every mode of buildReport picks as many scenarios as the counts s
     }
 });
 
-test("CORE-10: a flow with no step that decides has no decision table", () => {
+test("CORE-10 CALC-94: a flow with no step that decides still has a decision table", () => {
     const r = buildReport("@builder\n1. Open\n2. Close\n", "all");
-    assert.equal(r.decisionTsv, null);
+    assert.equal(r.decisionTsv, "Condition\tCombination\tTSS-001\n\tGroup\tSuccess\n1. Open\t\tX\n2. Close\t\tX");
     assert.equal(r.scenarios.length, 1);
 });
 

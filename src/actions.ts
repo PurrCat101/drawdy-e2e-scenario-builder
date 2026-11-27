@@ -201,6 +201,9 @@ export async function copyAction(text: string, uiMode: Mode): Promise<string> {
     return "";
 }
 
+/** Said when a decision table is made for a flow with nothing to decide (CALC-94). */
+const NOTHING_TO_DECIDE = "Warning: no step has two or more choices, so there is nothing to decide";
+
 /**
  * Copy decision table: the text of the decision table (CALC-90 to 94) of the scenarios
  * chosen as for the Decision table button, without drawing it and without the limit of
@@ -211,13 +214,14 @@ export async function copyDecisionAction(text: string, uiMode: Mode): Promise<st
     if (typeof got === "string") return got;
     const parts: string[] = [];
     let n = 0;
+    let warn = false;
     for (const src of got) {
         const dt = buildDecisionTable(src.flow, src.scenarios);
-        if (!dt.conditions.length) return "Cannot copy a decision table: the flow has no step with two or more choices";
+        warn ||= !dt.decides;
         parts.push(decisionToTsv(dt));
         n += dt.columns.length;
     }
-    await toPanel({ type: "clip", text: parts.join("\n\n"), scenarios: n });
+    await toPanel({ type: "clip", text: parts.join("\n\n"), scenarios: n, ...(warn ? { warning: NOTHING_TO_DECIDE } : {}) });
     return "";
 }
 
@@ -274,9 +278,10 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
     if (typeof got === "string") return got;
     let drawn = 0;
     let first = "";
+    let warn = false;
     for (const src of got) {
         const dt = buildDecisionTable(src.flow, src.scenarios);
-        if (!dt.conditions.length) return "Cannot draw a decision table: the flow has no step with two or more choices";
+        warn ||= !dt.decides;
         if (dt.columns.length > MAX_DECISION_SCENARIOS)
             return `Could not draw: ${dt.columns.length} scenarios is too many for one decision table (at most ${MAX_DECISION_SCENARIOS}); pick Pair or Each, or press Copy decision table`;
         const name = `Decision table · ${MODE_LABEL[src.mode]}`;
@@ -289,7 +294,7 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
         first = first || out.frameIds[0];
     }
     await flyTo([first], 0.3);
-    return `Decision table drawn (${drawn} scenarios)`;
+    return `Decision table drawn (${drawn} scenarios)` + (warn ? `. ${NOTHING_TO_DECIDE}` : "");
 }
 
 /**

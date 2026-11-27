@@ -375,7 +375,7 @@
       setStatus(m.text, m.bad);
     } else if (m.type === 'clip') {
       var ta = $('clip'), ok = false;
-      var done = 'Copied ' + m.scenarios + ' ' + (m.what || 'scenario(s)') + '. Paste with Ctrl+V';
+      var done = 'Copied ' + m.scenarios + ' ' + (m.what || 'scenario(s)') + '. Paste with Ctrl+V' + (m.warning ? '. ' + m.warning : '');
       var fail = 'Could not copy (the browser blocked the clipboard)';
       ta.value = m.text;
       ta.focus();

@@ -1,11 +1,12 @@
-// The decision table of a flow: the steps that decide (two or more choices) as rows,
-// the scenarios of a mode as columns. Pure logic; drawing it is decisionBoard.ts.
+// The decision table of a flow: every step with its choices as rows, the scenarios of
+// a mode as columns. Pure logic; drawing it is decisionBoard.ts.
 
 import type { Flow } from "./flow";
 import type { Scenario } from "./scenarios";
 import { orderScenarios } from "./scenarioText";
 
-export type DtValue = { id: string; label: string };
+/** A choice of a step. A step without choices has one value, `id` null and no label. */
+export type DtValue = { id: string | null; label: string };
 export type DtCondition = {
     /** index of the step in the flow */
     step: number;
@@ -25,7 +26,10 @@ export type DecisionTable = {
     columns: DtColumn[];
     /** how many columns are Happy */
     success: number;
+    /** one for every step of the flow (CALC-90) */
     conditions: DtCondition[];
+    /** whether any step has two or more choices; without one there is nothing to decide */
+    decides: boolean;
     /** marks[condition][value][column] */
     marks: boolean[][][];
 };
@@ -43,26 +47,24 @@ export function buildDecisionTable(flow: Flow, scenarios: Scenario[]): DecisionT
         path: s.path.map((v) => [v.i, v.c ? v.c.id : null] as [number, string | null]),
     }));
 
-    // CALC-90: a condition is a step with two or more choices
-    const conditions: DtCondition[] = [];
-    flow.steps.forEach((s, i) => {
-        if (s.conds.length >= 2)
-            conditions.push({
-                step: i,
-                name: s.name,
-                values: s.conds.map((c) => ({ id: c.id, label: c.label })),
-            });
-    });
+    // CALC-90: every step; one without choices has itself as its only value
+    const conditions: DtCondition[] = flow.steps.map((s, i) => ({
+        step: i,
+        name: s.name,
+        values: s.conds.length ? s.conds.map((c) => ({ id: c.id, label: c.label })) : [{ id: null, label: "" }],
+    }));
 
-    // CALC-92: marked when the scenario takes the choice at least once
+    // CALC-92: marked when the scenario takes the choice at least once, or, for a step
+    // without choices, passes through the step
     const marks = conditions.map((cd) =>
-        cd.values.map((v) => cols.map((s) => s.path.some((p) => p.i === cd.step && p.c && p.c.id === v.id)))
+        cd.values.map((v) => cols.map((s) => s.path.some((p) => p.i === cd.step && (v.id === null || p.c?.id === v.id))))
     );
 
     return {
         columns,
         success: columns.filter((c) => c.type === "happy").length,
         conditions,
+        decides: flow.steps.some((s) => s.conds.length >= 2),
         marks,
     };
 }

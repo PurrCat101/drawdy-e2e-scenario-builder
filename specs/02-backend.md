@@ -42,7 +42,7 @@ There is no server: nothing leaves the user's browser.
   | `target` | `kind`, `n` | the selection (UI-30) |
   | `fill` | `text` | the selected note's text, for the paste box |
   | `status` | `text`, `bad` | a line for the status bar |
-  | `clip` | `text`, `scenarios` | text to copy to the clipboard |
+  | `clip` | `text`, `scenarios`, `what`?, `warning`? | text to copy to the clipboard; `warning` is said after "Copied …" |
   | `theme` | `css` | new theme variables |
   | `placing` | `on` | a block is held, or no longer (DRV-71, DRV-76) |
 
@@ -120,19 +120,20 @@ Code: `src/placement.ts`.
 - **DRV-57** Decision table: draws the decision table (CALC-90 to 94, OUT-60 to 64) of
   the scenarios chosen as for Test steps (DRV-24), below the selection or in view; with
   scenario notes selected, only those scenarios; with several `@builder` notes selected,
-  one table for each. Nothing is drawn, and the status says why, when the flow has no
-  step with two or more choices ("Cannot draw a decision table: ...") or when there are
-  more than 60 scenarios ("Could not draw: ... pick Pair or Each, or press Copy decision
-  table"). On success the
-  status is "Decision table drawn (N scenarios)" and the view flies to the table.
+  one table for each. Nothing is drawn, and the status says why, when there are more
+  than 60 scenarios ("Could not draw: ... pick Pair or Each, or press Copy decision
+  table"). On success the status is "Decision table drawn (N scenarios)" and the view
+  flies to the table. When a flow it was drawn for has no step with two or more choices
+  (CALC-94), the status goes on with ". Warning: no step has two or more choices, so
+  there is nothing to decide"; the status is not marked bad (DRV-29).
 - **DRV-58** Copy decision table: sends `clip` with the text of the decision table (OUT-64)
   of the scenarios chosen as for the Decision table button (DRV-57), and draws nothing.
   There is no limit on the number of scenarios (the 60 of DRV-57 is a limit of drawing):
   every scenario is one more column in one long row, so a spreadsheet can freeze the first
   two columns. With several `@builder` notes selected the tables follow each other,
-  separated by an empty line. A flow with no step that decides copies nothing and says
-  "Cannot copy a decision table: ...". A selected table is not a source (UI-31): Copy to
-  clipboard copies it.
+  separated by an empty line. For a flow with no step with two or more choices
+  (CALC-94) the table is copied, and `clip` carries the warning of DRV-57 as `warning`.
+  A selected table is not a source (UI-31): Copy to clipboard copies it.
 - **DRV-59** A column head of a decision table (OUT-66) is a scenario note for every
   button: Flow draws that scenario's flow and its table, Test steps and Copy to clipboard
   give its test steps, Decision table draws a table of just the selected heads, and the

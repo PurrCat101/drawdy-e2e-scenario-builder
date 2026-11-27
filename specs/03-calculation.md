@@ -208,9 +208,10 @@ check), `src/core/analysis.ts` (remembering results).
 The decision table (a test design technique) is worked out from the scenarios of a
 mode. Drawing it is OUT-60 and the rules after it.
 
-- **CALC-90** A **condition** of the decision table is a step with two or more
-  choices. Its **values** are its choices, in the order they are written. A step with
-  fewer than two choices is not a condition and is left out.
+- **CALC-90** The rows of a decision table are **every step** of the flow, in order.
+  The **values** of a step are its choices, in the order they are written. A step
+  without choices has one value with an empty label: the step itself. A step with two or
+  more choices is a **decision**.
 - **CALC-91** The columns are the scenarios of the chosen mode, Happy first, then
   Negative, each by priority and then ID (OUT-22). A column is named by the scenario's
   ID (`TSS-001`), the one of CALC-57.
@@ -218,9 +219,11 @@ mode. Drawing it is OUT-60 and the rules after it.
   **Negative**. The ID of each column is drawn under its name (OUT-61), and the notes of
   the Scenarios frame are in the same order (OUT-65).
 - **CALC-92** A value is marked for a scenario when the scenario takes that choice at
-  least once on its path (a loop that takes two choices at one step marks both). A
-  step the scenario never reaches has no mark for it.
+  least once on its path (a loop that takes two choices at one step marks both). The
+  value of a step without choices is marked when the path passes through the step. A
+  step the scenario never reaches has no mark.
 - **CALC-93** (removed) The choices that end Negative scenarios and their expected
   results were part of the decision table; they are in the Test steps table (DRV-24).
-- **CALC-94** A flow with no condition has no decision table: there is nothing to
-  decide between.
+- **CALC-94** A flow with no decision (CALC-90) still has a decision table, so a flow
+  can be looked at as a table before its choices are written. The extension warns that
+  there is nothing to decide (DRV-57, DRV-58).

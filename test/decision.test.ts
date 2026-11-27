@@ -1,5 +1,5 @@
-// The decision table (specs/03-calculation.md, CALC-90 to 94): steps that decide are the
-// rows, the scenarios of a mode the columns, an X where a scenario takes a choice.
+// The decision table (specs/03-calculation.md, CALC-90 to 94): the steps and their choices
+// are the rows, the scenarios of a mode the columns, an X where a scenario takes a choice.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -35,22 +35,33 @@ const table = (text: string, mode: "all" | "pair" | "min" = "all") => {
     return { flow, list, dt: buildDecisionTable(flow, list) };
 };
 
-test("CALC-90: a condition is a step with two or more choices; its values are its choices in order", () => {
+test("CALC-90: every step is in the table, with its choices in order as its values", () => {
     const { dt } = table(FLOW);
     assert.deepEqual(dt.conditions.map((c) => [c.step, c.name, c.values.map((v) => v.label)]), [
         [0, "Login", ["ok", "bad"]],
         [1, "Pick", ["a", "b", "more"]],
+        [2, "Note", ["one choice only"]],
         [3, "Pay", ["paid", "declined", "no funds"]],
     ]);
-    // "Note" has one choice: not a condition
-    assert.ok(!dt.conditions.some((c) => c.name === "Note"));
+    assert.ok(dt.decides);
 });
 
-test("CALC-90: the starter template has a condition for every step with two or more choices", () => {
+test("CALC-90 CALC-92: a step without choices has an empty value, marked when the scenario passes it", () => {
+    const { dt } = table("@builder\n1. Open\n2. Pay\n   - paid\n   - declined -> end\n3. Ship\n");
+    assert.deepEqual(dt.conditions.map((c) => c.values), [
+        [{ id: null, label: "" }],
+        dt.conditions[1].values,
+        [{ id: null, label: "" }],
+    ]);
+    assert.deepEqual(dt.columns.map((c) => c.type), ["happy", "neg"]);
+    assert.deepEqual(dt.marks[0], [[true, true]]);
+    assert.deepEqual(dt.marks[2], [[true, false]], "the failing scenario never reaches Ship");
+});
+
+test("CALC-90: the starter template has a row group for every step", () => {
     const flow = parseFlowText(TEMPLATES[0].text).flow;
     const dt = buildDecisionTable(flow, pick(generate(flow), "pair"));
-    assert.equal(dt.conditions.length, flow.steps.filter((s) => s.conds.length >= 2).length);
-    assert.ok(dt.conditions.length >= 8);
+    assert.equal(dt.conditions.length, flow.steps.length);
 });
 
 test("CALC-91 CALC-57: Happy scenarios are the first columns (Success), then Negative; a column is named by its scenario ID", () => {
@@ -76,8 +87,7 @@ test("CALC-92: a value is marked when the scenario takes the choice; a step it n
     const bad = col((k) => marked(0, 1, k));
     assert.equal(bad.length, 1);
     for (const k of bad) {
-        assert.ok(dt.marks[1].every((v) => !v[k]), "Pick is not reached");
-        assert.ok(dt.marks[2].every((v) => !v[k]), "Pay is not reached");
+        for (const ci of [1, 2, 3]) assert.ok(dt.marks[ci].every((v) => !v[k]), "step " + (ci + 1) + " is not reached");
     }
     // a scenario that loops marks both "more" and the choice it picks after it
     const looped = col((k) => marked(1, 2, k));
@@ -88,9 +98,11 @@ test("CALC-92: a value is marked when the scenario takes the choice; a step it n
     assert.ok(plain.length > 0);
 });
 
-test("CALC-94: a flow without a step that decides has no condition", () => {
-    const { dt } = table("@builder\n1. A\n   - only\n2. B\n   - only too\n");
-    assert.deepEqual(dt.conditions, []);
+test("CALC-94: a flow without a step that decides still has a table, and says it does not decide", () => {
+    const { dt } = table("@builder\n1. A\n   - only\n2. B\n");
+    assert.equal(dt.decides, false);
+    assert.equal(dt.conditions.length, 2);
+    assert.deepEqual(dt.marks, [[[true]], [[true]]]);
 });
 
 test("CALC-91: the modes give their own scenarios as columns", () => {
@@ -213,7 +225,8 @@ test("OUT-62: a box for each condition and value, and an X where a scenario take
     const one = frames[0];
     const mine = boxes.filter((b) => inside(b, one));
     for (const cd of dt.conditions) assert.equal(mine.filter((b) => b.text === `${cd.step + 1}. ${cd.name}`).length, 1);
-    for (const cd of dt.conditions) for (const v of cd.values) assert.ok(mine.some((b) => b.text === v.label), v.label);
+    for (const cd of dt.conditions) for (const v of cd.values) if (v.id !== null) assert.ok(mine.some((b) => b.text === v.label), v.label);
+    assert.ok(boxes.every((b) => b.text !== ""), "no empty box");
     // one X for every mark, in the column of its scenario
     const marks = dt.marks.flat(2).filter(Boolean).length;
     assert.equal(boxes.filter((b) => b.text === "X").length, marks);
@@ -222,6 +235,20 @@ test("OUT-62: a box for each condition and value, and an X where a scenario take
         const col = heads.find((h) => x.x >= h.x && x.x + x.width <= h.x + h.width);
         assert.ok(col, "an X sits under a column head");
     }
+});
+
+test("OUT-62: a step without choices has its X in its own row and no value box", () => {
+    const { boxes } = draw(`@builder
+1. Open
+2. Pay
+   - paid
+3. Ship
+`);
+    assert.ok(boxes.every((b) => b.text !== ""));
+    // the head "Combinations" and the one choice are the only boxes of that column
+    const combo = boxes.find((b) => b.text === "Combinations")!;
+    assert.deepEqual(boxes.filter((b) => b.x === combo.x).map((b) => b.text), ["Combinations", "paid"]);
+    assert.equal(boxes.filter((b) => b.text === "X").length, 3);
 });
 
 test("OUT-60 OUT-62: the boxes of a frame stay inside it, do not overlap, and are tall enough for their text", () => {

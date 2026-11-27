@@ -30,7 +30,7 @@ export type DecisionOut = {
     height: number;
 };
 
-type Group = { title: string; tone: Tone; rows: { text: string; marks: boolean[] }[] };
+type Group = { title: string; tone: Tone; rows: { text: string; box: boolean; marks: boolean[] }[] };
 
 export function renderDecisionTables(opts: {
     table: DecisionTable;
@@ -52,7 +52,8 @@ export function renderDecisionTables(opts: {
     const groups: Group[] = t.conditions.map((cd, ci) => ({
         title: `${cd.step + 1}. ${cd.name}`,
         tone: "purple",
-        rows: cd.values.map((v, vi) => ({ text: v.label, marks: t.marks[ci][vi] })),
+        // a step without choices gets no value box: its row is left open (OUT-62)
+        rows: cd.values.map((v, vi) => ({ text: v.label, box: v.id !== null, marks: t.marks[ci][vi] })),
     }));
 
     const elements: DrawdyElementSchema[] = [];
@@ -112,7 +113,7 @@ export function renderDecisionTables(opts: {
             chip(xLabel, y, LABEL_W, labelH, g.title, g.tone);
             let ry = y;
             g.rows.forEach((r, i) => {
-                chip(xCombo, ry, COMBO_W, rowHs[i], r.text, "gray");
+                if (r.box) chip(xCombo, ry, COMBO_W, rowHs[i], r.text, "gray");
                 for (let k = a; k < b; k++)
                     if (r.marks[k]) chip(colX(k) + (COL_W - X_W) / 2, ry + (rowHs[i] - X_H) / 2, X_W, X_H, "X", "violet", "center");
                 ry += rowHs[i] + ROW_GAP;

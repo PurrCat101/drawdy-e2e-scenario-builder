@@ -22,7 +22,7 @@ imports). The Drawdy extension is one front end on top of it; a web page is anot
   reading warnings, the counts of every mode, the flow check, the header lines, the
   scenarios (ID, type, priority, loops, the choices taken, how many similar ones it stands
   for, its note and its test step rows) and the copied text of the test steps, of the
-  decision table (null when no step has two or more choices) and of the steps list of the
+  decision table (null only for a text with no step, CORE-12) and of the steps list of the
   whole flow (`stepsListTsv`, OUT-67).
 - **CORE-11** The scenarios of `buildReport` are the ones the extension draws for the same
   text and mode, in the same order and with the same IDs; its copied text is the text the

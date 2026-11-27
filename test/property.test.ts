@@ -398,19 +398,18 @@ test("CALC-90 to CALC-92 (property): the decision table has a column for every s
             const firstNeg = dt.columns.findIndex((c) => c.type === "neg");
             assert.ok(firstNeg === -1 || dt.columns.slice(firstNeg).every((c) => c.type === "neg"));
             assert.equal(dt.success, firstNeg === -1 ? dt.columns.length : firstNeg);
-            // CALC-90: the conditions are the steps with two or more choices, in flow order
+            // CALC-90: every step, in flow order, with one value for each choice (or itself)
             assert.deepEqual(
-                dt.conditions.map((c) => c.step),
-                flow.steps.flatMap((s, i) => (s.conds.length >= 2 ? [i] : []))
+                dt.conditions.map((c) => [c.step, c.values.length]),
+                flow.steps.map((s, i) => [i, Math.max(1, s.conds.length)])
             );
             const byId = new Map(list.map((s) => [s.id, s]));
             dt.columns.forEach((col, k) => {
                 const sc = byId.get(col.id)!;
-                const path = sc.path.filter((v) => v.c);
-                // CALC-92: a mark is a choice on the path, and every choice at a condition is marked
+                // CALC-92: a mark is a choice on the path, or a passed step without choices
                 dt.conditions.forEach((cd, ci) =>
                     cd.values.forEach((v, vi) => {
-                        const takes = path.some((p) => p.i === cd.step && p.c!.id === v.id);
+                        const takes = sc.path.some((p) => p.i === cd.step && (v.id === null || p.c?.id === v.id));
                         assert.equal(dt.marks[ci][vi][k], takes, `${col.id} ${v.id}`);
                     })
                 );

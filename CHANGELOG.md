@@ -22,6 +22,10 @@
   without loops first and then a looping Happy path that took the same choices too, so
   it picked more than Pair on a small flow.
 - Pairwise and Each are still greedy, not the smallest possible set (CALC-35).
+- **The decision table shows every step.** It used to leave out steps with fewer than
+  two choices, so a table could start at step 5. A step without choices now has an
+  no box under Combinations and an X in each scenario that passes it (CALC-90, CALC-92).
+  A flow with nothing to decide is drawn and copied too, with a warning (CALC-94).
 
 ## 0.6.0
 

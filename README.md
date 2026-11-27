@@ -117,7 +117,7 @@ of scenarios.
 | **Flow + Scenarios** | The flow diagram, then a frame of scenario notes whose header shows the counts of all four modes and how much of the flow the scenarios cover. With a scenario note (or a decision table's column head) selected it reads **Flow only**: just the flow of that scenario, without its test steps |
 | **Test steps** | The test steps of each scenario, in order, as tables: one row per test step (step, condition, setup, test data, expected result) |
 | **Steps list** | Every step and every choice of the whole flow as one table (step, condition, setup, test data, expected result, **Req**): a checklist of the flow itself, not of scenarios. It does not depend on the mode and has no limit on size. Select the table and press **Copy to clipboard** to paste it into a spreadsheet |
-| **Decision table** | A decision table of the same scenarios: the steps that decide as rows, each scenario as a column. See [Decision table](#decision-table) |
+| **Decision table** | A decision table of the same scenarios: every step as a row, each scenario as a column. See [Decision table](#decision-table) |
 | **Copy to clipboard** | Copies those tables, or a selected table or decision table, as tab-separated text to the clipboard, ready to paste into a spreadsheet |
 | **Copy decision table** | Copies the decision table of the same scenarios, without drawing it and with no limit on scenarios: one long row of scenarios, so you can freeze the first two columns in the spreadsheet |
 
@@ -559,7 +559,7 @@ loop that points forward, duplicate or empty labels.
 ## Decision table
 
 The **Decision table** button turns the scenarios of the chosen mode into a decision
-table: the steps that decide are the rows and each scenario is a column. It takes the
+table: the steps of the flow are the rows and each scenario is a column. It takes the
 same scenarios as **Test steps**, so select a scenario frame, some scenario notes, a
 `@builder` note or a flow frame, or write the flow in the paste box.
 
@@ -594,15 +594,16 @@ the decision table is:
 
 How to read it:
 
-- **Rows.** A step with two or more choices is a condition; its choices are the values
-  in the Combinations column. A step with one choice or none is left out.
+- **Rows.** Every step of the flow, in order, with its choices in the Combinations
+  column. A step without choices has nothing in that column: it gets an X when the
+  scenario passes it.
 - **Columns.** The scenarios of the mode, Happy ones first under a green **Success** bar
   (they complete the flow, even through a `[negative]` choice), then the Negative ones
   under a red **Negative** bar (they end at a `-> end`). Each column is headed by the
   scenario's ID, the same one the scenario note of that mode shows (see
   [Scenario IDs](#scenario-ids)), so a column is found on the board by its ID and traces
   back to its note and its test steps.
-- **X.** The scenario takes that choice. A loop marks every choice it takes at the step
+- **X.** The scenario takes that choice (or passes that step). A loop marks every choice it takes at the step
   (here `TSS-001` takes `shoes` and then `sold out`). A scenario that never
   reaches a step has no X for it.
 - **Boxes.** The table is made of ordinary boxes on the board, not an embedded page, so
@@ -612,7 +613,8 @@ How to read it:
 A frame holds up to 10 scenarios; more are drawn in more frames, one under the other. A
 decision table is drawn for at most 60 scenarios: pick Pair or Each for a bigger flow,
 or press **Copy decision table** to get it as text for a spreadsheet with no limit.
-A flow with no step that has two or more choices has no decision table.
+A flow with no step that has two or more choices is still drawn and copied, with a
+warning that there is nothing to decide.
 
 **From a column head to its test steps.** Select a column head (`TSS-001`) and use it like
 a scenario note: **Flow** draws that scenario's flow and its test steps, **Test steps** and
@@ -699,8 +701,7 @@ every push and pull request:
 - `test/property.test.ts`: rules that hold for every flow, with flows made by
   fast-check: writing a flow and reading it back, scenario IDs, the modes, loops and
   the decision table. A failing flow is shrunk and kept as a plain example.
-- `test/decision.test.ts`: the decision table on fixed flows: which steps are
-  conditions, the marks and results, how it is drawn (text boxes, bars, one frame per ten
+- `test/decision.test.ts`: the decision table on fixed flows: its rows, the marks and results, how it is drawn (text boxes, bars, one frame per ten
   scenarios, the expected-results note) and the text it copies.
 
 These tests do not see how things *look*, or what Drawdy itself does. Before a

@@ -35,7 +35,8 @@ control: flows are written on the board, not in the panel.
   in the paste box and unfolds it.
 - **UI-14** Copy to clipboard: the driver sends `clip` with the text; the panel copies it
   (execCommand, then the Clipboard API) and says "Copied N scenario(s). Paste with
-  Ctrl+V", or that the browser blocked it.
+  Ctrl+V", or that the browser blocked it. A `warning` in the message follows the
+  "Copied" line (DRV-58).
 
 ## Terminology
 

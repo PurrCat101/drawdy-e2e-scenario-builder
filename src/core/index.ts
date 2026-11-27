@@ -59,7 +59,7 @@ export type Report = {
     scenarios: ScenarioView[];
     /** the copied text: test steps, one row per step, the scenario ID first */
     stepsTsv: string;
-    /** the copied text of the decision table, null when no step has two or more choices */
+    /** the copied text of the decision table, null only for a text with no step */
     decisionTsv: string | null;
     /** every step and choice of the whole flow as text for a spreadsheet, with a Req column */
     stepsListTsv: string;
@@ -127,7 +127,7 @@ export function buildReport(text: string, mode: Mode = "pair", budgetMs?: number
         header: reportHeader({ flow, mode, shown, gen: a.gen, counts, issues }),
         scenarios: views,
         stepsTsv: scenariosToTsv(items),
-        decisionTsv: dt.conditions.length ? decisionToTsv(dt) : null,
+        decisionTsv: decisionToTsv(dt),
         stepsListTsv: flowStepsToTsv(flow),
         complete: a.complete,
     };

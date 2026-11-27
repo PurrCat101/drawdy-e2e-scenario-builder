@@ -113,7 +113,7 @@ function snapshot() {
                 coverage: fp(coverageLines(list, a.gen, mode)),
                 requirements: fp(requirementLines(list, flow)),
                 stepsTsv: fp(scenariosToTsv(items)),
-                decisionTsv: fp(dt.conditions.length ? decisionToTsv(dt) : ""),
+                decisionTsv: fp(decisionToTsv(dt)),
                 board: fp(
                     renderScenarios({
                         flow,
