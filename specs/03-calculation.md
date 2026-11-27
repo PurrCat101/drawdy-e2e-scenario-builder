@@ -79,25 +79,44 @@ check), `src/core/analysis.ts` (remembering results).
 
 ## Modes
 
+- **CALC-28** The **base path** (TERM-16) is a Happy scenario with the fewest loops
+  (CALC-40) of all Happy scenarios, usually a path that takes no loop at all. Pairwise and
+  Each treat it as one coverage item: a set covers it when it holds at least one Happy
+  scenario with that fewest number of loops. A flow with no Happy scenario has no base
+  path, and the item does not exist. Why: a choice that leaves a loop (`- no more`) is
+  also taken by paths that went round the loop first, so without this item a mode could
+  pick only looping paths and never test the plain way through (SCK flow: Pairwise picked
+  four scenarios that all loop).
+- **CALC-29** After the greedy picks (CALC-33, CALC-34), the picked scenarios are pruned:
+  they are looked at from the last picked to the first, and one is dropped when the
+  others still picked cover every item it covers (its choices, its loop ends, the base
+  path and, for Pairwise, its pairs). So no picked scenario adds nothing, and the mode
+  still covers everything it promises (CALC-36). The order is fixed, so the same flow
+  always gives the same set (CALC-56). Pruning does not apply to All.
 - **CALC-30** Every mode except All picks a subset of All's scenarios; none twice; it
   never invents a scenario.
 - **CALC-31** (removed) EP, the grouping by `variant` choices. Removed in 0.6.0 (CALC-39).
 - **CALC-32** (removed) EP's "stands for N similar" marks. Removed with EP.
-- **CALC-33** Pairwise: greedy set cover over every choice, every loop end and every
-  pair of choices on a path. Each round takes the scenario that covers the most items
-  not yet covered; ties go to the higher priority, then the shorter path.
-- **CALC-34** Each: greedy cover of every choice and loop end, starting with the first
-  Happy scenario, filling from Happy scenarios, then from scenarios with at most one
-  failing choice, then from any.
+- **CALC-33** Pairwise: greedy set cover over every choice, every loop end, every
+  pair of choices on a path and the base path (CALC-28). Each round takes the scenario
+  that covers the most items not yet covered; ties go to the higher priority, then the
+  shorter path. Then the picks are pruned (CALC-29).
+- **CALC-34** Each: greedy cover of every choice, every loop end and the base path
+  (CALC-28), starting with the first Happy scenario in All's order (fewer loops first,
+  CALC-42, so it is a base path), filling from Happy scenarios, then from scenarios with
+  at most one failing choice, then from any. Then the picks are pruned (CALC-29).
 - **CALC-35** Greedy is complete but not minimal: Pairwise and Each may pick more than
-  the smallest possible set. They must never be described as "the fewest".
+  the smallest possible set, even after pruning (CALC-29 drops scenarios that add
+  nothing, it does not search for a smaller set). So in some flows Each can still pick
+  more scenarios than Pairwise, although the smallest Each set is never bigger than the
+  smallest Pairwise set. They must never be described as "the fewest".
 - **CALC-36** Coverage guarantees, against what All has:
 
   | Mode | Always covers |
   | --- | --- |
   | All | every path (while under the limit) |
-  | Pairwise | every choice, every loop end, every pair |
-  | Each | every choice, every loop end |
+  | Pairwise | every choice, every loop end, every pair, the base path |
+  | Each | every choice, every loop end, the base path |
 
 - **CALC-37** Not promised: Each does not cover pairs;
   only All covers the rounds in between (for `max 3`: 1 and 2 rounds) and every
@@ -180,8 +199,9 @@ check), `src/core/analysis.ts` (remembering results).
   least the requested search budget; otherwise it is worked out again.
 - **CALC-82** Cached results are shared: nothing may change them after they are made.
 - **CALC-83** Every mode picks at least one scenario when All has one. A flow without
-  choices has nothing to cover, but still has its one path: Pairwise picks the first
-  Happy scenario (the first scenario if none is Happy), as Each does.
+  choices has no choice to cover, but still has its one path: Pairwise picks the first
+  Happy scenario (the first scenario if none is Happy), as Each does. When that path is
+  Happy it is the base path (CALC-28), so the rule follows from it.
 
 ## Decision table
 

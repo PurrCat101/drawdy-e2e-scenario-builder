@@ -3,7 +3,7 @@
 // and the order scenarios are shown in. Shared by the Drawdy extension and any other front end.
 
 import type { Flow, Mode } from "./flow";
-import { passesNegative, singles, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
+import { passesNegative, singles, basePathTest, VIA_NEGATIVE, type Generated, type Issue, type Scenario } from "./scenarios";
 import { scenarioFlow } from "./scenarioFlow";
 import { formatFlow } from "./syntax";
 
@@ -85,12 +85,16 @@ function measureCoverage(shown: Scenario[], gen: Generated, mode: Mode): string[
     ];
     const names = (ids: string[]) =>
         ids.slice(0, 6).map((x) => `"${label.get(x.replace(/^end:/, "")) ?? x}"`).join(", ") + (ids.length > 6 ? ` and ${ids.length - 6} more` : "");
-    if (!missC.length && !missE.length && !missP.length)
+    // Pairwise and Each also promise a base path (CALC-28)
+    const isBase = basePathTest(gen.list);
+    const missB = gen.list.some(isBase) && !shown.some(isBase);
+    if (!missC.length && !missE.length && !missP.length && !missB)
         out.push(`OK: every choice${allE.size ? ", every loop end" : ""}${pairsPromised ? " and every pair" : ""} is covered`);
     else {
         if (missC.length) out.push(`MISSING choices: ${names(missC)}`);
         if (missE.length) out.push(`MISSING loop ends: ${names(missE)}`);
         if (missP.length) out.push(`MISSING pairs: ${missP.length}`);
+        if (missB) out.push("MISSING base path: no Happy scenario with the fewest loops");
     }
     if (gen.unreachable && gen.unreachable.length)
         out.push(`Never reachable (see the flow check): ${names(gen.unreachable)}`);

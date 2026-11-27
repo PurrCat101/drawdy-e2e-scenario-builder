@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0
+
+### Read this before upgrading
+
+- **Pair and Each always include the base path** (a Happy scenario with the fewest
+  loops, usually the plain way through the flow), and they **drop scenarios the others
+  already cover**. So the number of scenarios and the IDs of Pair and Each can change
+  for the same text: regenerate before you trust an ID from an earlier board
+  (CALC-28, CALC-29, CALC-56).
+- **What does not change:** All, the syntax, the test steps of a given scenario and
+  what each mode promised before (every choice, loop end and, for Pair, every pair).
+
+### Changed
+
+- **Base path.** A flow with an "add another product" loop could get a Pair set where
+  every scenario went round the loop, so the plain one-product order was never tested.
+  Pair and Each now count the base path as one more item to cover (CALC-28, TERM-16).
+- **Pruning.** After the greedy picks, a scenario is dropped when the other picked
+  scenarios already cover everything it covers (CALC-29). Each could pick a Happy path
+  without loops first and then a looping Happy path that took the same choices too, so
+  it picked more than Pair on a small flow.
+- Pairwise and Each are still greedy, not the smallest possible set (CALC-35).
+
 ## 0.6.0
 
 ### Read this before upgrading

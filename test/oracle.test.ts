@@ -217,6 +217,38 @@ test("CALC-12 CALC-17: distinct, in general: sum over r of C(k, r) * q^r (plain 
             }
 });
 
+test("CALC-28 CALC-29: Pair and Each hold a base path, and no scenario that the others make useless", () => {
+    const r = rng(91);
+    type Sc = ReturnType<typeof generate>["list"][number];
+    let checked = 0;
+    for (let n = 0; n < 1000; n++) {
+        const g = generate(randomFlow(r));
+        if (!g.list.length || g.capped) continue;
+        checked++;
+        const happy = g.list.filter((sc) => sc.type === "happy");
+        const fewest = Math.min(...happy.map((sc) => sc.loops));
+        for (const mode of ["pair", "min"] as const) {
+            const sel = pick(g, mode);
+            // worked out here again: choices, last rounds, pairs (Pair only), base path
+            const items = (sc: Sc) => {
+                const ids = [...new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))].sort();
+                const out = [...singles(sc)];
+                if (mode === "pair") for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) out.push(ids[a] + "&" + ids[b]);
+                if (sc.type === "happy" && sc.loops === fewest) out.push("base path");
+                return out;
+            };
+            if (happy.length)
+                assert.ok(sel.some((sc) => sc.type === "happy" && sc.loops === fewest), mode + ": a base path (flow " + n + ")");
+            if (sel.length > 1)
+                sel.forEach((sc, k) => {
+                    const others = new Set(sel.filter((_, j) => j !== k).flatMap(items));
+                    assert.ok(items(sc).some((x) => !others.has(x)), mode + ": " + sc.id + " adds nothing (flow " + n + ")");
+                });
+        }
+    }
+    assert.ok(checked > 500, "enough flows: " + checked);
+});
+
 test("CALC-38: lower bounds for the size of Each and Pair (flows without loops)", () => {
     const r = rng(4242);
     let checked = 0;

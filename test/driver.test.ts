@@ -502,10 +502,10 @@ test("DRV-57 OUT-60: Decision table from the paste box draws frames of text boxe
     await h.action("decision", TEMPLATES[0].text, "pair");
     const frames = decisionFrames(h);
     assert.equal(frames.length, 1);
-    assert.match(frames[0].name, /^Decision table · Pairwise \(2-wise\) · 10 scenarios$/);
-    assert.equal(lastStatus(h).text, "Decision table drawn (10 scenarios)");
+    assert.match(frames[0].name, /^Decision table · Pairwise \(2-wise\) · 9 scenarios$/);
+    assert.equal(lastStatus(h).text, "Decision table drawn (9 scenarios)");
     assert.ok(!lastStatus(h).bad);
-    assert.equal(h.find((e) => e.type === "shape" && /^TS[SN]-\d{3}$/.test(e.text ?? "")).length, 10, "a box with the ID for each column");
+    assert.equal(h.find((e) => e.type === "shape" && /^TS[SN]-\d{3}$/.test(e.text ?? "")).length, 9, "a box with the ID for each column");
     assert.equal(h.find((e) => e.type === "shape" && e.text === "TSS-001").length, 1);
     assert.equal(h.tables().length, 0, "no embedded page");
     assert.equal(h.find((e) => e.componentType === "sticky-note").length, 0);
@@ -576,7 +576,7 @@ test("DRV-58: Copy decision table copies the text of the table the Decision tabl
     await h.action("copydecision", TEMPLATES[0].text, "pair");
     const clip = h.lastClip();
     assert.equal(clip.text, drawn);
-    assert.equal(clip.scenarios, 10);
+    assert.equal(clip.scenarios, 9);
     assert.equal(decisionFrames(h).length, before, "nothing is drawn");
 });
 
@@ -791,16 +791,16 @@ test("DRV-59 OUT-66: the mode of the table is kept, so the same ID in two modes 
     const [pair, min] = decisionFrames(h);
     assert.equal(pair.meta.mode, "pair");
     assert.equal(min.meta.mode, "min");
-    // the third Happy scenario is not the same path in Pairwise and in Each
-    const third = (f: El) => headsOf(h, f).find((e) => e.meta.id === "TSS-003");
-    assert.notDeepEqual(third(pair)!.meta.path, third(min)!.meta.path);
+    // the second Happy scenario is not the same path in Pairwise and in Each
+    const second = (f: El) => headsOf(h, f).find((e) => e.meta.id === "TSS-002");
+    assert.notDeepEqual(second(pair)!.meta.path, second(min)!.meta.path);
     // each head gives its own scenario's test steps, whatever the panel's switch says
-    h.select(h.idOf(third(min)!));
+    h.select(h.idOf(second(min)!));
     await h.action("table", "", "pair");
     const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable);
     assert.equal(tables.length, 1);
     assert.equal(tables[0].meta.scenarios, 1);
-    h.select(h.idOf(third(pair)!));
+    h.select(h.idOf(second(pair)!));
     await h.action("table", "", "pair");
     const both = h.frames().filter((f) => f.meta?.e2eScenarioTable);
     assert.notEqual(both[0].meta.tsv, both[1].meta.tsv, "another path, other test steps");
@@ -850,10 +850,10 @@ test("DRV-25 OUT-64 UI-30: a selected decision table is a table: the panel says 
     h.select(h.idOf(frame));
     const target = await h.lastTarget();
     assert.equal(target.kind, "table");
-    assert.equal(target.n, 10);
+    assert.equal(target.n, 9);
     await h.action("copy", "");
     const clip = h.lastClip();
-    assert.equal(clip.scenarios, 10);
+    assert.equal(clip.scenarios, 9);
     assert.match(clip.text, /^Condition\tCombination\tTSS-001\t/);
     assert.equal(clip.text, frame.meta.tsv);
 });

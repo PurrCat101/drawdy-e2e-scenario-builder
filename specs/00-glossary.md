@@ -26,10 +26,14 @@
   times on one path: the last round the loop allows.
 - **TERM-10 Pair.** Two different choices that are on the same path.
 - **TERM-11 Coverage item.** What a mode promises to include at least once: a
-  choice, a loop end, or (for Pairwise and All) a pair.
+  choice, a loop end, the base path (Pairwise and Each), or (for Pairwise and All) a
+  pair.
 - **TERM-12 Unreachable choice.** A choice no path can take, because its `needs`, or
   the loops and ends before it, rule it out.
 - **TERM-13 Via negative.** A Happy scenario that takes a `[negative]` choice that
   does not end the flow (a retry that then succeeds).
 - **TERM-14 Requirement.** An id written in a `req:` field, on a step or a choice.
 - **TERM-15 Starter note.** A ready-made `@builder` note the panel drops on the board.
+- **TERM-16 Base path.** A Happy scenario that goes round loops the fewest times,
+  usually none: the plain way through the flow. Pairwise and Each always include one
+  (CALC-28).

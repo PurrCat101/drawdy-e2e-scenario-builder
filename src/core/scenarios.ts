@@ -447,19 +447,50 @@ export function singles(sc: Scenario): string[] {
 }
 
 /**
- * Each-choice (1-wise): a small set of scenarios that touch every condition. A greedy
- * cover that prefers readable scenarios (Happy paths first, then paths with at most one
- * failing choice, then any), so it is complete but not always the smallest possible.
+ * Whether a scenario of `list` is a base path (CALC-28): Happy, with the fewest loops
+ * of all Happy scenarios, so usually the plain way through the flow. A list without
+ * a Happy scenario has none.
+ */
+export function basePathTest(list: Scenario[]): (sc: Scenario) => boolean {
+    let fewest = Infinity;
+    for (const sc of list) if (sc.type === "happy" && sc.loops < fewest) fewest = sc.loops;
+    return (sc) => sc.type === "happy" && sc.loops === fewest;
+}
+
+/**
+ * Drops, from the last pick to the first, every pick whose items the other picks still
+ * cover (CALC-29). At least one pick stays.
+ */
+function prune<T>(picked: T[], itemsOf: (p: T) => Iterable<string | number>): T[] {
+    const times = new Map<string | number, number>();
+    for (const p of picked) for (const x of itemsOf(p)) times.set(x, (times.get(x) ?? 0) + 1);
+    const out = picked.slice();
+    for (let k = out.length - 1; k >= 0 && out.length > 1; k--) {
+        const items = [...itemsOf(out[k])];
+        if (items.some((x) => times.get(x)! < 2)) continue;
+        for (const x of items) times.set(x, times.get(x)! - 1);
+        out.splice(k, 1);
+    }
+    return out;
+}
+
+/**
+ * Each-choice (1-wise): a small set of scenarios that touch every condition and include
+ * a base path. A greedy cover that prefers readable scenarios (Happy paths first, then
+ * paths with at most one failing choice, then any), then pruned, so it is complete but
+ * not always the smallest possible.
  */
 export function minimal(list: Scenario[]): Scenario[] {
+    const isBase = basePathTest(list);
+    const items = (sc: Scenario) => (isBase(sc) ? [...singles(sc), "base:"] : singles(sc));
     const all = new Set<string>();
-    list.forEach((sc) => singles(sc).forEach((x) => all.add(x)));
+    list.forEach((sc) => items(sc).forEach((x) => all.add(x)));
     const negN = (sc: Scenario) => sc.path.filter((v) => v.c && v.c.neg).length;
     const chosen: Scenario[] = [];
     const cov = new Set<string>();
     const add = (sc: Scenario) => {
         chosen.push(sc);
-        singles(sc).forEach((x) => cov.add(x));
+        items(sc).forEach((x) => cov.add(x));
     };
     const fill = (pool: Scenario[]) => {
         while (cov.size < all.size) {
@@ -467,7 +498,7 @@ export function minimal(list: Scenario[]): Scenario[] {
             let bs = 0;
             for (const sc of pool) {
                 if (chosen.indexOf(sc) >= 0) continue;
-                const n = singles(sc).filter((x) => !cov.has(x)).length;
+                const n = items(sc).filter((x) => !cov.has(x)).length;
                 if (
                     n > bs ||
                     (n === bs &&
@@ -490,20 +521,23 @@ export function minimal(list: Scenario[]): Scenario[] {
     fill(list.filter((sc) => sc.type === "happy"));
     fill(list.filter((sc) => negN(sc) <= 1));
     fill(list);
-    return chosen.sort((a, b) => a.n - b.n);
+    return prune(chosen, items).sort((a, b) => a.n - b.n);
 }
 
 /**
- * Pairwise (2-wise): every condition, and every pair of conditions that can share a
- * path, is covered. A plain greedy set cover (most uncovered first, ties: higher
- * priority, then shorter), so it is complete but not always the smallest possible.
+ * Pairwise (2-wise): every condition, every pair of conditions that can share a path,
+ * and a base path are covered. A plain greedy set cover (most uncovered first, ties:
+ * higher priority, then shorter), then pruned, so it is complete but not always the
+ * smallest possible.
  */
 export function pairwise(list: Scenario[]): Scenario[] {
+    const isBase = basePathTest(list);
     const items = (sc: Scenario) => {
         const ids = Array.from(
             new Set(sc.path.filter((v) => v.c).map((v) => v.c!.id))
         ).sort();
         const out: string[] = singles(sc);
+        if (isBase(sc)) out.push("base:");
         for (let a = 0; a < ids.length; a++)
             for (let b = a + 1; b < ids.length; b++)
                 out.push(ids[a] + "&" + ids[b]);
@@ -557,7 +591,9 @@ export function pairwise(list: Scenario[]): Scenario[] {
     }
     // nothing to cover (a flow without choices): the one path it has, as Each does (CALC-83)
     if (!chosen.length && list.length) chosen.push(Math.max(0, list.findIndex((sc) => sc.type === "happy")));
-    return chosen.map((k) => list[k]).sort((a, b) => a.n - b.n);
+    return prune(chosen, (k) => per[k])
+        .map((k) => list[k])
+        .sort((a, b) => a.n - b.n);
 }
 
 export function pick(g: Generated, mode: Mode): Scenario[] {

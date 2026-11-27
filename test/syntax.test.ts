@@ -853,6 +853,30 @@ test("CALC-36: every mode tests the last round a loop allows", () => {
         assert.equal(Math.max(...pick(g, mode).map((s) => s.loops)), 3, mode);
 });
 
+// the checkout of the Demo board: one "add more" loop and three ways to fail
+const SCK = [
+    "1. More product?", "- add -> loop to step 1", "- no more",
+    "2. Pay", "- paid", "- declined -> end",
+    "3. Receive?", "- received", "- refused -> end",
+    "4. Confirm?", "- confirmed", "- not confirmed -> end",
+].join("\n");
+
+test("CALC-28 CALC-33 CALC-34: Pair and Each both test the checkout without the loop and with it", () => {
+    const g = generate(parseFlowText(SCK).flow);
+    assert.equal(g.list.length, 8);
+    const shape = (mode: "pair" | "min") => pick(g, mode).map((s) => s.type + " " + s.loops).sort();
+    assert.deepEqual(shape("pair"), ["happy 0", "happy 1", "neg 1", "neg 1", "neg 1"]);
+    assert.deepEqual(shape("min"), ["happy 0", "happy 1", "neg 0", "neg 0", "neg 0"]);
+});
+
+test("CALC-28 OUT-21: a selection without the plain way through says the base path is missing", async () => {
+    const { coverageLines } = await import("../src/core/scenarioText.ts");
+    const g = generate(parseFlowText(SCK).flow);
+    const lines = coverageLines(g.list.filter((s) => s.loops === 1), g, "pair");
+    assert.ok(lines.some((l) => /^MISSING base path/.test(l)), lines.join(" / "));
+    assert.ok(!lines.some((l) => /^OK/.test(l)), lines.join(" / "));
+});
+
 test("CALC-09 CALC-63: a choice that can never be taken says why, and is listed as unreachable", () => {
     const flow = parseFlowText("1. a\n- x\n2. b\n- y [needs z]\n- ok").flow;
     const g = generate(flow);

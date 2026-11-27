@@ -103,8 +103,8 @@
   "warnings": [],
   "counts": {
    "all": 113,
-   "pair": 10,
-   "min": 5
+   "pair": 9,
+   "min": 4
   },
   "issues": "97d170e1550e",
   "flowBoard": "c26041142c33",
@@ -119,33 +119,33 @@
     "requirements": "4151b6180190",
     "stepsTsv": "4aee97f497d1",
     "decisionTsv": "4cb3d19e977e",
-    "board": "1a70aa7700cb",
+    "board": "4984a0f27576",
     "decisionBoard": "9c2a8e1cd5f3",
     "tables": "684818330626"
    },
    "pair": {
-    "count": 10,
-    "ids": "TSN-001 TSN-002 TSS-001 TSS-002 TSN-003 TSS-003 TSN-004 TSS-004 TSN-005 TSN-006",
-    "scenarios": "382ebfd7aac6",
-    "coverage": "93db287c1804",
-    "requirements": "97af51989c50",
-    "stepsTsv": "4f3787a4c31b",
-    "decisionTsv": "b59fdf71ecfb",
-    "board": "c91adc84f578",
-    "decisionBoard": "7a961f002b38",
-    "tables": "b49006964d6c"
+    "count": 9,
+    "ids": "TSS-001 TSN-001 TSS-002 TSN-002 TSS-003 TSN-003 TSS-004 TSN-004 TSN-005",
+    "scenarios": "4884b7a3bbce",
+    "coverage": "f58f748d6ede",
+    "requirements": "0693616efc55",
+    "stepsTsv": "13d97f520d63",
+    "decisionTsv": "caaa2f41658d",
+    "board": "515d4ca3bbad",
+    "decisionBoard": "768eb880c5f8",
+    "tables": "e9e9f1cef7c8"
    },
    "min": {
-    "count": 5,
-    "ids": "TSS-001 TSN-001 TSS-002 TSN-002 TSS-003",
-    "scenarios": "500842bbbc71",
-    "coverage": "b94add79986c",
-    "requirements": "69b1adc25ec7",
-    "stepsTsv": "07cad6b3c4e1",
-    "decisionTsv": "824002aecce0",
-    "board": "e373ef220b6e",
-    "decisionBoard": "8f56e5187f41",
-    "tables": "ee4f46c41505"
+    "count": 4,
+    "ids": "TSN-001 TSS-001 TSN-002 TSS-002",
+    "scenarios": "14ef5eccf493",
+    "coverage": "99619a060ebc",
+    "requirements": "110848ded1cd",
+    "stepsTsv": "c562415ff851",
+    "decisionTsv": "ba3200e00f18",
+    "board": "2994db9ab4e5",
+    "decisionBoard": "11898021d8e8",
+    "tables": "fab847045618"
    }
   }
  }

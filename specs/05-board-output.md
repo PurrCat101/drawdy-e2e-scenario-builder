@@ -44,7 +44,8 @@ the board, `src/actions.ts` decides what to draw for each button.
      · pair x/y (p%)` (loop end only when the flow has loop ends);
   5. `OK: every choice[, every loop end][ and every pair] is covered` (pairs only for
      Pairwise and All), or `MISSING choices: …`, `MISSING loop ends: …`, `MISSING
-     pairs: N`, naming up to 6;
+     pairs: N`, naming up to 6, and `MISSING base path: …` when no shown scenario is a
+     base path (CALC-28; a safety net, like the other MISSING lines);
   6. `Never reachable (see the flow check): …` when there are unreachable choices;
   7. requirements, when the flow has `req:` (OUT-25);
   8. the flow check items, if any.

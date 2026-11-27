@@ -1,7 +1,7 @@
 {
     "driverId": "purrcat101.e2e-scenario-builder",
     "driverName": "E2E Scenario Builder",
-    "driverVersion": "0.6.0",
+    "driverVersion": "0.7.0",
     "description": "Turn a written flow into a diagram on the board and generate E2E test scenarios.",
     "icon": "icon.png",
     "main": "main.js",

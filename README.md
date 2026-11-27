@@ -470,8 +470,8 @@ Choose the mode with the panel's switch; the line under it says what the mode pi
 | Mode | What you get |
 | --- | --- |
 | All | every path that can actually be walked. Past 1,000 paths it lists the first 1,000 and adds one path for each choice and pair they missed, so the other modes can still cover them; the panel shows the All count as `N+` and the plan line says it is partial, and the flow check says so |
-| Pairwise (2-wise), the default | every choice, and every pair of choices that can meet on a path, is in at least one scenario |
-| Each (each-choice, 1-wise) | a small set of scenarios that touch every choice, Happy paths first. Not always the smallest possible |
+| Pairwise (2-wise), the default | every choice, and every pair of choices that can meet on a path, is in at least one scenario, and so is the plain way through (a Happy path with the fewest loops) |
+| Each (each-choice, 1-wise) | a small set of scenarios that touch every choice and include the plain way through, Happy paths first. Not always the smallest possible |
 
 The header of the scenario frame always shows the counts of all three modes, so
 you can compare them.
@@ -488,14 +488,21 @@ take it on trust. The panel shows an `ERROR` if any mode ever misses what it pro
 | Mode | How it picks | Always covers | Does not promise |
 | --- | --- | --- | --- |
 | All | every path, up to 1,000 (past that: the first 1,000, plus a path found for each choice, loop end and pair the first 1,000 missed) | every path while under 1,000 | every path past 1,000 |
-| Pairwise | greedy: take the scenario that covers the most choices, loop ends and pairs not yet covered (ties: higher priority, then shorter), until nothing is left | every choice, every loop at its full `max`, and every pair of choices that can share a path | three choices together, order, every number of rounds in between |
-| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice and loop end is covered | every choice, every loop at its full `max` | any two choices together, every number of rounds in between |
+| Pairwise | greedy: take the scenario that covers the most choices, loop ends, pairs and the base path not yet covered (ties: higher priority, then shorter), until nothing is left; then drop any scenario the others already cover | every choice, every loop at its full `max`, every pair of choices that can share a path, and the base path | three choices together, order, every number of rounds in between |
+| Each | greedy, taking Happy paths first, then paths with at most one failing choice, then any, until every choice, loop end and the base path is covered; then drop any scenario the others already cover | every choice, every loop at its full `max`, and the base path | any two choices together, every number of rounds in between |
 
 So every mode reaches 100% of what it promises, but only All reaches 100% of the
 paths. A "loop end" is a loop with `max 2` or more taken its full `max` times: every
 mode has at least one scenario that does it, because the last round allowed is a
 boundary worth testing. The rounds in between (for `max 3`: 1 and 2 rounds) are only
 in All.
+
+The **base path** is a Happy scenario that goes round loops the fewest times, usually
+not at all: the plain way through the flow. Pair and Each always include one. Without
+it a mode could pick only paths that loop, because a choice that leaves a loop
+(`- no more`) is also taken after going round it: in a checkout flow with an "add
+another product" loop, Pair once picked four scenarios that all added a second product,
+and none that bought one product and paid.
 
 #### The math
 
@@ -521,10 +528,18 @@ For k = 3 choices, m = 2 and nothing in between (q = 1): 3 + 3 + 1 = 7, against
 choices (Each), or its choices and every pair of its choices (Pairwise). Greedy keeps
 picking the scenario that covers the most items not covered yet, and stops when
 all items are covered. It always stops with full coverage, because every item is on
-some scenario. Finding the smallest set is a hard problem (NP-hard), so greedy can
-pick more than the minimum. For Pairwise, which is plain greedy, the result is at most
-about 1 + ln d times the minimum, where d is the most items one scenario covers. Each
-prefers readable scenarios first, so it has no such bound.
+some scenario. The base path counts as one more item in both modes. Finding the
+smallest set is a hard problem (NP-hard), so greedy can pick more than the minimum. For
+Pairwise, which is plain greedy, the result is at most about 1 + ln d times the minimum,
+where d is the most items one scenario covers. Each prefers readable scenarios first,
+so it has no such bound.
+
+After greedy, both modes **prune**: from the last scenario picked to the first, a
+scenario is dropped when the others still cover everything it covers. A scenario picked
+early can become useless later (Each starts with a Happy path that does not loop, then
+may add a Happy path that loops and takes the same choices too). Pruning removes such
+scenarios; it does not search for a smaller set, so Each can still, in some flows, pick
+more scenarios than Pair. Both always reach 100% of what they promise.
 
 To check a size by hand (a flow without loops):
 

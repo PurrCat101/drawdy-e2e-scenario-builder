@@ -312,6 +312,34 @@ test("CALC-30, CALC-33, CALC-34, CALC-36 (property): each mode keeps every choic
     );
 });
 
+test("CALC-28, CALC-29 (property): Pair and Each hold a base path and no useless scenario", () => {
+    fc.assert(
+        fc.property(small, (flow) => {
+            const g = generate(flow, 1000, 1e9);
+            const happy = g.list.filter((sc) => sc.type === "happy");
+            const fewest = Math.min(...happy.map((sc) => sc.loops));
+            for (const mode of ["pair", "min"] as const) {
+                const sel = pick(g, mode);
+                if (happy.length)
+                    assert.ok(sel.some((sc) => sc.type === "happy" && sc.loops === fewest), mode + ": no base path");
+                const items = (sc: (typeof sel)[number]) => {
+                    const ids = [...new Set(taken(sc).map((v) => v.c!.id))].sort();
+                    const out = [...singles(sc)];
+                    if (mode === "pair") for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) out.push(ids[a] + "&" + ids[b]);
+                    if (sc.type === "happy" && sc.loops === fewest) out.push("base path");
+                    return out;
+                };
+                if (sel.length > 1)
+                    sel.forEach((sc, k) => {
+                        const others = new Set(sel.filter((_, j) => j !== k).flatMap(items));
+                        assert.ok(items(sc).some((x) => !others.has(x)), mode + ": #" + sc.n + " adds nothing");
+                    });
+            }
+        }),
+        { numRuns: RUNS }
+    );
+});
+
 test("CALC-17 (property): a loop with max m is taken at most m times in one scenario", () => {
     fc.assert(
         fc.property(small, (flow) => {
