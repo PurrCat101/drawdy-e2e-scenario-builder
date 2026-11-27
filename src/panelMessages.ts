@@ -4,7 +4,7 @@ import { previewOf } from "./core/preview";
 import { templateById } from "./core/templates";
 import { isBusy, setBusy } from "./host";
 import { toPanel } from "./webview";
-import { currentSelectionIds, readElements, tableCount } from "./selection";
+import { readSelection, tableCount } from "./selection";
 import { abortCapture, cancelPlacement, endCapture, placeAutomatically, startCapture } from "./placement";
 import {
     actionBoard,
@@ -45,7 +45,7 @@ export async function onPanelMessage(m: any) {
         return;
     }
     if (m.type === "pull") {
-        const sel = await readElements(await currentSelectionIds());
+        const sel = await readSelection();
         const texts = sel
             .filter((p) => p.text.trim() && !p.meta?.kind && hasMarker(p.text))
             .map((p) => p.text);
@@ -82,7 +82,7 @@ export async function onPanelMessage(m: any) {
     if (m.type === "target") {
         // what is selected on the board, so the panel can say what its buttons will use
         if (isBusy()) return;
-        const sel = await readElements(await currentSelectionIds());
+        const sel = await readSelection();
         const table = sel.find((p) => typeof p.meta?.tsv === "string");
         const frame = sel.find((p) => p.meta?.e2eScenarios && p.meta?.flow);
         const notes = sel.filter((p) => p.meta?.kind === "scenario");
@@ -140,7 +140,7 @@ export async function onPanelMessage(m: any) {
         await cancelPlacement();
         if (m.place === "hand") startCapture();
         // something selected on the board wins over the text left in the panel
-        const picked = await readElements(await currentSelectionIds());
+        const picked = await readSelection();
         const usable = picked.some(
             (p) =>
                 p.meta?.kind === "scenario" ||
@@ -170,7 +170,7 @@ export async function onPanelMessage(m: any) {
             );
         } else {
             // nothing typed: use what is selected on the board (notes, scenario notes, frames)
-            const sel = await readElements(await currentSelectionIds());
+            const sel = await readSelection();
             if (!sel.length) {
                 status = "Write a flow in the box first, or select a sticky note on the board";
             } else {

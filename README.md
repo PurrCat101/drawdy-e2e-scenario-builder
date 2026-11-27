@@ -616,6 +616,13 @@ or press **Copy decision table** to get it as text for a spreadsheet with no lim
 A flow with no step that has two or more choices is still drawn and copied, with a
 warning that there is nothing to decide.
 
+**Copies.** You can copy a scenario note and edit it. The extension uses what it stored
+on a note only while the note still says the same scenario; once you change its steps or
+its ID, or move it out of its frame, it is read from its text like a note you typed. A
+column head that you rename or move to another table asks for the table to be drawn
+again. Buttons used on a whole frame work from the flow the frame was drawn from, not
+from edits made inside it.
+
 **From a column head to its test steps.** Select a column head (`TSS-001`) and use it like
 a scenario note: **Flow** draws that scenario's flow and its test steps, **Test steps** and
 **Copy to clipboard** give them, and **Decision table** draws a table of just the selected

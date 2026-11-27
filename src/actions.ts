@@ -15,8 +15,8 @@ import { toPanel } from "./webview";
 import { flyTo, moved, placeFor, put } from "./placement";
 import {
     anchorFor,
-    currentSelectionIds,
     readElements,
+    readSelection,
     tableCount,
     type Box,
     type Picked,
@@ -60,7 +60,7 @@ export async function drawFromText(
     text: string,
     uiMode: Mode
 ): Promise<string> {
-    const sel = await readElements(await currentSelectionIds());
+    const sel = await readSelection();
     const r = parseFlowText(text);
     // a mode written in a compact text (@pair ...) wins over the panel's switch
     const mode: Mode = r.mode ?? uiMode;
@@ -104,7 +104,7 @@ type Collected = { scenarios: ScenarioItem[]; anchor: Box; label: string };
 
 /** The scenarios to show as tables: the selection on the board wins over the panel's text. */
 async function collectScenarios(text: string, uiMode: Mode): Promise<Collected | string> {
-    const sel = await readElements(await currentSelectionIds());
+    const sel = await readSelection();
     const scenarios: ScenarioItem[] = [];
     let anchor: Box | null = null;
     let label = "Test steps";
@@ -139,7 +139,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
         }
         // DRV-59: a head of a table drawn by an older version has no flow to go back to
         if (unknown && !scenarios.length)
-            return "Could not read: the selected scenarios no longer know their flow (a table drawn by an older version); draw it again";
+            return "Could not read: the selected scenarios no longer know their flow (a table drawn by an older version, or a column head changed or moved); draw it again";
     } else if (flowNotes.length) {
         for (const p of flowNotes) {
             const r = parseFlowText(p.text);
@@ -189,7 +189,7 @@ export async function tableAction(text: string, uiMode: Mode): Promise<string> {
  */
 export async function copyAction(text: string, uiMode: Mode): Promise<string> {
     // a table selected on the board (it carries its own text)
-    const sel = await readElements(await currentSelectionIds());
+    const sel = await readSelection();
     const table = sel.find((p) => typeof p.meta?.tsv === "string");
     if (table) {
         await toPanel({ type: "clip", text: table.meta.tsv, scenarios: tableCount(table.meta), what: table.meta.unit });
@@ -230,7 +230,7 @@ type DecisionSource = { flow: Flow; scenarios: Scenario[]; mode: Mode; anchor: B
 
 /** The same choice as Table (DRV-24), but with the scenarios themselves and their flow. */
 async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSource[] | string> {
-    const sel = await readElements(await currentSelectionIds());
+    const sel = await readSelection();
     const frame = sel.find((p) => p.meta?.e2eScenarios && p.meta?.flow);
     const scenarioNotes = sel.filter((x) => x.meta?.kind === "scenario" && Array.isArray(x.meta.path));
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
@@ -401,10 +401,9 @@ export async function actionFlow(sel: Picked[], withTable = true) {
     }
     let last: string | null = null;
     for (const p of items) {
-        // a scenario note: its own title (@title TSS-001 · ...) or the older TSS-04821 header
-        const parsed = p.meta?.kind === "scenario" || !hasMarker(p.text) ? null : parseFlowText(p.text);
-        const scenarioId = parsed?.title.match(/^(TS[SN]-\d+)/)?.[1];
-        const isScenario = p.meta?.kind === "scenario" || !!scenarioId || /^\s*TS[SN]-\d+/.test(p.text);
+        // a scenario note keeps its data (DRV-62), or is a note of an older version
+        // ("TSS-04821 ..."); a note in the flow syntax without data is a flow (DRV-55)
+        const isScenario = p.meta?.kind === "scenario" || (!hasMarker(p.text) && /^\s*TS[SN]-\d+/.test(p.text));
         let sub: Flow | null = null;
         let name: string | undefined;
         let success = true;
@@ -420,13 +419,6 @@ export async function actionFlow(sel: Picked[], withTable = true) {
                     name = `E2E Flow · ${p.meta.id ?? "scenario"}`;
                 }
             }
-            // otherwise read the note's own text in the flow syntax
-            if (!sub && parsed && scenarioId && parsed.flow.steps.length) {
-                sub = parsed.flow;
-                const lastConds = sub.steps[sub.steps.length - 1].conds;
-                success = !lastConds.some((c) => c.action === "end");
-                name = `E2E Flow · ${scenarioId}`;
-            }
             // or the older text ("1. Step → label")
             if (!sub) {
                 const t = scenarioFromText(p.text);
@@ -439,7 +431,12 @@ export async function actionFlow(sel: Picked[], withTable = true) {
         } else {
             // the flow syntax (a note that starts with @builder)
             const f = parseFlowText(p.text).flow;
-            if (f.steps.length) sub = f;
+            if (f.steps.length) {
+                sub = f;
+                // no green end when nothing gets past the last step (OUT-11)
+                const lastConds = f.steps[f.steps.length - 1].conds;
+                success = !lastConds.length || lastConds.some((c) => c.action !== "end");
+            }
         }
         if (!sub) {
             await note(

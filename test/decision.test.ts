@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { parseFlowText } from "../src/core/syntax.ts";
 import { generate, pick } from "../src/core/scenarios.ts";
 import { buildDecisionTable, decisionToTsv } from "../src/core/decisionTable.ts";
+import { flowKey } from "../src/core/stored.ts";
 import { TEMPLATES } from "../src/core/templates.ts";
 import { renderDecisionTables } from "../src/decisionBoard.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
@@ -212,7 +213,7 @@ test("OUT-66: every frame keeps the flow and mode, and every column head is a sc
     heads.forEach((h, k) => {
         const c = dt.columns[k];
         assert.equal(h.text, c.id);
-        assert.deepEqual(h.meta, { kind: "scenario", id: c.id, type: c.type, pri: c.pri, path: c.path, mode: "all" });
+        assert.deepEqual(h.meta, { kind: "scenario", id: c.id, type: c.type, pri: c.pri, path: c.path, mode: "all", flowKey: flowKey(flow) });
         // the head sits in the frame that holds the flow
         assert.ok(frames.some((f) => f.drawdyElementId === h.frameId));
     });

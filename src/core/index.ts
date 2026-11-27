@@ -28,6 +28,7 @@ export { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./dec
 export { MODE_LABEL, noteLines, orderScenarios, reportHeader, coverageLines, requirementLines } from "./scenarioText";
 export { STEP_COLUMNS, STEPS_LIST_COLUMNS, scenarioRows, flowStepRows, flowStepsToTsv, scenariosToTsv } from "./testSteps";
 export { previewOf } from "./preview";
+export { flowKey, pathFits, noteMatches } from "./stored";
 export { TEMPLATES, templateById, type Template } from "./templates";
 
 /** One scenario, ready to show: its facts, its note text and the rows of its test steps. */

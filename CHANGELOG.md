@@ -26,6 +26,11 @@
   two choices, so a table could start at step 5. A step without choices now has an
   no box under Combinations and an X in each scenario that passes it (CALC-90, CALC-92).
   A flow with nothing to decide is drawn and copied too, with a warning (CALC-94).
+- **Copied notes are read as they are now.** A copy keeps the data of its original, so
+  an edited copy, or one moved into another frame, could give the old scenario. The
+  stored data is now used only while it matches the note; otherwise the text is read
+  (DRV-62). Such a note is a flow note: **Flow** draws only its flow, without a test
+  steps table (DRV-55).
 
 ## 0.6.0
 

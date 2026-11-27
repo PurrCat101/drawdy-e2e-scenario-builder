@@ -1,3 +1,6 @@
+import { hasMarker } from "./core/syntax";
+import type { Flow } from "./core/flow";
+import { flowKey, noteMatches, pathFits } from "./core/stored";
 import { run } from "./host";
 
 /** Reading the board: what is selected, what is where, and where there is free room. */
@@ -39,6 +42,32 @@ export async function readElements(ids: string[]): Promise<Picked[]> {
 export async function currentSelectionIds(): Promise<string[]> {
     const cur = await run("command:scene:get-current-selected-drawdy-elements", undefined);
     return cur.value?.drawdyElementIds ?? [];
+}
+
+/**
+ * The selected elements, with the stored data of a scenario kept only while it is still
+ * true (DRV-62): a copy keeps the data of its original, and its text can be edited.
+ */
+export async function readSelection(): Promise<Picked[]> {
+    const sel = await readElements(await currentSelectionIds());
+    const scenarios = sel.filter((p) => p.meta.kind === "scenario");
+    if (!scenarios.length) return sel;
+    const frames = await readElements([...new Set(scenarios.map((p) => p.frameId).filter(Boolean))]);
+    const frameOf = new Map(frames.map((f) => [f.id, f.meta]));
+    return sel.map((p) => (p.meta.kind === "scenario" ? checked(p, frameOf.get(p.frameId)) : p));
+}
+
+function checked(p: Picked, frame: Record<string, any> | undefined): Picked {
+    const flow = frame?.flow as Flow | undefined;
+    // a scenario note, written in the flow syntax: when its data is no longer what it
+    // says, it is a note like any the user typed
+    if (hasMarker(p.text)) return noteMatches(p.text, flow, p.meta.id, p.meta.path) ? p : { ...p, meta: {} };
+    // notes of older versions are not in the flow syntax: nothing to compare with
+    if (!/^\s*TS[SN]-\d+\s*$/.test(p.text)) return p;
+    // a column head of a decision table: without its flow it says so (DRV-59)
+    const same =
+        p.text.trim() === p.meta.id && pathFits(flow, p.meta.path) && (!p.meta.flowKey || p.meta.flowKey === flowKey(flow!));
+    return same ? p : { ...p, frameId: "" };
 }
 
 /** Where a drawing from typed text goes: under the selected element, else in view. */

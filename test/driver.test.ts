@@ -776,6 +776,80 @@ test("DRV-59 OUT-66: a column head traces back to its own flow, even when the no
     assert.ok(stepTexts(h).slice(before).some((t) => /Ship/.test(t)));
 });
 
+/** a copy as the board makes one: a new id, the same data, then edited as the test says */
+const copyOf = (h: Host, e: El, change: El = {}) => {
+    const copy = { ...structuredClone(e), drawdyElementId: "copy" + h.scene.size, ...change };
+    h.add(copy);
+    return copy.drawdyElementId as string;
+};
+
+test("DRV-62: an untouched copy of a scenario note inside its frame is still that scenario", async () => {
+    const h = await drawn("all");
+    h.select(copyOf(h, scenarioNotes(h)[0]));
+    assert.equal((await h.lastTarget()).kind, "scenarios");
+});
+
+test("DRV-62 DRV-23: Flow on a copied scenario note that left its frame draws only the flow, as its button says", async () => {
+    for (const edit of [false, true]) {
+        const h = await drawn("all");
+        const note = scenarioNotes(h)[0];
+        h.select(copyOf(h, note, { frameId: undefined, ...(edit ? { text: note.text.replace("Pay", "Ship") } : {}) }));
+        assert.equal((await h.lastTarget()).kind, "flows", "the panel's button reads Flow");
+        const before = h.frames().length;
+        await h.action("flow", "", "all");
+        assert.equal(h.tables().length, 0, "no test steps table, edited: " + edit);
+        assert.equal(h.frames().length, before + 1);
+        assert.ok(h.frames().at(-1)!.meta.e2eFlow, "a flow frame like any typed note gets");
+    }
+});
+
+test("OUT-11: the flow of a note whose last step only fails has no green end", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "n1", text: "@builder\n@title TSN-001 · Negative\n1. Login\n   - bad -> end\n" });
+    h.select("n1");
+    await h.action("flow", "", "all");
+    assert.equal(h.find((e) => e.meta?.kind === "end-ok").length, 0);
+});
+
+test("DRV-62 DRV-55: an edited copy of a scenario note is read from its text, never from the old data", async () => {
+    const h = await drawn("all");
+    const note = scenarioNotes(h)[0];
+    h.select(copyOf(h, note, { text: note.text.replace("Pay", "Ship").replace("paid", "shipped") }));
+    assert.equal((await h.lastTarget()).kind, "flows", "it is a flow note now");
+    await h.action("copy", "", "all");
+    assert.match(h.lastClip().text, /Ship/);
+    assert.ok(!/paid/.test(h.lastClip().text), "nothing of the old scenario");
+});
+
+test("DRV-62: a scenario note moved into the frame of another flow, or out of its frame, is read from its text", async () => {
+    const h = await drawn("all");
+    const note = scenarioNotes(h)[0];
+    await h.action("scenarios", "@builder\n1. Other\n   - x\n   - y\n", "all");
+    const other = h.frames().filter((f) => f.meta?.e2eScenarios).at(-1)!;
+    for (const frameId of [h.idOf(other), undefined]) {
+        h.select(copyOf(h, note, { frameId }));
+        await h.action("copy", "", "all");
+        assert.match(h.lastClip().text, /Login/, "the note's own steps: " + frameId);
+        assert.ok(!/Other/.test(h.lastClip().text));
+    }
+});
+
+test("DRV-62 DRV-59: a column head that was renamed or moved to another table no longer knows its flow", async () => {
+    const h = await makeHost();
+    await h.action("decision", FLOW, "all");
+    await h.action("decision", FLOW.replace("Pay", "Ship"), "all");
+    const [first, second] = decisionFrames(h);
+    const head = headsOf(h, first)[0];
+    for (const change of [{ text: "TSS-009" }, { frameId: h.idOf(second) }]) {
+        h.select(copyOf(h, head, change));
+        await h.action("table", "", "all");
+        assert.match(lastStatus(h).text, /no longer know their flow/, JSON.stringify(change));
+    }
+    h.select(copyOf(h, head));
+    await h.action("table", "", "all");
+    assert.match(lastStatus(h).text, /^Table drawn \(1 scenarios\)/, "an unchanged copy still works");
+});
+
 test("DRV-59 OUT-66: the mode of the table is kept, so the same ID in two modes is two scenarios", async () => {
     const h = await makeHost();
     const flow = TEMPLATES[0].text;

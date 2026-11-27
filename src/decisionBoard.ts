@@ -5,6 +5,7 @@
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import { decisionToTsv, type DecisionTable } from "./core/decisionTable";
 import type { Flow, Mode } from "./core/flow";
+import { flowKey } from "./core/stored";
 import { fitHeight, textBox, type Tone } from "./textBox";
 
 const FONT = 13;
@@ -100,6 +101,7 @@ export function renderDecisionTables(opts: {
                 pri: c.pri,
                 path: c.path,
                 mode: opts.mode,
+                flowKey: flowKey(opts.flow),
             });
         }
         chip(xLabel, y, LABEL_W, CHIP_H, "Condition", "purple");

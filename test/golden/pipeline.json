@@ -20,7 +20,7 @@
     "stepsTsv": "57b3416e9d08",
     "decisionTsv": "6c73094891d1",
     "board": "8c577fdb8bb8",
-    "decisionBoard": "14591551cb83",
+    "decisionBoard": "08570e57b9bd",
     "tables": "c0346b229e9d"
    },
    "pair": {
@@ -32,7 +32,7 @@
     "stepsTsv": "fd0df2c1dfa6",
     "decisionTsv": "3e58cfdc3155",
     "board": "eabd1e579ccd",
-    "decisionBoard": "9f932491b41a",
+    "decisionBoard": "dad24c76dd3a",
     "tables": "9d6b611381e1"
    },
    "min": {
@@ -44,7 +44,7 @@
     "stepsTsv": "14b73a54088f",
     "decisionTsv": "9f9a21791d19",
     "board": "937efac9f0f8",
-    "decisionBoard": "3cc6b11bc13d",
+    "decisionBoard": "29564d377358",
     "tables": "0ad2b94f4d88"
    }
   }
@@ -70,7 +70,7 @@
     "stepsTsv": "dc18053b805a",
     "decisionTsv": "ef62840ff3ab",
     "board": "bf80113bf977",
-    "decisionBoard": "c04712b78d43",
+    "decisionBoard": "8362262daf29",
     "tables": "cad7c36accbd"
    },
    "pair": {
@@ -82,7 +82,7 @@
     "stepsTsv": "dc18053b805a",
     "decisionTsv": "ef62840ff3ab",
     "board": "153f252d7a24",
-    "decisionBoard": "91f12fcd9367",
+    "decisionBoard": "89430e76f0c2",
     "tables": "cad7c36accbd"
    },
    "min": {
@@ -94,7 +94,7 @@
     "stepsTsv": "6ba61e55cfd1",
     "decisionTsv": "cf45d24efadd",
     "board": "98e4bdc8c6e3",
-    "decisionBoard": "a858221fb170",
+    "decisionBoard": "8f591954cf17",
     "tables": "ac0015b1f92b"
    }
   }
@@ -120,7 +120,7 @@
     "stepsTsv": "4aee97f497d1",
     "decisionTsv": "5ad8c8de0f98",
     "board": "4984a0f27576",
-    "decisionBoard": "170d86f81826",
+    "decisionBoard": "d37546fea8bb",
     "tables": "32842b866777"
    },
    "pair": {
@@ -132,7 +132,7 @@
     "stepsTsv": "13d97f520d63",
     "decisionTsv": "f2411a747a79",
     "board": "515d4ca3bbad",
-    "decisionBoard": "373c2e402568",
+    "decisionBoard": "abdf44c1087e",
     "tables": "06fe5437526d"
    },
    "min": {
@@ -144,7 +144,7 @@
     "stepsTsv": "c562415ff851",
     "decisionTsv": "6df192a72fa9",
     "board": "2994db9ab4e5",
-    "decisionBoard": "4947f7a40d90",
+    "decisionBoard": "dcaaea8d5a77",
     "tables": "c7d97f894e84"
    }
   }

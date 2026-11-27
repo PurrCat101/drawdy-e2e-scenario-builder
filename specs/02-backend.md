@@ -143,6 +143,7 @@ Code: `src/placement.ts`.
   not keep its flow (a table drawn by an older version) gives no scenario: Test steps,
   Copy and Decision table say the scenarios no longer know their flow (Test steps and
   Copy add that the table is to be drawn again), and Flow draws only the red hint (DRV-27).
+  The same holds for a head that was changed, or moved to another table (DRV-62).
 - **DRV-60** Flow only: the panel sends `flowonly` when the Flow + Scenarios button reads
   "Flow only" (UI-34). For each selected scenario note it draws the flow of that scenario
   next to its frame, as Flow does (DRV-23), and nothing under it: no Test steps table. The
@@ -203,8 +204,21 @@ the old one.
 - **DRV-54** Table: `meta.e2eScenarioTable` = true, `scenarios` (count), `tsv` (the
   copy text). Tables from earlier versions have `cases` instead of `scenarios`: read
   `scenarios ?? cases ?? 1`.
-- **DRV-55** Without the stored data (copied notes, old boards), a scenario note is
-  read back from its text (OUT-23).
+- **DRV-55** A note in the flow syntax without stored data, or whose data is not used
+  (DRV-62), is a flow note for every button: Flow draws only its flow (DRV-23), with no
+  Test steps table. A scenario note of an older version, not in the flow syntax, is read
+  back from its text as a scenario.
+- **DRV-62** A copied element keeps the stored data of its original, so for every button
+  and for the panel the data of a selected scenario is used only while it is still true.
+  A scenario note in the flow syntax: its frame keeps a flow, and the note's `@title` ID,
+  steps, choices and fields are those of its stored path in that flow (blank lines,
+  comments, indentation and the rest of the title do not count). Otherwise it is a note
+  like any the user typed: no stored data. A column head: its text is its ID, its path
+  exists in its frame's flow and its `flowKey` (OUT-66), when it has one, is that
+  flow's. Otherwise it no longer knows its flow (DRV-59). A note of an older version,
+  not in the flow syntax, cannot be compared and keeps its data. A button used on a
+  whole frame works from the flow stored on the frame, so edits to the notes or boxes
+  inside it do not change what it gives.
 
 ## Code layout
 

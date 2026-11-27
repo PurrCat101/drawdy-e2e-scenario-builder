@@ -28,7 +28,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   is made as long as its longest label needs (about 7 units a character), so a reader
   can tell which step a label belongs to.
 - **OUT-11** A single scenario's flow (Flow on a scenario note) is drawn without the
-  green end when that scenario fails.
+  green end when that scenario fails. The flow of a note whose last step has choices
+  that all end the flow has no green end either.
 
 ## Scenario frame
 
@@ -125,7 +126,8 @@ the board, `src/actions.ts` decides what to draw for each button.
   Test steps table (OUT-31).
 - **OUT-66** Every frame of a decision table keeps a snapshot of the flow it was made
   from and its mode, and every column head keeps `kind: "scenario"`, its `id`, `type`,
-  priority, `path` (as a scenario note keeps it, OUT-22) and `mode`. So the head can be
+  priority, `path` (as a scenario note keeps it, OUT-22), `mode` and `flowKey`, a
+  fingerprint of the frame's flow (DRV-62). So the head can be
   traced back (DRV-59) after the note is edited, after another table is drawn, and
   although the same ID names another scenario in another mode (CALC-57). No other box of
   the table carries scenario data.
