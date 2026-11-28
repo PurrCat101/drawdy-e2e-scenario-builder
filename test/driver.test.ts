@@ -317,7 +317,7 @@ test("OUT-70 DRV-78: Decision table (interactive) draws one iframe page for the 
     assert.match(html, /<button data-mode="all" aria-pressed="false">All <span>\d+<\/span><\/button>/);
     assert.match(html, /<th class="s0 cond" data-ci="\d+" data-key="c\|[^"]+" rowspan="\d+" data-cols="[\d,]*" data-label="\d+\. [^"]+"/, "a condition filters the columns");
     assert.match(html, /<td class="s1 combo click" data-ci="\d+" data-key="v\|[^"]+" data-cols="[\d,]*" data-label="[^"]+"/, "a choice filters the columns");
-    assert.match(html, /<button id="clear" hidden>Show all<\/button>/);
+    assert.match(html, /<button id="clear" hidden>Clear selected<\/button>/);
     assert.doesNotMatch(html, /https?:\/\/|<script src=|<link /, "nothing from outside the page");
     const script = html.match(/<script>([\s\S]*)<\/script>/)![1];
     assert.doesNotThrow(() => new Function(script), "the page script compiles");
@@ -347,6 +347,15 @@ test("OUT-70 UI: a loop choice is marked ↻ (still ticked), with a legend; othe
     assert.match(html, /<span class="mk loop">↻<\/span>/, "the loop choice is ↻");
     assert.match(html, /<span class="mk">x<\/span>/, "the other choices are x");
     assert.match(html, /<span class="legend">↻ loops back to an earlier step<\/span>/);
+});
+
+test("OUT-70 UI: the page has no Fit frame or Reset size (the frame is resized on the board), and a scrollbar on top for the columns", async () => {
+    const h = await drawn();
+    await h.action("decisionhtml", FLOW);
+    const page = [...h.scene.values()].find((e: any) => e.meta?.e2eDecisionPage) as any;
+    const html: string = page.schema.child.srcDoc;
+    assert.doesNotMatch(html, /id="fitframe"|id="resetsize"/);
+    assert.match(html, /<div id="hs">/, "the scrollbar on top");
 });
 
 test("OUT-70: the page is tall enough for every condition and wide enough for at least 8 scenarios by default", async () => {

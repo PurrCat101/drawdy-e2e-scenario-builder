@@ -127,6 +127,9 @@ the board, `src/actions.ts` decides what to draw for each button.
     a 23-inch screen shows); more scroll sideways, with the scrollbar on top. The wheel,
     shift + wheel and a sideways swipe scroll sideways too. A scrollbar on the right shows
     when the rows are taller than the page, so a cut-off row says it scrolls.
+  - **Size**: the page cannot resize itself, so its frame is sized by hand on the board (its
+    handles). The columns keep their normal width and the bar on top scrolls them sideways;
+    the page does not shrink its data to the frame.
   - **Frozen**: the condition and choice columns and the heads stay in view while it
     scrolls, both ways.
   - **Filter**: clicking a condition shows the scenarios that take any of its choices;
@@ -136,7 +139,7 @@ the board, `src/actions.ts` decides what to draw for each button.
     second click on the same box removes that filter only; the others stay. The line above
     the table lists the filters and how many scenarios are left of how many (not their IDs,
     which the columns show);
-    `Show all` removes every filter. Switching mode removes them too.
+    `Clear selected` removes every filter. Switching mode removes them too.
   - **Marks**: an X is one box with one `x` in it, no second `x` beside it. A choice that
     is a loop (`loop to step`) is marked `↻` instead, still ticked for the scenarios that
     take it, and the top bar says `↻ loops back to an earlier step` when the flow has a loop.

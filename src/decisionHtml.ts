@@ -169,7 +169,8 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
   td.click, th.cond[data-cols] { cursor: pointer; }
   td.click:hover, th.cond:hover { background: var(--hov), #e5e7eb; }
   th.cond.on, td.combo.on { background: var(--okc), #f6fbd6; box-shadow: inset 3px 0 0 var(--dd-accent, #c8f500); }
-  .col { width: ${COL_W}px; min-width: ${COL_W}px; max-width: ${COL_W}px; text-align: center; }
+  .col { text-align: center; }
+  .tools { display: flex; gap: 6px; flex: none; align-items: center; }
   .legend { font-size: 12px; color: var(--dd-text-secondary, #5b616b); white-space: nowrap; }
   .mk { display: inline-block; min-width: 28px; padding: 2px 0; border-radius: 8px; background: var(--dd-status-info, #3b6fd8); color: var(--dd-on-status-info, #ffffff); font-weight: 600; line-height: 1.4; }
   .off { display: none; }
@@ -180,7 +181,9 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
   <div class="seg" role="group" aria-label="Mode">${buttons}</div>
   ${loops.size ? '<span class="legend">↻ loops back to an earlier step</span>' : ""}
   <div id="msg"></div>
-  <button id="clear" hidden>Show all</button>
+  <div class="tools">
+  <button id="clear" hidden>Clear selected</button>
+  </div>
 </div>
 <div id="hs"><div id="hsin"></div></div>
 <div class="wrap" id="wrap">
