@@ -562,7 +562,7 @@ test("OUT-10: the flow diagram has plain words only (no distinct, sets, needs, P
         ...r.labels.map((l) => l.text),
         ...(r.elements as any[]).map((e) => e.text).filter((t) => typeof t === "string"),
     ].join("\n");
-    assert.ok(/Add another product ↻ up to 1 time(?!s)/.test(seen), seen);
+    assert.ok(/Yes, add another ↻ up to 1 time(?!s)/.test(seen), seen);
     assert.ok(!/distinct|\bsets\b|\bneeds\b|\bP[123]\b|≤/.test(seen), "no syntax words on the diagram: " + seen);
     let m = 0;
     const one = renderFlow(parseFlowText("@builder\n1. A\n- go -> loop to step 1\n2. B\n- ok").flow, () => "x" + ++m, [0, 0]);

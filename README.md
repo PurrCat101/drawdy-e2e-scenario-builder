@@ -224,10 +224,10 @@ This is the starter template, the note that **Start with a template** drops on t
      expect: 409 OUT_OF_STOCK, the cart item count does not change
 4. Calculate Total
    expect: the subtotal is the sum of the prices in the cart: 20.00 (shirt), 50.00 (shoes) or 70.00 (both)
-5. More product?
-   - Add another product -> loop to step 2 max 1 [distinct]
+5. Add another product?
+   - Yes, add another -> loop to step 2 max 1 [distinct]
      expect: the product list opens again, the cart item count is still 1 after round 1
-   - No more product [P1]
+   - No, that's all [P1]
      expect: the page moves to shipping, the cart item count is unchanged (1 or 2)
 6. Select Shipping Methods
    - Standard [P1]

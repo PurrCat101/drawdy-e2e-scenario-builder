@@ -144,8 +144,8 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
   /* the scrollbar on top is the one that shows; the table's own bar is hidden and driven by it */
   #hs { flex: none; height: ${HS_H}px; overflow-x: auto; overflow-y: hidden; }
   #hs > div { height: 1px; }
-  .wrap { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; }
-  .wrap::-webkit-scrollbar { display: none; }
+  /* the bar on top does the sideways scrolling; the bar on the right shows when the rows are longer than the page */
+  .wrap { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; }
   .empty { padding: 24px; color: var(--dd-text-secondary, #5b616b); }
   table { table-layout: fixed; border-collapse: separate; border-spacing: 0; }
   th, td { border-right: 1px solid var(--dd-border-medium, #c9ccd2); border-bottom: 1px solid var(--dd-border-medium, #c9ccd2); padding: 6px 8px; background: var(--paper), #ffffff; vertical-align: middle; overflow-wrap: anywhere; }
@@ -277,6 +277,11 @@ ${note}${tables}
     build();
   }
   segs.forEach(function (b) { b.addEventListener('click', function () { if (!b.disabled) showMode(b.getAttribute('data-mode')); }); });
+  // the wheel and the trackpad scroll sideways too (shift + wheel, or a sideways swipe)
+  wrap.addEventListener('wheel', function (e) {
+    var dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+    if (dx) { hs.scrollLeft += dx; e.preventDefault(); }
+  }, { passive: false });
   clear.addEventListener('click', clearAll);
   // keep one table in the page at a time: the first one is the mode the panel chose
   var initial = null;
