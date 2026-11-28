@@ -337,6 +337,18 @@ test("OUT-70 OUT-71: the page's X mark is one box with one x, and its colours ar
     assert.doesNotMatch(css, /#[0-9a-f]{3,6}\b/i, "no fixed colour outside a var() fallback");
 });
 
+test("OUT-70 UI: a loop choice is marked ↻ (still ticked), with a legend; other choices keep x", async () => {
+    const h = await makeHost();
+    h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "src", text: "@builder\n1. Login\n- ok\n- retry -> loop to step 1 max 1\n- fail -> end" });
+    h.select("src");
+    await h.action("decisionhtml", "");
+    const page = [...h.scene.values()].find((e: any) => e.meta?.e2eDecisionPage) as any;
+    const html: string = page.schema.child.srcDoc;
+    assert.match(html, /<span class="mk loop">↻<\/span>/, "the loop choice is ↻");
+    assert.match(html, /<span class="mk">x<\/span>/, "the other choices are x");
+    assert.match(html, /<span class="legend">↻ loops back to an earlier step<\/span>/);
+});
+
 test("OUT-70: the page is tall enough for every condition and wide enough for at least 8 scenarios by default", async () => {
     const h = await drawn();
     await h.action("decisionhtml", FLOW);

@@ -339,7 +339,9 @@ export async function decisionHtmlAction(text: string, uiMode: Mode): Promise<st
         const name = `Decision table (interactive) · ${MODE_LABEL[src.mode]}`;
         const size = decisionPageSize(modes);
         const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
-        const el = decisionPageElement({ modes, active: src.mode, name, origin, generateId });
+        // the choices that loop back to an earlier step (shown ↻ on the page)
+        const loops = new Set(src.flow.steps.flatMap((s) => s.conds.filter((c) => c.action === "loop").map((c) => c.id)));
+        const el = decisionPageElement({ modes, active: src.mode, name, origin, generateId, loops });
         const failed = await put((dx, dy) => addInBatches(moved([el], dx, dy)));
         if (failed) return "Could not draw the interactive decision table: " + failed;
         drawn += dt.columns.length;

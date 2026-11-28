@@ -56,7 +56,7 @@ export function layoutRows(t: DecisionTable): { rows: number[][]; total: number 
 }
 
 /** One mode's table: the bars, the heads, and the rows of every condition (OUT-60 to 62). */
-function tableHtml(t: DecisionTable, mode: PageMode, hidden: boolean): string {
+function tableHtml(t: DecisionTable, mode: PageMode, hidden: boolean, loops: Set<string>): string {
     const n = t.columns.length;
     const happy = t.columns.flatMap((c, k) => (c.type === "happy" ? [k] : []));
     const neg = t.columns.flatMap((c, k) => (c.type === "neg" ? [k] : []));
@@ -84,6 +84,8 @@ function tableHtml(t: DecisionTable, mode: PageMode, hidden: boolean): string {
             const marks = t.marks[ci][vi] ?? [];
             const clickable = !!v && v.id !== null;
             const valueCols = marks.flatMap((on, k) => (on ? [k] : []));
+            // a loop choice is marked ↻: the scenario went back to an earlier step there (still ticked)
+            const isLoop = !!v && v.id !== null && loops.has(v.id);
             body += `<tr style="height:${heights[ci][vi]}px">`;
             if (vi === 0)
                 body += `<th class="s0 cond" data-ci="${ci}" data-key="c|${esc(condName)}" rowspan="${count}" data-cols="${[...union].join(",")}" data-label="${esc(condName)}" title="Click: the scenarios that take any choice of this step">${esc(condName)}</th>`;
@@ -91,7 +93,9 @@ function tableHtml(t: DecisionTable, mode: PageMode, hidden: boolean): string {
                 ? `<td class="s1 combo click" data-ci="${ci}" data-key="v|${esc(v.label)}" data-cols="${valueCols.join(",")}" data-label="${esc(v.label)}" title="Click: the scenarios that take this choice">${esc(v.label)}</td>`
                 : `<td class="s1 combo" data-ci="${ci}">${esc(v ? v.label : "")}</td>`;
             t.columns.forEach((_, k) => {
-                body += marks[k] ? `<td class="${cls(k)}"><span class="mk">x</span></td>` : `<td class="${cls(k)}"></td>`;
+                body += marks[k]
+                    ? `<td class="${cls(k)}"><span class="mk${isLoop ? " loop" : ""}">${isLoop ? "↻" : "x"}</span></td>`
+                    : `<td class="${cls(k)}"></td>`;
             });
             body += "</tr>";
         }
@@ -106,9 +110,9 @@ function tableHtml(t: DecisionTable, mode: PageMode, hidden: boolean): string {
 }
 
 /** The page's HTML: the buttons of the modes, then one table for each mode, one shown. */
-export function decisionHtml(modes: PageModeTable[], active: PageMode, title: string): string {
+export function decisionHtml(modes: PageModeTable[], active: PageMode, title: string, loops: Set<string> = new Set()): string {
     const tables = modes
-        .map((m) => (m.table ? tableHtml(m.table, m.mode, m.mode !== active) : ""))
+        .map((m) => (m.table ? tableHtml(m.table, m.mode, m.mode !== active, loops) : ""))
         .join("");
     const buttons = modes
         .map((m) => {
@@ -165,6 +169,7 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
   td.click:hover, th.cond:hover { background: var(--hov), #e5e7eb; }
   th.cond.on, td.combo.on { background: var(--okc), #f6fbd6; box-shadow: inset 3px 0 0 var(--dd-accent, #c8f500); }
   .col { width: ${COL_W}px; min-width: ${COL_W}px; max-width: ${COL_W}px; text-align: center; }
+  .legend { font-size: 12px; color: var(--dd-text-secondary, #5b616b); white-space: nowrap; }
   .mk { display: inline-block; min-width: 28px; padding: 2px 0; border-radius: 8px; background: var(--dd-status-info, #3b6fd8); color: var(--dd-on-status-info, #ffffff); font-weight: 600; line-height: 1.4; }
   .off { display: none; }
 </style>
@@ -172,6 +177,7 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
 <body>
 <div class="top">
   <div class="seg" role="group" aria-label="Mode">${buttons}</div>
+  ${loops.size ? '<span class="legend">↻ loops back to an earlier step</span>' : ""}
   <div id="msg"></div>
   <button id="clear" hidden>Show all</button>
 </div>
@@ -331,6 +337,8 @@ export function decisionPageElement(opts: {
     name: string;
     origin: [number, number];
     generateId: () => string;
+    /** the ids of the choices that loop back (a `loop` action in the flow) */
+    loops?: Set<string>;
 }): DrawdyElementSchema {
     const { width, height } = decisionPageSize(opts.modes);
     const shown = opts.modes.find((m) => m.mode === opts.active)?.table ?? null;
@@ -345,7 +353,7 @@ export function decisionPageElement(opts: {
         schema: {
             type: "iframe",
             label: opts.name,
-            child: { srcDoc: decisionHtml(opts.modes, opts.active, opts.name) },
+            child: { srcDoc: decisionHtml(opts.modes, opts.active, opts.name, opts.loops ?? new Set()) },
             styles: { width: [width, "px"], height: [height, "px"] },
         },
     } as DrawdyElementSchema;

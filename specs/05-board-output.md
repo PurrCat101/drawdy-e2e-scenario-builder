@@ -136,7 +136,10 @@ the board, `src/actions.ts` decides what to draw for each button.
     the table lists the filters and how many scenarios are left of how many (not their IDs,
     which the columns show);
     `Show all` removes every filter. Switching mode removes them too.
-  - **Marks**: an X is one box with one `x` in it, no second `x` beside it.
+  - **Marks**: an X is one box with one `x` in it, no second `x` beside it. A choice that
+    is a loop (`loop to step`) is marked `↻` instead, still ticked for the scenarios that
+    take it, and the top bar says `↻ loops back to an earlier step` when the flow has a loop.
+    The table only shows which choices a scenario took, not their order or how often.
   The page loads nothing from the network and links to nothing; it is plain text, so its
   text can be read and copied from it.
 - **OUT-71** The pages in the board's iframes (the decision table of OUT-70, the Test steps
