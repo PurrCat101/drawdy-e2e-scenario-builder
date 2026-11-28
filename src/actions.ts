@@ -1,12 +1,13 @@
 import { modeOr, type Flow, type Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
 import { renderScenarioTables } from "./scenarioTable";
-import { drawFlowCards } from "./flowCards";
+import { drawFlowCards, type FlowSource } from "./flowCards";
 import { flowStepRows, flowStepsToTsv, scenariosToTsv, type ScenarioItem } from "./core/testSteps";
 import { analyze } from "./core/analysis";
 import { MODE_LABEL, orderScenarios } from "./core/scenarioText";
 import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./core/decisionTable";
 import { renderDecisionTables } from "./decisionBoard";
+import { decisionPageElement, decisionPageSize } from "./decisionHtml";
 import type { Scenario } from "./core/scenarios";
 import { scenarioFlow, scenarioFromText, pathFails } from "./core/scenarioFlow";
 import type { Template } from "./core/templates";
@@ -101,7 +102,7 @@ export async function addTemplateNote(t: Template): Promise<string> {
  * the panel, from a selected scenario frame (all its scenarios) or from selected
  * scenario notes.
  */
-type Collected = { scenarios: ScenarioItem[]; anchor: Box; label: string };
+type Collected = { scenarios: ScenarioItem[]; anchor: Box; label: string; source?: FlowSource };
 
 /** The scenarios to show as tables: the selection on the board wins over the panel's text. */
 async function collectScenarios(text: string, uiMode: Mode): Promise<Collected | string> {
@@ -109,10 +110,17 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     const scenarios: ScenarioItem[] = [];
     let anchor: Box | null = null;
     let label = "Test steps";
+    // the flow and each scenario's path through it, when the scenarios come from one flow
+    const paths: [number, string | null][][] = [];
+    let calls = 0;
+    let origin: Flow | null = null;
     const fromList = (flow: Flow, mode: Mode) => {
+        calls++;
+        origin = calls === 1 ? flow : null;
         for (const sc of orderScenarios(analyze(flow).pick(mode))) {
             const sub = scenarioFlow(flow, scenarioPath(sc));
             scenarios.push({ title: scenarioTitle(sc.id, sc.type, sc.pri, sub), flow: sub });
+            paths.push(scenarioPath(sc));
         }
     };
     const frame = sel.find((p) => p.meta?.e2eScenarios && p.meta?.flow);
@@ -163,7 +171,7 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     }
     if (!scenarios.length || !anchor)
         return "Write a flow in the box first, or select a scenario frame / scenario note on the board";
-    return { scenarios, anchor, label };
+    return { scenarios, anchor, label, source: origin && paths.length === scenarios.length ? { flow: origin, paths } : undefined };
 }
 
 /**
@@ -187,7 +195,7 @@ export async function tableAction(text: string, uiMode: Mode): Promise<string> {
 export async function flowCardsAction(text: string, uiMode: Mode): Promise<string> {
     const got = await collectScenarios(text, uiMode);
     if (typeof got === "string") return got;
-    const failed = await drawFlowCards(got.scenarios, got.anchor);
+    const failed = await drawFlowCards(got.scenarios, got.anchor, got.source);
     if (failed) return "Could not draw the flow cards: " + failed;
     return `Flow per scenario drawn (${got.scenarios.length} scenarios)`;
 }
@@ -305,6 +313,33 @@ export async function decisionAction(text: string, uiMode: Mode): Promise<string
     }
     await flyTo([first], 0.3);
     return `Decision table drawn (${drawn} scenarios)` + (warn ? `. ${NOTHING_TO_DECIDE}` : "");
+}
+
+/**
+ * Button: the decision table as an interactive page (OUT-70), drawn beside the boxes of
+ * Decision table (DRV-78). The same scenarios and the same text; no limit on their number,
+ * since the page scrolls.
+ */
+export async function decisionHtmlAction(text: string, uiMode: Mode): Promise<string> {
+    const got = await collectDecision(text, uiMode);
+    if (typeof got === "string") return got;
+    let drawn = 0;
+    let first = "";
+    let warn = false;
+    for (const src of got) {
+        const dt = buildDecisionTable(src.flow, src.scenarios);
+        warn ||= !dt.decides;
+        const name = `Decision table (interactive) · ${MODE_LABEL[src.mode]}`;
+        const size = decisionPageSize(dt);
+        const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
+        const el = decisionPageElement({ table: dt, name, origin, generateId });
+        const failed = await put((dx, dy) => addInBatches(moved([el], dx, dy)));
+        if (failed) return "Could not draw the interactive decision table: " + failed;
+        drawn += dt.columns.length;
+        first = first || el.drawdyElementId;
+    }
+    await flyTo([first], 0.3);
+    return `Interactive decision table drawn (${drawn} scenarios)` + (warn ? `. ${NOTHING_TO_DECIDE}` : "");
 }
 
 /**

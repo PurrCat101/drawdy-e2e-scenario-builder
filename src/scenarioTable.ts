@@ -81,15 +81,16 @@ const kindOf = (title: string): "happy" | "negative" => (title.split(" · ")[1] 
 const PAGE_SCRIPT = `(function(){
 var secs=[].slice.call(document.querySelectorAll('section'));
 var tabs=[].slice.call(document.querySelectorAll('#tabs button'));
-var prev=document.getElementById('prev'),next=document.getElementById('next'),pos=document.getElementById('pos');
-var kind='happy',i=0;
+var prev=document.getElementById('prev'),next=document.getElementById('next'),pos=document.getElementById('pos'),q=document.getElementById('q');
+var kind='happy',i=0,hits=null;
 function group(k){return secs.filter(function(s){return s.getAttribute('data-kind')===k;});}
+function list(){return hits?hits:group(kind);}
 function show(){
-  var g=group(kind);
+  var g=list();
   if(i>=g.length)i=Math.max(0,g.length-1);
   if(i<0)i=0;
   secs.forEach(function(s){s.hidden=true;});
-  if(g.length)g[i].hidden=false;
+  if(g.length){g[i].hidden=false;if(hits)kind=g[i].getAttribute('data-kind');}
   tabs.forEach(function(b){
     var k=b.getAttribute('data-kind');
     b.setAttribute('aria-pressed',k===kind?'true':'false');
@@ -97,11 +98,20 @@ function show(){
   });
   prev.disabled=i<=0;
   next.disabled=i>=g.length-1;
-  pos.textContent=g.length?g[i].getAttribute('data-id')+' \\u00b7 '+(i+1)+' of '+g.length:'No scenarios';
+  if(!g.length)pos.textContent=hits?'No match':'No scenarios';
+  else pos.textContent=g[i].getAttribute('data-id')+' \\u00b7 '+(i+1)+' of '+g.length+(hits?' found':'');
 }
-tabs.forEach(function(b){b.addEventListener('click',function(){kind=b.getAttribute('data-kind');i=0;show();});});
+tabs.forEach(function(b){b.addEventListener('click',function(){q.value='';hits=null;kind=b.getAttribute('data-kind');i=0;show();});});
 prev.addEventListener('click',function(){i--;show();});
 next.addEventListener('click',function(){i++;show();});
+q.addEventListener('input',function(){
+  var t=q.value.trim().toLowerCase();
+  hits=t?secs.filter(function(s){return s.getAttribute('data-text').indexOf(t)>=0;}):null;
+  i=0;show();
+});
+q.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&hits&&hits.length){i=(i+1)%hits.length;show();}
+});
 if(!group(kind).length&&group('negative').length)kind='negative';
 show();
 })();`;
@@ -117,6 +127,11 @@ function testStepsHtml(scenarios: ScenarioItem[]): string {
     const sections = scenarios
         .map((cs) => {
             const id = idOf(cs.title);
+            // what the search box looks through: every cell of every row, in lower case
+            const textOf = scenarioRows(cs.flow)
+                .map((r) => TEST_COLS.map((c) => (c.key === "id" ? id : r[c.key] ?? "")).join(" "))
+                .join(" ")
+                .toLowerCase();
             const rows = scenarioRows(cs.flow)
                 .map((r) => {
                     const row: Record<string, string> = { ...r, id };
@@ -128,7 +143,7 @@ function testStepsHtml(scenarios: ScenarioItem[]): string {
                 })
                 .join("");
             return (
-                `<section data-kind="${kindOf(cs.title)}" data-id="${esc(id)}" hidden>` +
+                `<section data-kind="${kindOf(cs.title)}" data-id="${esc(id)}" data-text="${esc(textOf)}" hidden>` +
                 `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></section>`
             );
         })
@@ -137,13 +152,14 @@ function testStepsHtml(scenarios: ScenarioItem[]): string {
         '<div id="bar"><div id="tabs">' +
         `<button data-kind="happy">Happy (${count("happy")})</button>` +
         `<button data-kind="negative">Negative (${count("negative")})</button>` +
-        '</div><div id="pager"><button id="prev" aria-label="Previous scenario">&#8249;</button>' +
+        '</div><input id="q" type="search" placeholder="Find ID or text" aria-label="Find a scenario"><div id="pager"><button id="prev" aria-label="Previous scenario">&#8249;</button>' +
         '<span id="pos"></span><button id="next" aria-label="Next scenario">&#8250;</button></div></div>';
     return (
         '<!doctype html><html><head><meta charset="utf-8"><style>' +
         "body{margin:0;padding:12px;font:13px/1.45 system-ui,'Segoe UI',sans-serif;color:#1d2127;background:#fff;overflow:hidden}" +
         "#bar{display:flex;align-items:center;justify-content:space-between;gap:10px;height:32px;margin-bottom:12px}" +
         "#tabs,#pager{display:flex;align-items:center;gap:6px}" +
+        "#q{flex:1;min-width:0;max-width:260px;font:inherit;padding:4px 8px;border:1px solid #c9ccd2;border-radius:4px}" +
         "button{font:inherit;padding:4px 10px;border:1px solid #c9ccd2;border-radius:4px;background:#fff;cursor:pointer}" +
         "button[aria-pressed=true]{background:#1d2127;color:#fff;border-color:#1d2127}" +
         "button:disabled{opacity:.4;cursor:default}" +

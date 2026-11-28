@@ -86,6 +86,7 @@
         <button id="decision" title="Decision table: every step and the scenarios that take each choice, as boxes you can edit on the board">Decision table</button>
         <button id="copydecision" title="Copy the decision table as tab-separated text, one long row of scenarios for a spreadsheet (freeze the first two columns); no limit on scenarios">Copy</button>
       </div>
+      <button id="decisionhtml" class="wide" title="Decision table as an interactive page: the first two columns and the heads stay in view while you scroll, and a click on a condition or a choice shows the scenarios that take it. Same scenarios as Decision table, no limit on their number">Decision table (interactive)</button>
       <div class="pair">
         <button id="stepslist" title="Steps list: every step and every choice of the whole flow as one table, with a Req column (not scenarios; no limit on size)">Steps list</button>
         <button id="copysteps" title="Copy the steps list as tab-separated text, without drawing it">Copy</button>
@@ -255,7 +256,7 @@
     if (!tail && countsShown()) tail = ' · ' + sc(lastCounts[mode]);
     var sel = k !== 'none';
     // which buttons make sense for what is selected; the others are greyed out
-    var all = ['flow', 'scenarios', 'flowcards', 'board', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'];
+    var all = ['flow', 'scenarios', 'flowcards', 'board', 'table', 'stepslist', 'decision', 'decisionhtml', 'copy', 'copydecision', 'copysteps'];
     var ok = {};
     var have = hasText();
     all.forEach(function (id) { ok[id] = k !== 'none' || have; });
@@ -282,7 +283,7 @@
     tb.textContent = k === 'table' ? 'Selected table' : 'Test steps' + tail;
     dc.textContent = 'Decision table' + tail;
     var scoped = k === 'frame' || k === 'scenarios';
-    ['table', 'decision', 'copydecision'].forEach(function (id) { $(id).classList.toggle('scoped', scoped); });
+    ['table', 'decision', 'decisionhtml', 'copydecision'].forEach(function (id) { $(id).classList.toggle('scoped', scoped); });
     $('copy').classList.toggle('scoped', scoped || k === 'table');
     showModes();
     showIssues();
@@ -312,7 +313,7 @@
   $('t').addEventListener('input', preview);
   $('pull').onclick = function () { send({ type: 'pull' }); };
 
-  ['board', 'flow', 'scenarios', 'flowcards', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'].forEach(function (id) {
+  ['board', 'flow', 'scenarios', 'flowcards', 'table', 'stepslist', 'decision', 'decisionhtml', 'copy', 'copydecision', 'copysteps'].forEach(function (id) {
     $(id).onclick = function () {
       setStatus('Working...');
       // with scenario notes selected the Flow + Scenarios button reads "Flow only" and draws just the flow

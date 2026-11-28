@@ -30,9 +30,14 @@ control: flows are written on the board, not in the panel.
 - **UI-18** The action buttons, in two groups, each under a small heading: **Draw**
   (Flow + Scenarios, which is primary and full width, then Flow, Scenarios and Flow per scenario, which is full width) and
   **Tables** (Test steps, Decision table and Steps list, each with a **Copy** button
-  beside it: copy, copydecision, copysteps).
+  beside it: copy, copydecision, copysteps), and under Decision table a full-width
+  **Decision table (interactive)** button (decisionhtml, UI-48).
 - **UI-06** (removed) Three groups with a separate Export group; see UI-18.
 - **UI-07** The status line, in the footer.
+- **UI-48** **Decision table (interactive)** (decisionhtml) is on and off exactly as
+  Decision table is (UI-31), and its label takes the same ` · N scenarios` (UI-33). Its
+  tooltip says it is the same scenarios as Decision table, as a page that scrolls and filters
+  (OUT-70). It has no Copy button: Copy decision table copies the same text.
 - **UI-08** "Start with a template": one button; its tooltip says what it does.
 - **UI-09** "Write flow" shows the text box in place of the middle of the panel, with
   "← Back" to return and "Pull from selected note".

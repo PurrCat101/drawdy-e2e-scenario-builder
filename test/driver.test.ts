@@ -13,7 +13,7 @@ import * as driver from "../src/index.ts";
 import { parseFlowText } from "../src/core/syntax.ts";
 import { fitHeight } from "../src/textBox.ts";
 import { TEMPLATES } from "../src/core/templates.ts";
-import { flowStepRows } from "../src/core/testSteps.ts";
+import { flowStepRows } from "../src/core/testSteps.ts";
 
 /**
  * The frames of a board, plus the Test steps tables that have no frame (OUT-30: a table is its
@@ -202,10 +202,10 @@ test("UI-06 UI-18: the buttons are in two groups, Draw and Tables, each table wi
     const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="more">'));
     // headings and buttons, in the order the user sees them
     const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "flowcards", "Tables", "table", "copy", "decision", "copydecision", "stepslist", "copysteps"]);
+    assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "flowcards", "Tables", "table", "copy", "decision", "copydecision", "decisionhtml", "stepslist", "copysteps"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
     assert.deepEqual(order.filter((x) => !/^[A-Z]/.test(x)).map(label), [
-        "Flow + Scenarios", "Flow", "Scenarios", "Flow per scenario", "Test steps", "Copy", "Decision table", "Copy", "Steps list", "Copy",
+        "Flow + Scenarios", "Flow", "Scenarios", "Flow per scenario", "Test steps", "Copy", "Decision table", "Copy", "Decision table (interactive)", "Steps list", "Copy",
     ]);
     // Flow + Scenarios is the primary button
     assert.match(block, /<button id="board" class="primary wide"/);
@@ -272,7 +272,7 @@ test("OUT-33 OUT-30: the Test steps page shows one scenario at a time, with Happ
     const comp = h.tables().at(-1)!;
     const html: string = comp.schema.child.srcDoc;
     // one section and table per scenario, all hidden until the page script shows the first
-    const sections = html.match(/<section data-kind="(happy|negative)" data-id="[^"]+" hidden>/g) ?? [];
+    const sections = html.match(/<section data-kind="(happy|negative)" data-id="[^"]+" data-text="[^"]*" hidden>/g) ?? [];
     assert.equal(sections.length, comp.meta.scenarios);
     assert.equal((html.match(/<table>/g) ?? []).length, comp.meta.scenarios);
     assert.match(html, /<th style="width:120px">Scenario<\/th>/);
@@ -280,7 +280,49 @@ test("OUT-33 OUT-30: the Test steps page shows one scenario at a time, with Happ
     assert.match(html, /<button data-kind="negative">Negative \(\d+\)<\/button>/);
     assert.match(html, /<button id="prev"/);
     assert.match(html, /<button id="next"/);
-    assert.doesNotMatch(html, /<input/, "no search box");
+    assert.match(html, /<input id="q" type="search" placeholder="Find ID or text"/, "a search box");
+});
+
+test("OUT-69: Flow per scenario draws no lines, and writes under each place where scenarios end the IDs of those scenarios, green for Happy and red for Negative", async () => {
+    const h = await drawn();
+    await h.action("table", FLOW);
+    const n = h.tables().at(-1)!.meta.scenarios;
+    await h.action("flowcards", FLOW);
+    const els = [...h.scene.values()] as any[];
+    assert.equal(els.filter((e) => e.type === "arrow" && (e.color === "#2f9e44" || e.color === "#c92a2a")).length, 0, "no green or red arrows: the flow-card lines are gone");
+    // the labels are text elements holding scenario IDs, coloured by kind
+    const labels = els.filter((e) => e.type === "text" && /^(TSS|TSN)-/.test(e.text ?? "") && (e.color === "#2f9e44" || e.color === "#c92a2a"));
+    assert.ok(labels.length >= 1 && labels.length <= n, "one label per place where scenarios of a kind end, at most one per scenario");
+    assert.ok(labels.every((e) => /^(TSS|TSN)-\d+(, (TSS|TSN)-\d+){0,2}( \+\d+)?$/.test(e.text)), "three IDs at most, then + n");
+});
+
+test("OUT-70 DRV-78: Decision table (interactive) draws one iframe page for the same scenarios, with a head per scenario and no link out", async () => {
+    const h = await drawn();
+    await h.action("table", FLOW);
+    const n = h.tables().at(-1)!.meta.scenarios;
+    const before = h.scene.size;
+    await h.action("decisionhtml", FLOW);
+    const pages = [...h.scene.values()].filter((e: any) => e.type === "component" && e.meta?.e2eDecisionPage) as any[];
+    assert.equal(pages.length, 1, "one page for the selection");
+    const page = pages[0];
+    assert.equal(page.schema.type, "iframe");
+    assert.equal(page.meta.scenarios, n);
+    assert.equal(h.scene.size, before + 1, "the page is the only element added: no boxes beside it");
+    const html: string = page.schema.child.srcDoc;
+    assert.equal((html.match(/<th class="col c\d+ (ok|bad)" title="[^"]+">/g) ?? []).length, n, "one head per scenario");
+    assert.match(html, /<th class="cond" rowspan="\d+" data-cols="[\d,]*" data-label="\d+\. [^"]+"/, "a condition filters the columns");
+    assert.match(html, /<td class="combo click" data-cols="[\d,]*" data-label="[^"]+"/, "a choice filters the columns");
+    assert.match(html, /<button id="clear" hidden>Show all<\/button>/);
+    assert.doesNotMatch(html, /https?:\/\/|<script src=|<link /, "nothing from outside the page");
+    const script = html.match(/<script>([\s\S]*)<\/script>/)![1];
+    assert.doesNotThrow(() => new Function(script), "the page script compiles");
+});
+
+test("DRV-78 UI-48: the interactive decision table button is in the panel, after Decision table, and off where Decision table is off", () => {
+    const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
+    assert.match(html, /<button id="decisionhtml" class="wide"[^>]*>Decision table \(interactive\)<\/button>/);
+    assert.ok(html.indexOf('id="decisionhtml"') > html.indexOf('id="copydecision"'), "after Decision table");
+    assert.ok(html.includes("'decisionhtml'"), "the panel knows the button in its lists");
 });
 
 test("OUT-68 DRV-77: Flow per scenario draws one card per scenario, named by its title, and says how many", async () => {

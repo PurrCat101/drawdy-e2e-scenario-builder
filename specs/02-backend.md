@@ -30,7 +30,7 @@ There is no server: nothing leaves the user's browser.
   | `pull` | | send me the selected `@builder` note's text |
   | `template` | `id`, `place` | drop a starter note |
   | `place` | `how` (`auto` or `cancel`) | what to do with the held block (DRV-73, DRV-74) |
-  | `action` | `action`, `text`, `mode`, `place` (`hand` or `auto`, DRV-70) | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `copy` (copy the test steps or a selected table), `copydecision` (copy the decision table), `copysteps` (copy the steps list) |
+  | `action` | `action`, `text`, `mode`, `place` (`hand` or `auto`, DRV-70) | a button: `flow`, `scenarios`, `board` (Flow + Scenarios), `table` (Test steps), `stepslist` (Steps list), `decision`, `decisionhtml` (the interactive decision table, DRV-78), `copy` (copy the test steps or a selected table), `copydecision` (copy the decision table), `copysteps` (copy the steps list) |
 
 - **DRV-11** Driver → panel:
 
@@ -130,6 +130,12 @@ Code: `src/placement.ts`.
   flies to the table. When a flow it was drawn for has no step with two or more choices
   (CALC-94), the status goes on with ". Warning: no step has two or more choices, so
   there is nothing to decide"; the status is not marked bad (DRV-29).
+- **DRV-78** Decision table (interactive) (`decisionhtml`): draws the page of OUT-70 for
+  the same scenarios, from the same selection and mode as Decision table (DRV-57), below
+  the selection or in view, one page for each `@builder` note selected. It is one iframe
+  component, not boxes, so it has no 60-scenario limit. Nothing else is drawn; the view
+  flies to the page. The status is "Interactive decision table drawn (N scenarios)", and
+  for a flow with nothing to decide it goes on with the warning of DRV-57, as the boxes do.
 - **DRV-58** Copy decision table: sends `clip` with the text of the decision table (OUT-64)
   of the scenarios chosen as for the Decision table button (DRV-57), and draws nothing.
   There is no limit on the number of scenarios (the 60 of DRV-57 is a limit of drawing):

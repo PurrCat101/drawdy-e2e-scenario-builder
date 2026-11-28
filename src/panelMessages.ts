@@ -14,6 +14,7 @@ import {
     copyDecisionAction,
     copyStepsAction,
     decisionAction,
+    decisionHtmlAction,
     drawFromText,
     stepsListAction,
     tableAction,
@@ -158,6 +159,8 @@ export async function onPanelMessage(m: any) {
             status = await stepsListAction(text, uiMode);
         } else if (m.action === "decision") {
             status = await decisionAction(text, uiMode);
+        } else if (m.action === "decisionhtml") {
+            status = await decisionHtmlAction(text, uiMode);
         } else if (m.action === "copy" || m.action === "copydecision" || m.action === "copysteps") {
             const copy = m.action === "copy" ? copyAction : m.action === "copydecision" ? copyDecisionAction : copyStepsAction;
             status = await copy(text, uiMode);

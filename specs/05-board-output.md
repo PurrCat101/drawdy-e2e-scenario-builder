@@ -76,11 +76,15 @@ the board, `src/actions.ts` decides what to draw for each button.
   result; one row per test step (TERM-06), the rows of each scenario in order. Step fields
   and the choice's fields are both shown.
 - **OUT-33** Above the table of the Test steps page are two tabs, `Happy (n)` and
-  `Negative (m)`, and arrows `‹ ›` with the position `<ID> · k of N`. The page shows one
-  scenario: the first Happy one at first (the first Negative one when there is no Happy
-  scenario). A tab shows the first scenario of its kind; the arrows step through the
-  scenarios of the kind shown and stop at the ends. A tab with no scenarios is greyed out.
-  The copy text (OUT-32) keeps every scenario. The Steps list (OUT-67) has no tabs.
+  `Negative (m)`, a search box `Find ID or text`, and arrows `‹ ›` with the position
+  `<ID> · k of N`. The page shows one scenario: the first Happy one at first (the first
+  Negative one when there is no Happy scenario). A tab shows the first scenario of its kind;
+  the arrows step through the scenarios of the kind shown and stop at the ends. A tab with
+  no scenarios is greyed out. Typing in the search box finds the scenarios whose text (every
+  cell, any case, the ID included) contains what was typed, and the position reads
+  `<ID> · k of N found`; the arrows and Enter step through those, and a tab or an empty box
+  ends the search. With no match it reads `No match`. The copy text (OUT-32) keeps every
+  scenario. The Steps list (OUT-67) has no tabs and no search box.
 - **OUT-32** The copy text (Copy to clipboard) is tab-separated, one header row
   `Scenario  #  Step  Condition  Setup  Test data  Expected result`, one row per test
   step, values with tabs, quotes or line breaks quoted for spreadsheets.
@@ -95,11 +99,30 @@ the board, `src/actions.ts` decides what to draw for each button.
   of the choice, each once, joined by `, `. The frame keeps the text of the table (tab-
   separated, one header row `#  Step  Condition  Setup  Test data  Expected result  Req`,
   quoted as OUT-32) and the number of steps, so Copy to clipboard copies it (DRV-25).
-- **OUT-68** **Flow per scenario** draws one card per scenario of the chosen mode, below the
-  flow it comes from, after the scenarios' order (OUT-22). Each card is the scenario's own
-  flow (OUT-11), named by its title, with its end green when the scenario passes and red when it
-  fails. Cards are laid out left to right in rows at most 4000 units wide, with 120 units
-  between them and between rows. There is no limit on the number of cards.
+- **OUT-68** **Flow per scenario** draws the whole flow once, and below it two columns of cards
+  for the scenarios of the chosen mode: Happy on the left, Negative on the right. Each column
+  has a head `Happy (n)` or `Negative (m)`, and its cards are stacked under it, in order of
+  where their scenario ends on the flow (left first). Each card is that scenario's own flow
+  (OUT-11), named by its title, with its end green when the scenario passes and red when it
+  fails. There is no limit on the number of cards.
+
+- **OUT-69** Flow per scenario (OUT-68) draws no lines. Under each place on the flow where
+  scenarios end (its end box, or its step when the choice goes on), it writes one text label
+  with the IDs of the scenarios that end there, in the colour of their kind: green for Happy,
+  red for Negative. Three IDs at most, then `+ n`. When both kinds end at one place, their
+  labels stack, Happy first.
+
+- **OUT-70** The interactive decision table (DRV-78) is one page in an iframe, not boxes,
+  so it can scroll and filter; the boxes of OUT-60 stay as they are, and both can be drawn
+  for the same scenarios. The page shows the same table as OUT-60 and OUT-64 (the same
+  rows, the same X marks, the same ID heads, the Success and Negative bars). Its first two
+  columns (the condition and the choice) and its head row stay in view while it scrolls,
+  both ways. Clicking a condition shows the scenarios that take any of its choices; clicking
+  a choice shows the scenarios that take it. The line above the table says which filter is
+  on, how many scenarios it leaves of how many, and their IDs; `Show all` (or a second
+  click on the same box) clears it. The page loads nothing from the network and links to
+  nothing; it is plain text, so its text can be read and copied from it.
+
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
   shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow
   whose `#` lines explain the syntax it uses, and it uses every kind of choice and field
