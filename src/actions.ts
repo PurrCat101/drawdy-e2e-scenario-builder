@@ -1,6 +1,7 @@
 import { modeOr, type Flow, type Mode } from "./core/flow";
 import { hasMarker, parseFlowText } from "./core/syntax";
 import { renderScenarioTables } from "./scenarioTable";
+import { drawFlowCards } from "./flowCards";
 import { flowStepRows, flowStepsToTsv, scenariosToTsv, type ScenarioItem } from "./core/testSteps";
 import { analyze } from "./core/analysis";
 import { MODE_LABEL, orderScenarios } from "./core/scenarioText";
@@ -180,6 +181,15 @@ export async function tableAction(text: string, uiMode: Mode): Promise<string> {
     if (failed) return "Could not draw the table: " + failed;
     await flyTo([out.frameId], 0.3);
     return `Table drawn (${scenarios.length} scenarios)`;
+}
+
+/** Flow per scenario: one card per scenario of the chosen mode (flowCards.ts). */
+export async function flowCardsAction(text: string, uiMode: Mode): Promise<string> {
+    const got = await collectScenarios(text, uiMode);
+    if (typeof got === "string") return got;
+    const failed = await drawFlowCards(got.scenarios, got.anchor);
+    if (failed) return "Could not draw the flow cards: " + failed;
+    return `Flow per scenario drawn (${got.scenarios.length} scenarios)`;
 }
 
 /**

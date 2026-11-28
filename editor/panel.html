@@ -76,6 +76,7 @@
       <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Scenarios</button>
       <button id="flow" title="Draw only the flow diagram">Flow</button>
       <button id="scenarios" title="Draw only the scenario notes of the chosen mode">Scenarios</button>
+      <button id="flowcards" class="wide" title="Draw the flow of every scenario of the chosen mode, one card each, its end green when it passes and red when it fails">Flow per scenario</button>
       <div class="grp wide">Tables</div>
       <div class="pair">
         <button id="table" title="The test steps of each scenario as a table (step, condition, setup, test data, expected result)">Test steps</button>
@@ -254,7 +255,7 @@
     if (!tail && countsShown()) tail = ' · ' + sc(lastCounts[mode]);
     var sel = k !== 'none';
     // which buttons make sense for what is selected; the others are greyed out
-    var all = ['flow', 'scenarios', 'board', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'];
+    var all = ['flow', 'scenarios', 'flowcards', 'board', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'];
     var ok = {};
     var have = hasText();
     all.forEach(function (id) { ok[id] = k !== 'none' || have; });
@@ -311,7 +312,7 @@
   $('t').addEventListener('input', preview);
   $('pull').onclick = function () { send({ type: 'pull' }); };
 
-  ['board', 'flow', 'scenarios', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'].forEach(function (id) {
+  ['board', 'flow', 'scenarios', 'flowcards', 'table', 'stepslist', 'decision', 'copy', 'copydecision', 'copysteps'].forEach(function (id) {
     $(id).onclick = function () {
       setStatus('Working...');
       // with scenario notes selected the Flow + Scenarios button reads "Flow only" and draws just the flow

@@ -21,7 +21,7 @@
     "decisionTsv": "6c73094891d1",
     "board": "8c577fdb8bb8",
     "decisionBoard": "08570e57b9bd",
-    "tables": "c0346b229e9d"
+    "tables": "5bee9cc80d25"
    },
    "pair": {
     "count": 7,
@@ -33,7 +33,7 @@
     "decisionTsv": "3e58cfdc3155",
     "board": "eabd1e579ccd",
     "decisionBoard": "dad24c76dd3a",
-    "tables": "9d6b611381e1"
+    "tables": "3de539c48857"
    },
    "min": {
     "count": 5,
@@ -45,7 +45,7 @@
     "decisionTsv": "9f9a21791d19",
     "board": "937efac9f0f8",
     "decisionBoard": "29564d377358",
-    "tables": "0ad2b94f4d88"
+    "tables": "aebc7b0528cd"
    }
   }
  },
@@ -71,7 +71,7 @@
     "decisionTsv": "ef62840ff3ab",
     "board": "bf80113bf977",
     "decisionBoard": "8362262daf29",
-    "tables": "cad7c36accbd"
+    "tables": "7b0465262dd6"
    },
    "pair": {
     "count": 14,
@@ -83,7 +83,7 @@
     "decisionTsv": "ef62840ff3ab",
     "board": "153f252d7a24",
     "decisionBoard": "89430e76f0c2",
-    "tables": "cad7c36accbd"
+    "tables": "7b0465262dd6"
    },
    "min": {
     "count": 9,
@@ -95,7 +95,7 @@
     "decisionTsv": "cf45d24efadd",
     "board": "98e4bdc8c6e3",
     "decisionBoard": "8f591954cf17",
-    "tables": "ac0015b1f92b"
+    "tables": "9f3e9e6d34fe"
    }
   }
  },
@@ -121,7 +121,7 @@
     "decisionTsv": "5ad8c8de0f98",
     "board": "4984a0f27576",
     "decisionBoard": "d37546fea8bb",
-    "tables": "32842b866777"
+    "tables": "f9443f76e6da"
    },
    "pair": {
     "count": 9,
@@ -133,7 +133,7 @@
     "decisionTsv": "f2411a747a79",
     "board": "515d4ca3bbad",
     "decisionBoard": "abdf44c1087e",
-    "tables": "06fe5437526d"
+    "tables": "d118887544d5"
    },
    "min": {
     "count": 4,
@@ -145,7 +145,7 @@
     "decisionTsv": "6df192a72fa9",
     "board": "2994db9ab4e5",
     "decisionBoard": "dcaaea8d5a77",
-    "tables": "c7d97f894e84"
+    "tables": "f7f6c08ca642"
    }
   }
  }

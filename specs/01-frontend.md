@@ -28,7 +28,7 @@ control: flows are written on the board, not in the panel.
   ("Pair 5") when the counts are those of what the draw buttons use: the text box with
   nothing selected, or the one selected flow note (UI-40). Otherwise only the names show.
 - **UI-18** The action buttons, in two groups, each under a small heading: **Draw**
-  (Flow + Scenarios, which is primary and full width, then Flow and Scenarios) and
+  (Flow + Scenarios, which is primary and full width, then Flow, Scenarios and Flow per scenario, which is full width) and
   **Tables** (Test steps, Decision table and Steps list, each with a **Copy** button
   beside it: copy, copydecision, copysteps).
 - **UI-06** (removed) Three groups with a separate Export group; see UI-18.

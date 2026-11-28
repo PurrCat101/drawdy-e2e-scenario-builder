@@ -17,6 +17,7 @@ import {
     drawFromText,
     stepsListAction,
     tableAction,
+    flowCardsAction,
 } from "./actions";
 
 /** Messages from the panel's page: live counts, what is selected, and the button presses. */
@@ -149,7 +150,9 @@ export async function onPanelMessage(m: any) {
                 p.meta?.e2eScenarios ||
                 (p.text.trim() && hasMarker(p.text))
         );
-        if (m.action === "table") {
+        if (m.action === "flowcards") {
+            status = await flowCardsAction(text, uiMode);
+        } else if (m.action === "table") {
             status = await tableAction(text, uiMode);
         } else if (m.action === "stepslist") {
             status = await stepsListAction(text, uiMode);

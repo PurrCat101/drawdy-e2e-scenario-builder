@@ -66,11 +66,21 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 ## Tables
 
-- **OUT-30** One frame per Test steps press, named `<label> · N scenarios` (`Test steps ·
-  MODE` for many scenarios), holding one embedded page with a table per scenario under
-  its title: `<ID> · Happy|Negative[ · P<n>][ · via negative]   <choices>`.
-- **OUT-31** Columns: `#`, Step, Condition, Setup, Test data, Expected result; one row
-  per test step (TERM-06). Step fields and the choice's fields are both shown.
+- **OUT-30** One embedded page per Test steps press, with no frame around it: the page is
+  the element alone, named by its label `<label> · N scenarios` (`Test steps · MODE` for
+  many scenarios), and it shows one scenario at a time (OUT-33), each as a table of its rows
+  (OUT-31). A frame would own the elements inside it, and the page inside a frame did not
+  take clicks in testing; the steps list (OUT-67) keeps its frame. Each scenario's title is `<ID> · Happy|Negative[ · P<n>][ · via negative]   <choices>`,
+  and its ID is the Scenario column.
+- **OUT-31** Columns: Scenario (the ID), `#`, Step, Condition, Setup, Test data, Expected
+  result; one row per test step (TERM-06), the rows of each scenario in order. Step fields
+  and the choice's fields are both shown.
+- **OUT-33** Above the table of the Test steps page are two tabs, `Happy (n)` and
+  `Negative (m)`, and arrows `‹ ›` with the position `<ID> · k of N`. The page shows one
+  scenario: the first Happy one at first (the first Negative one when there is no Happy
+  scenario). A tab shows the first scenario of its kind; the arrows step through the
+  scenarios of the kind shown and stop at the ends. A tab with no scenarios is greyed out.
+  The copy text (OUT-32) keeps every scenario. The Steps list (OUT-67) has no tabs.
 - **OUT-32** The copy text (Copy to clipboard) is tab-separated, one header row
   `Scenario  #  Step  Condition  Setup  Test data  Expected result`, one row per test
   step, values with tabs, quotes or line breaks quoted for spreadsheets.
@@ -85,6 +95,11 @@ the board, `src/actions.ts` decides what to draw for each button.
   of the choice, each once, joined by `, `. The frame keeps the text of the table (tab-
   separated, one header row `#  Step  Condition  Setup  Test data  Expected result  Req`,
   quoted as OUT-32) and the number of steps, so Copy to clipboard copies it (DRV-25).
+- **OUT-68** **Flow per scenario** draws one card per scenario of the chosen mode, below the
+  flow it comes from, after the scenarios' order (OUT-22). Each card is the scenario's own
+  flow (OUT-11), named by its title, with its end green when the scenario passes and red when it
+  fails. Cards are laid out left to right in rows at most 4000 units wide, with 120 units
+  between them and between rows. There is no limit on the number of cards.
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
   shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow
   whose `#` lines explain the syntax it uses, and it uses every kind of choice and field

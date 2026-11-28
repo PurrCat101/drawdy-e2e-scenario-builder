@@ -13,7 +13,19 @@ import * as driver from "../src/index.ts";
 import { parseFlowText } from "../src/core/syntax.ts";
 import { fitHeight } from "../src/textBox.ts";
 import { TEMPLATES } from "../src/core/templates.ts";
-import { flowStepRows } from "../src/core/testSteps.ts";
+import { flowStepRows } from "../src/core/testSteps.ts";
+
+/**
+ * The frames of a board, plus the Test steps tables that have no frame (OUT-30: a table is its
+ * component alone). A table's name is its label. Counts stay as they were: one shape per table.
+ */
+const boardShapes = (h: { frames(): any[]; tables(): any[] }): any[] => [
+    ...h.frames(),
+    ...h
+        .tables()
+        .filter((e) => e.meta?.e2eScenarioTable && !e.frameId)
+        .map((e) => ({ ...e, name: e.name ?? e.schema?.label })),
+];
 
 const NS = "purrcat101.e2e-scenario-builder";
 const PANEL = NS + ":panel";
@@ -135,7 +147,7 @@ test("DRV-02 DRV-03: the toolbar button and the panel messages are wired", async
 
 test("DRV-21: Flow + Scenarios draws a flow frame and a scenario frame", async () => {
     const h = await drawn();
-    const names = h.frames().map((f) => f.name);
+    const names = boardShapes(h).map((f) => f.name);
     assert.ok(names.some((n) => /^E2E Flow/.test(n)));
     assert.ok(names.some((n) => /^Scenarios/.test(n)));
     assert.equal(scenarioNotes(h).length, 2);
@@ -144,10 +156,10 @@ test("DRV-21: Flow + Scenarios draws a flow frame and a scenario frame", async (
 test("DRV-22 DRV-23: Scenarios draws only the scenarios, Flow only the flow", async () => {
     const a = await makeHost();
     await a.action("scenarios", FLOW);
-    assert.deepEqual(a.frames().map((f) => f.name.split(" ")[0]), ["Scenarios"]);
+    assert.deepEqual(boardShapes(a).map((f) => f.name.split(" ")[0]), ["Scenarios"]);
     const b = await makeHost();
     await b.action("flow", FLOW);
-    assert.deepEqual(b.frames().map((f) => f.name.split(" ")[0]), ["E2E"]);
+    assert.deepEqual(boardShapes(b).map((f) => f.name.split(" ")[0]), ["E2E"]);
     assert.equal(scenarioNotes(b).length, 0);
 });
 
@@ -167,7 +179,7 @@ test("UI-30: the panel reports what is selected", async () => {
     assert.equal((await h.lastTarget()).kind, "none");
     h.select(h.idOf(scenarioNotes(h)[0]));
     assert.deepEqual(await h.lastTarget(), { type: "target", kind: "scenarios", n: 1 });
-    h.select(h.idOf(h.frames().find((f) => /^Scenarios/.test(f.name))!));
+    h.select(h.idOf(boardShapes(h).find((f) => /^Scenarios/.test(f.name))!));
     const t = await h.lastTarget();
     assert.equal(t.kind, "frame");
     assert.equal(t.n, 2);
@@ -190,10 +202,10 @@ test("UI-06 UI-18: the buttons are in two groups, Draw and Tables, each table wi
     const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="more">'));
     // headings and buttons, in the order the user sees them
     const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "Tables", "table", "copy", "decision", "copydecision", "stepslist", "copysteps"]);
+    assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "flowcards", "Tables", "table", "copy", "decision", "copydecision", "stepslist", "copysteps"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
     assert.deepEqual(order.filter((x) => !/^[A-Z]/.test(x)).map(label), [
-        "Flow + Scenarios", "Flow", "Scenarios", "Test steps", "Copy", "Decision table", "Copy", "Steps list", "Copy",
+        "Flow + Scenarios", "Flow", "Scenarios", "Flow per scenario", "Test steps", "Copy", "Decision table", "Copy", "Steps list", "Copy",
     ]);
     // Flow + Scenarios is the primary button
     assert.match(block, /<button id="board" class="primary wide"/);
@@ -211,7 +223,7 @@ test("UI-15: panel: the target line and the mode stay at the top, Place and the 
 test("DRV-63: Copy of the steps list copies the text of that table and draws nothing", async () => {
     const h = await makeHost();
     await h.action("stepslist", FLOW);
-    const drawnText = h.frames()[0].meta.tsv;
+    const drawnText = boardShapes(h)[0].meta.tsv;
     const before = h.scene.size;
     h.toPanel.length = 0;
     await h.action("copysteps", FLOW);
@@ -234,27 +246,51 @@ test("OUT-30: the Test steps frame is named after the button, with the mode when
     const h = await drawn();
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("table", FLOW);
-    const names = h.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    const names = boardShapes(h).filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
     assert.equal(names.length, 1);
     assert.ok(names[0].startsWith("Test steps"), names[0]);
     const g = await drawn();
     await g.action("table", FLOW, "pair");
-    const many = g.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    const many = boardShapes(g).filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
     assert.match(many[0], /^Test steps · PAIR · 2 scenarios$/);
 });
 
 test("OUT-01 OUT-30 OUT-31: a table is placed in board coordinates and its columns include their padding", async () => {
     const h = await drawn();
     await h.action("table", FLOW);
-    const frame = h.frames().find((f) => f.meta?.e2eScenarioTable)!;
     const comp = h.tables().at(-1)!;
-    // a component is positioned on the board, not inside its frame
-    assert.equal(comp.x, frame.position[0] + 40);
-    assert.equal(comp.y, frame.position[1] + 50);
+    // option A: the table is the component alone, with no frame around it (OUT-30)
+    assert.equal(comp.frameId, undefined);
     const html: string = comp.schema.child.srcDoc;
     assert.match(html, /box-sizing:border-box/);
-    // the frame holds the table with room around it
-    assert.ok(frame.width > comp.width && frame.height > comp.height);
+    assert.ok(comp.width > 0 && comp.height > 0);
+});
+
+test("OUT-33 OUT-30: the Test steps page shows one scenario at a time, with Happy and Negative tabs and arrows", async () => {
+    const h = await drawn();
+    await h.action("table", FLOW);
+    const comp = h.tables().at(-1)!;
+    const html: string = comp.schema.child.srcDoc;
+    // one section and table per scenario, all hidden until the page script shows the first
+    const sections = html.match(/<section data-kind="(happy|negative)" data-id="[^"]+" hidden>/g) ?? [];
+    assert.equal(sections.length, comp.meta.scenarios);
+    assert.equal((html.match(/<table>/g) ?? []).length, comp.meta.scenarios);
+    assert.match(html, /<th style="width:120px">Scenario<\/th>/);
+    assert.match(html, /<button data-kind="happy">Happy \(\d+\)<\/button>/);
+    assert.match(html, /<button data-kind="negative">Negative \(\d+\)<\/button>/);
+    assert.match(html, /<button id="prev"/);
+    assert.match(html, /<button id="next"/);
+    assert.doesNotMatch(html, /<input/, "no search box");
+});
+
+test("OUT-68 DRV-77: Flow per scenario draws one card per scenario, named by its title, and says how many", async () => {
+    const h = await drawn();
+    await h.action("table", FLOW);
+    const n = h.tables().at(-1)!.meta.scenarios;
+    await h.action("flowcards", FLOW);
+    const cards = boardShapes(h).filter((f) => f.meta?.e2eCase && /^TS/.test(f.name));
+    assert.equal(cards.length, n, "one card per scenario of the mode");
+    assert.equal(lastStatus(h)!.text, `Flow per scenario drawn (${n} scenarios)`);
 });
 
 test("DRV-20: a selection wins over the text left in the panel", async () => {
@@ -292,10 +328,10 @@ test("DRV-27: Copy to clipboard: without a flow or a selection it says so and co
 
 test("DRV-23 OUT-24: Flow on a scenario note draws that scenario's flow and its table, and not the other scenarios", async () => {
     const h = await drawn();
-    const before = h.frames().length;
+    const before = boardShapes(h).length;
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("flow", "");
-    const added = h.frames().slice(before);
+    const added = boardShapes(h).slice(before);
     assert.equal(added.length, 2);
     assert.ok(added.some((f) => /^E2E Flow · TS[SN]-/.test(f.name)));
     assert.ok(added.some((f) => f.meta?.e2eScenarioTable));
@@ -303,17 +339,17 @@ test("DRV-23 OUT-24: Flow on a scenario note draws that scenario's flow and its 
 
 test("DRV-60 UI-34: Flow only on a scenario note draws its flow and no test steps table", async () => {
     const h = await drawn();
-    const before = h.frames().length;
+    const before = boardShapes(h).length;
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("flowonly", "");
-    const added = h.frames().slice(before);
+    const added = boardShapes(h).slice(before);
     assert.equal(added.length, 1, "just the flow");
     assert.match(added[0].name, /^E2E Flow · TS[SN]-/);
-    assert.ok(h.frames().every((f) => !f.meta?.e2eScenarioTable), "no Test steps table");
+    assert.ok(boardShapes(h).every((f) => !f.meta?.e2eScenarioTable), "no Test steps table");
     assert.equal(lastStatus(h).text, "Done");
     // Flow still draws the table as well, for the same selection
     await h.action("flow", "");
-    assert.ok(h.frames().some((f) => f.meta?.e2eScenarioTable));
+    assert.ok(boardShapes(h).some((f) => f.meta?.e2eScenarioTable));
 });
 
 test("DRV-60: Flow only works on a column head of a decision table too, with the flow of its own table", async () => {
@@ -325,11 +361,11 @@ test("DRV-60: Flow only works on a column head of a decision table too, with the
     h.scene.get("n1")!.text = "@builder\n1. Other\n   - x\n   - y\n";
     const head = h.find((e) => e.meta?.kind === "scenario" && e.frameId === h.idOf(frame))[0];
     h.select(h.idOf(head));
-    const before = h.frames().length;
+    const before = boardShapes(h).length;
     await h.action("flowonly", "");
-    assert.equal(h.frames().length - before, 1);
+    assert.equal(boardShapes(h).length - before, 1);
     assert.ok(h.find((e) => e.meta?.kind === "step").some((e) => /Login|Pay/.test(String(e.text))));
-    assert.ok(h.frames().every((f) => !f.meta?.e2eScenarioTable));
+    assert.ok(boardShapes(h).every((f) => !f.meta?.e2eScenarioTable));
 });
 
 test("UI-31: Scenarios on a scenario note does not draw anything (the panel disables it)", async () => {
@@ -338,7 +374,7 @@ test("UI-31: Scenarios on a scenario note does not draw anything (the panel disa
     const before = h.scene.size;
     await h.action("scenarios", "");
     // only a hint note, no scenarios or flow
-    assert.ok(h.frames().every((f) => !(f.meta?.e2eScenarios && f.name.includes("(2)"))));
+    assert.ok(boardShapes(h).every((f) => !(f.meta?.e2eScenarios && f.name.includes("(2)"))));
     assert.ok(h.scene.size - before <= 1);
 });
 
@@ -374,7 +410,7 @@ test("DRV-30 OUT-40: a starter note lands on the board as an @builder note that 
     // select it and press Flow + Scenarios: no text in the box, the note is used
     h.select(h.idOf(notes[0]));
     await h.action("board", "");
-    assert.ok(h.frames().some((f) => /^Scenarios/.test(f.name)));
+    assert.ok(boardShapes(h).some((f) => /^Scenarios/.test(f.name)));
     assert.ok(scenarioNotes(h).length >= 2);
 });
 
@@ -410,8 +446,8 @@ test("SYN-01 DRV-20: a flow is read from any element that holds the text: sticky
         h.add({ ...base, drawdyElementId: "user1", text: FLOW });
         h.select("user1");
         await h.action("board", "");
-        assert.ok(h.frames().some((f) => /^E2E Flow/.test(f.name)), what + ": the flow is drawn");
-        assert.ok(h.frames().some((f) => /^Scenarios/.test(f.name)), what + ": the scenarios are drawn");
+        assert.ok(boardShapes(h).some((f) => /^E2E Flow/.test(f.name)), what + ": the flow is drawn");
+        assert.ok(boardShapes(h).some((f) => /^Scenarios/.test(f.name)), what + ": the scenarios are drawn");
         assert.equal(scenarioNotes(h).length, 2, what);
     }
     // a note without the marker is left alone, whatever it is
@@ -419,7 +455,7 @@ test("SYN-01 DRV-20: a flow is read from any element that holds the text: sticky
     h.add({ type: "shape", componentType: "rect", x: 0, y: 0, width: 300, height: 100, drawdyElementId: "plain", text: "1. Login\n- ok" });
     h.select("plain");
     await h.action("board", "");
-    assert.equal(h.frames().length, 0);
+    assert.equal(boardShapes(h).length, 0);
 });
 
 test("OUT-41: a second starter note goes into free space, not on top of the first", async () => {
@@ -510,20 +546,20 @@ test("CALC-81: a quick preview of a huge flow is worked out again in full for a 
 test("DRV-22: Scenarios on a selected scenario frame draws a new frame in the chosen mode", async () => {
     const h = await makeHost();
     await h.action("board", FLOW);
-    const fr = h.frames().find((f) => f.meta?.e2eScenarios)!;
-    const before = h.frames().length;
+    const fr = boardShapes(h).find((f) => f.meta?.e2eScenarios)!;
+    const before = boardShapes(h).length;
     h.select(h.idOf(fr));
     h.toPanel.length = 0;
     await h.action("scenarios", "", "all");
-    const made = h.frames().filter((f) => f.meta?.e2eScenarios);
-    assert.equal(h.frames().length, before + 1);
+    const made = boardShapes(h).filter((f) => f.meta?.e2eScenarios);
+    assert.equal(boardShapes(h).length, before + 1);
     assert.equal(made[made.length - 1].meta.mode, "all");
     assert.ok(!h.find((e) => typeof e.text === "string" && /^Select a sticky note/.test(e.text)).length, "no hint note");
 });
 
 /* ------------------------------- decision table ------------------------------- */
 
-const decisionFrames = (h: Awaited<ReturnType<typeof makeHost>>) => h.frames().filter((f) => f.meta?.e2eDecision);
+const decisionFrames = (h: Awaited<ReturnType<typeof makeHost>>) => boardShapes(h).filter((f) => f.meta?.e2eDecision);
 const lastStatus = (h: Awaited<ReturnType<typeof makeHost>>) => [...h.toPanel].reverse().find((m) => m.type === "status");
 
 test("DRV-57 OUT-60: Decision table from the paste box draws frames of text boxes and says how many scenarios", async () => {
@@ -543,7 +579,7 @@ test("DRV-57 OUT-60: Decision table from the paste box draws frames of text boxe
 test("DRV-57: with a scenario frame selected, the decision table is of all its scenarios, in the mode it was drawn in", async () => {
     const h = await makeHost();
     await h.action("board", FLOW, "min");
-    const frame = h.frames().find((f) => /^Scenarios/.test(f.name))!;
+    const frame = boardShapes(h).find((f) => /^Scenarios/.test(f.name))!;
     h.select(h.idOf(frame));
     await h.action("decision", "", "all"); // the panel's switch says All: the frame's own mode wins
     const dt = decisionFrames(h);
@@ -633,7 +669,7 @@ test("DRV-58 CALC-94: Copy decision table copies a flow with no step that decide
     assert.equal(h.lastClip().warning, undefined, "a flow that decides has no warning");
 });
 
-const stepsFrames = (h: Awaited<ReturnType<typeof makeHost>>) => h.frames().filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit === "steps");
+const stepsFrames = (h: Awaited<ReturnType<typeof makeHost>>) => boardShapes(h).filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit === "steps");
 const REQ_FLOW = `@builder
 1. Login
    req: REQ-1
@@ -659,7 +695,7 @@ test("DRV-61 OUT-67: Steps list draws one frame with every step and choice of th
     ]);
     assert.equal(frames[0].meta.count, 3);
     assert.match(lastStatus(h).text, /^Steps list drawn \(3 steps\)$/);
-    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit !== "steps").length, 0, "no Test steps table");
+    assert.equal(boardShapes(h).filter((f) => f.meta?.e2eScenarioTable && f.meta?.unit !== "steps").length, 0, "no Test steps table");
 });
 
 test("DRV-61: the steps list does not depend on the mode and has no limit on size", async () => {
@@ -746,23 +782,23 @@ test("DRV-59 DRV-60 UI-34: start with a template, draw its decision table, then 
     }
 
     // Flow + Test steps: the flow of that scenario and its table
-    const before = h.frames().length;
+    const before = boardShapes(h).length;
     await h.action("flow", "");
-    const drawn = h.frames().slice(before);
+    const drawn = boardShapes(h).slice(before);
     assert.equal(drawn.length, 2);
     assert.ok(drawn.some((f) => f.name === `E2E Flow · ${head.meta.id}`));
     assert.ok(drawn.some((f) => f.meta?.e2eScenarioTable));
 
     // Flow only: just the flow, no table
-    const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable).length;
-    const mid = h.frames().length;
+    const tables = boardShapes(h).filter((f) => f.meta?.e2eScenarioTable).length;
+    const mid = boardShapes(h).length;
     await h.action("flowonly", "");
-    assert.equal(h.frames().length - mid, 1);
-    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable).length, tables);
+    assert.equal(boardShapes(h).length - mid, 1);
+    assert.equal(boardShapes(h).filter((f) => f.meta?.e2eScenarioTable).length, tables);
 
     // Test steps and Copy to clipboard: that one scenario
     await h.action("table", "");
-    assert.equal(h.frames().filter((f) => f.meta?.e2eScenarioTable).length, tables + 1);
+    assert.equal(boardShapes(h).filter((f) => f.meta?.e2eScenarioTable).length, tables + 1);
     await h.action("copy", "");
     assert.equal(h.lastClip().scenarios, 1);
 
@@ -795,8 +831,8 @@ test("DRV-59 OUT-66: a column head traces back to its own flow, even when the no
     await h.action("flow", "");
     assert.ok(stepTexts(h).some((t) => /Pay/.test(t)), "the step of the first table's flow");
     assert.ok(!stepTexts(h).some((t) => /Ship|Other/.test(t)), "not the steps of the edited notes");
-    assert.ok(h.frames().some((f) => f.name === `E2E Flow · ${head.meta.id}`));
-    assert.ok(h.frames().some((f) => f.meta?.e2eScenarioTable), "and the test steps of that scenario");
+    assert.ok(boardShapes(h).some((f) => f.name === `E2E Flow · ${head.meta.id}`));
+    assert.ok(boardShapes(h).some((f) => f.meta?.e2eScenarioTable), "and the test steps of that scenario");
 
     // a head of the second table: its own flow
     const before = stepTexts(h).length;
@@ -824,11 +860,11 @@ test("DRV-62 DRV-23: Flow on a copied scenario note that left its frame draws on
         const note = scenarioNotes(h)[0];
         h.select(copyOf(h, note, { frameId: undefined, ...(edit ? { text: note.text.replace("Pay", "Ship") } : {}) }));
         assert.equal((await h.lastTarget()).kind, "flows", "the panel's button reads Flow");
-        const before = h.frames().length;
+        const before = boardShapes(h).length;
         await h.action("flow", "", "all");
         assert.equal(h.tables().length, 0, "no test steps table, edited: " + edit);
-        assert.equal(h.frames().length, before + 1);
-        assert.ok(h.frames().at(-1)!.meta.e2eFlow, "a flow frame like any typed note gets");
+        assert.equal(boardShapes(h).length, before + 1);
+        assert.ok(boardShapes(h).at(-1)!.meta.e2eFlow, "a flow frame like any typed note gets");
     }
 });
 
@@ -854,7 +890,7 @@ test("DRV-62: a scenario note moved into the frame of another flow, or out of it
     const h = await drawn("all");
     const note = scenarioNotes(h)[0];
     await h.action("scenarios", "@builder\n1. Other\n   - x\n   - y\n", "all");
-    const other = h.frames().filter((f) => f.meta?.e2eScenarios).at(-1)!;
+    const other = boardShapes(h).filter((f) => f.meta?.e2eScenarios).at(-1)!;
     for (const frameId of [h.idOf(other), undefined]) {
         h.select(copyOf(h, note, { frameId }));
         await h.action("copy", "", "all");
@@ -893,12 +929,12 @@ test("DRV-59 OUT-66: the mode of the table is kept, so the same ID in two modes 
     // each head gives its own scenario's test steps, whatever the panel's switch says
     h.select(h.idOf(second(min)!));
     await h.action("table", "", "pair");
-    const tables = h.frames().filter((f) => f.meta?.e2eScenarioTable);
+    const tables = boardShapes(h).filter((f) => f.meta?.e2eScenarioTable);
     assert.equal(tables.length, 1);
     assert.equal(tables[0].meta.scenarios, 1);
     h.select(h.idOf(second(pair)!));
     await h.action("table", "", "pair");
-    const both = h.frames().filter((f) => f.meta?.e2eScenarioTable);
+    const both = boardShapes(h).filter((f) => f.meta?.e2eScenarioTable);
     assert.notEqual(both[0].meta.tsv, both[1].meta.tsv, "another path, other test steps");
 });
 
@@ -1001,11 +1037,11 @@ test("DRV-71 DRV-72 DRV-76: a click draws the whole block there, once, stacked w
     const h = await makeHost();
     await press(h, "board");
     await click(5000, -300);
-    const frames = h.frames();
+    const frames = boardShapes(h);
     assert.equal(h.scene.size, auto.scene.size);
     assert.deepEqual(at(frames[0]), [5000, -300], "the block's top left corner is at the click");
     // the same drawings as in auto, the scenarios under the flow
-    assert.deepEqual(frames.map((f) => f.name), auto.frames().map((f) => f.name));
+    assert.deepEqual(frames.map((f) => f.name), boardShapes(auto).map((f) => f.name));
     assert.deepEqual(at(frames[1]), [5000, -300 + frames[0].height + 100]);
     // every element inside a frame moved with it
     for (const e of h.find((e) => !!e.frameId && typeof e.x === "number")) {
@@ -1032,7 +1068,7 @@ test("DRV-72: pointer down and up places the block; a drag does not", async () =
     assert.equal(h.scene.size, 0, "a drag pans the board");
     await pointer("down", 100, 100);
     await pointer("up", 120, 100); // 2 screen pixels
-    assert.deepEqual(at(h.frames()[0]), [120, 100]);
+    assert.deepEqual(at(boardShapes(h)[0]), [120, 100]);
 });
 
 test("DRV-73 DRV-75: Esc and Cancel draw nothing; a new press drops the held block", async () => {
@@ -1049,10 +1085,10 @@ test("DRV-73 DRV-75: Esc and Cancel draw nothing; a new press drops the held blo
     await press(h, "flow");
     await press(h, "table");
     await click(0, 0);
-    assert.equal(h.frames().length, 1, "only the second press is drawn");
+    assert.equal(boardShapes(h).length, 1, "only the second press is drawn");
     assert.equal(h.tables().length, 1);
-    assert.deepEqual(at(h.frames()[0]), [0, 0]);
-    assert.deepEqual(at(h.tables()[0]), [40, 50], "the table page moved with its frame");
+    assert.deepEqual(at(boardShapes(h)[0]), [0, 0]);
+    assert.deepEqual(at(h.tables()[0]), [0, 0], "the table is drawn where the frame was, with no frame around it");
 });
 
 test("DRV-74: Auto while a block is held, or no outline, puts the block in free space without moving the camera", async () => {
@@ -1060,11 +1096,11 @@ test("DRV-74: Auto while a block is held, or no outline, puts the block in free 
     h.add({ type: "shape", drawdyElementId: "big", x: 0, y: 0, width: 5000, height: 2000, text: "" });
     await press(h, "flow");
     await h.panel({ type: "place", how: "auto" });
-    assert.ok(at(h.frames()[0])[1] >= 2000, "below what was there");
+    assert.ok(at(boardShapes(h)[0])[1] >= 2000, "below what was there");
     assert.equal(issued(h, "command:camera:fly-to-elements").length, 0);
     const bare = await makeHost({ noPreview: true });
     await press(bare, "flow");
-    assert.equal(bare.frames().length, 1);
+    assert.equal(boardShapes(bare).length, 1);
 });
 
 test("DRV-71 DRV-72: the starter note, the decision table and the steps list are held too; a copy is not", async () => {
@@ -1078,7 +1114,7 @@ test("DRV-71 DRV-72: the starter note, the decision table and the steps list are
         await press(b, a);
         assert.equal(b.scene.size, 0, a);
         await click(700, 800);
-        assert.deepEqual(at(b.frames()[0]), [700, 800], a);
+        assert.deepEqual(at(boardShapes(b)[0]), [700, 800], a);
     }
     const c = await makeHost();
     await press(c, "copy");
@@ -1441,7 +1477,7 @@ test("UI-20: one word for one thing: the user sees \"scenario\", never \"case\""
     await h.action("copy", FLOW);
     await h.panel({ type: "template", id: "shop" });
     const said = h.toPanel.filter((m) => m.type === "status").map((m) => m.text);
-    const names = h.frames().map((f) => f.name);
+    const names = boardShapes(h).map((f) => f.name);
     const texts = h.find((e) => typeof e.text === "string" && e.text).map((e) => e.text);
     for (const t of [...said, ...names]) assert.ok(!word.test(t), t);
     assert.ok(texts.length > 0);
@@ -1472,22 +1508,22 @@ test("DRV-28: a second press while an action runs answers Busy and draws nothing
     assert.equal(busy.length, 1);
     assert.ok(!busy[0].bad, "Busy is not an error");
     // drawn once: one flow frame and one scenario frame, not two of each
-    assert.equal(h.frames().length, 2);
+    assert.equal(boardShapes(h).length, 2);
     // the flag is released afterwards
     await h.action("board", FLOW);
-    assert.equal(h.frames().length, 4);
+    assert.equal(boardShapes(h).length, 4);
 });
 
 test("DRV-50: a flow frame holds the flow in meta.e2eFlow; a scenario's own flow frame holds e2eCase and no flow", async () => {
     const h = await drawn();
-    const flowFrame = h.frames().find((f) => f.meta?.e2eFlow)!;
+    const flowFrame = boardShapes(h).find((f) => f.meta?.e2eFlow)!;
     assert.deepEqual(flowFrame.meta.e2eFlow, parseFlowText(FLOW).flow);
     assert.equal(flowFrame.meta.e2eCase, undefined);
 
-    const before = h.frames().length;
+    const before = boardShapes(h).length;
     h.select(h.idOf(scenarioNotes(h)[0]));
     await h.action("flow", "");
-    const own = h.frames().slice(before).find((f) => /^E2E Flow · TS[SN]-/.test(f.name))!;
+    const own = boardShapes(h).slice(before).find((f) => /^E2E Flow · TS[SN]-/.test(f.name))!;
     assert.equal(own.meta.e2eCase, true);
     assert.equal(own.meta.e2eFlow, undefined);
 });
@@ -1508,7 +1544,7 @@ test("DRV-51: the flow diagram's parts are tagged: steps, red end boxes, and the
 
 test("DRV-52: a scenario frame holds e2eScenarios, the mode, how many scenarios it shows, and the flow", async () => {
     const h = await drawn("all");
-    const frame = h.frames().find((f) => f.meta?.e2eScenarios)!;
+    const frame = boardShapes(h).find((f) => f.meta?.e2eScenarios)!;
     assert.equal(frame.meta.e2eScenarios, true);
     assert.equal(frame.meta.mode, "all");
     assert.equal(frame.meta.count, scenarioNotes(h).length);
@@ -1570,6 +1606,6 @@ test("CALC-39: a mode 'ep' (a board drawn before 0.6.0, an old panel) is read as
     assert.equal(modeOr("min", "pair"), "min");
     const g = await drawn();
     await g.action("table", FLOW, "ep");
-    const names = g.frames().filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
+    const names = boardShapes(g).filter((f) => f.meta?.e2eScenarioTable).map((f) => f.name);
     assert.match(names[0], /^Test steps · PAIR · 2 scenarios$/);
 });

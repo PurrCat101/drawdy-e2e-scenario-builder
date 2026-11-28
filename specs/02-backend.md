@@ -92,6 +92,10 @@ Code: `src/placement.ts`.
 
 ## What a button uses
 
+- **DRV-77** Flow per scenario (OUT-68): the cards are worked out first, with the room they
+  need. Then every element is added hidden (opacity 0), in batches, and one update shows them
+  all at once, labelling the arrows with their text in the same update. Nothing is shown
+  piece by piece.
 - **DRV-20** A selection on the board wins over text in the paste box (for Flow,
   Scenarios and Flow + Scenarios when the selection holds something usable: a
   `@builder` note, a scenario note, a flow frame or a scenario frame).
