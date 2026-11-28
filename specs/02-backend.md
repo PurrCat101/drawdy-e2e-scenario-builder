@@ -133,8 +133,10 @@ Code: `src/placement.ts`.
 - **DRV-78** Decision table (interactive) (`decisionhtml`): draws the page of OUT-70 for
   the same scenarios, from the same selection and mode as Decision table (DRV-57), below
   the selection or in view, one page for each `@builder` note selected. It is one iframe
-  component, not boxes, so it has no 60-scenario limit. Nothing else is drawn; the view
-  flies to the page. The status is "Interactive decision table drawn (N scenarios)", and
+  component, not boxes, so it has no 60-scenario limit. The page holds All, Pair and Each
+  of the same flow (the counts of each mode, OUT-70), and opens on the chosen mode; a mode
+  with more than 200 scenarios is not in the page. Nothing else is drawn; the view flies to
+  the page. The status is "Interactive decision table drawn (N scenarios)", and
   for a flow with nothing to decide it goes on with the warning of DRV-57, as the boxes do.
 - **DRV-58** Copy decision table: sends `clip` with the text of the decision table (OUT-64)
   of the scenarios chosen as for the Decision table button (DRV-57), and draws nothing.

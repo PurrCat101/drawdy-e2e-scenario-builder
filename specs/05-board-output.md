@@ -115,13 +115,34 @@ the board, `src/actions.ts` decides what to draw for each button.
 - **OUT-70** The interactive decision table (DRV-78) is one page in an iframe, not boxes,
   so it can scroll and filter; the boxes of OUT-60 stay as they are, and both can be drawn
   for the same scenarios. The page shows the same table as OUT-60 and OUT-64 (the same
-  rows, the same X marks, the same ID heads, the Success and Negative bars). Its first two
-  columns (the condition and the choice) and its head row stay in view while it scrolls,
-  both ways. Clicking a condition shows the scenarios that take any of its choices; clicking
-  a choice shows the scenarios that take it. The line above the table says which filter is
-  on, how many scenarios it leaves of how many, and their IDs; `Show all` (or a second
-  click on the same box) clears it. The page loads nothing from the network and links to
-  nothing; it is plain text, so its text can be read and copied from it.
+  rows, the same X marks, the same ID heads, the Success and Negative bars).
+  - **Modes**: the top has three buttons, `All n`, `Pair n` and `Each n`, each with the
+    number of scenarios of that mode. The page opens on the mode the panel chose, and a
+    button shows that mode's table. All is in the page up to 1000 scenarios; a mode with
+    more has its button greyed out and the page says so.
+  - **Height**: the page is as tall as its tallest mode needs, so every condition and every
+    choice shows without scrolling down.
+  - **Width**: at least 8 scenario columns show without scrolling, at most 20 (about what
+    a 23-inch screen shows); more scroll sideways.
+  - **Frozen**: the condition and choice columns and the heads stay in view while it
+    scrolls, both ways.
+  - **Filter**: clicking a condition shows the scenarios that take any of its choices;
+    clicking a choice shows the scenarios that take it. Filters of different steps combine
+    (and): `Login สำเร็จ` and `ACTIVE level 1` show the scenarios that take both. One choice
+    per step: clicking another choice of a step that is already filtered replaces it. A
+    second click on the same box removes that filter only; the others stay. The line above
+    the table lists the filters and how many scenarios are left of how many (not their IDs,
+    which the columns show);
+    `Show all` removes every filter. Switching mode removes them too.
+  - **Marks**: an X is one box with one `x` in it, no second `x` beside it.
+  The page loads nothing from the network and links to nothing; it is plain text, so its
+  text can be read and copied from it.
+- **OUT-71** The pages in the board's iframes (the decision table of OUT-70, the Test steps
+  table and the steps list of OUT-30 and OUT-67) use Drawdy's theme colours: their
+  styles read Drawdy's tokens (`--dd-accent`, `--dd-surface-panel`, `--dd-text-primary`,
+  `--dd-border-medium` and the others the panel uses), each with a fallback colour for
+  when the theme has no such token. So they follow light and dark themes like the panel.
+  No page sets a fixed colour outside those fallbacks.
 
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
   shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow

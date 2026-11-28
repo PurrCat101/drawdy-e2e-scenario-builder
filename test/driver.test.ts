@@ -309,13 +309,42 @@ test("OUT-70 DRV-78: Decision table (interactive) draws one iframe page for the 
     assert.equal(page.meta.scenarios, n);
     assert.equal(h.scene.size, before + 1, "the page is the only element added: no boxes beside it");
     const html: string = page.schema.child.srcDoc;
-    assert.equal((html.match(/<th class="col c\d+ (ok|bad)" title="[^"]+">/g) ?? []).length, n, "one head per scenario");
-    assert.match(html, /<th class="cond" rowspan="\d+" data-cols="[\d,]*" data-label="\d+\. [^"]+"/, "a condition filters the columns");
-    assert.match(html, /<td class="combo click" data-cols="[\d,]*" data-label="[^"]+"/, "a choice filters the columns");
+    // the page holds All, Pair and Each; the shown table (Pair here) has a head per scenario
+    const pair = html.match(/<table class="mt" data-mode="pair"[\s\S]*?<\/table>/)![0];
+    assert.equal((pair.match(/<th class="col c\d+ (ok|bad)" title="[^"]+">/g) ?? []).length, n, "one head per scenario");
+    assert.match(html, /<table class="mt" data-mode="all"[^>]* hidden>/, "the other modes are hidden until their button is pressed");
+    assert.match(html, /<button data-mode="pair" aria-pressed="true">Pair <span>\d+<\/span><\/button>/, "the mode buttons say how many scenarios each has");
+    assert.match(html, /<button data-mode="all" aria-pressed="false">All <span>\d+<\/span><\/button>/);
+    assert.match(html, /<th class="s0 cond" data-ci="\d+" data-key="c\|[^"]+" rowspan="\d+" data-cols="[\d,]*" data-label="\d+\. [^"]+"/, "a condition filters the columns");
+    assert.match(html, /<td class="s1 combo click" data-ci="\d+" data-key="v\|[^"]+" data-cols="[\d,]*" data-label="[^"]+"/, "a choice filters the columns");
     assert.match(html, /<button id="clear" hidden>Show all<\/button>/);
     assert.doesNotMatch(html, /https?:\/\/|<script src=|<link /, "nothing from outside the page");
     const script = html.match(/<script>([\s\S]*)<\/script>/)![1];
     assert.doesNotThrow(() => new Function(script), "the page script compiles");
+});
+
+test("OUT-70 OUT-71: the page's X mark is one box with one x, and its colours are Drawdy's tokens with a fallback", async () => {
+    const h = await drawn();
+    await h.action("decisionhtml", FLOW);
+    const page = [...h.scene.values()].find((e: any) => e.meta?.e2eDecisionPage) as any;
+    const html: string = page.schema.child.srcDoc;
+    assert.match(html, /<td class="col c\d+"><span class="mk">x<\/span><\/td>/, "a mark is one span holding one x");
+    assert.doesNotMatch(html, /<td class="col c\d+ x">x<\/td>/, "no bare x beside the box");
+    assert.ok((html.match(/var\(--dd-[a-z-]+,/g) ?? []).length > 10, "colours come from Drawdy's tokens, each with a fallback");
+    // the only hex colours are the fallbacks inside var(...), used when Drawdy's theme has no token
+    // (an opaque base colour under a token layer, so a frozen cell cannot show what scrolls behind it, is allowed)
+    const css = (html.match(/<style>[\s\S]*?<\/style>/g) ?? []).join("").replace(/var\([^)]*\)/g, "").replace(/, #[0-9a-f]{3,6}\b/gi, "");
+    assert.doesNotMatch(css, /#[0-9a-f]{3,6}\b/i, "no fixed colour outside a var() fallback");
+});
+
+test("OUT-70: the page is tall enough for every condition and wide enough for at least 8 scenarios by default", async () => {
+    const h = await drawn();
+    await h.action("decisionhtml", FLOW);
+    const page = [...h.scene.values()].find((e: any) => e.meta?.e2eDecisionPage) as any;
+    const pair = page.schema.child.srcDoc.match(/<table class="mt" data-mode="pair"[\s\S]*?<\/table>/)[0];
+    const valueRows = (pair.match(/<td class="combo[^"]*"/g) ?? []).length;
+    assert.ok(page.height >= 134 + 34 * valueRows, "every condition's rows fit without scrolling");
+    assert.ok(page.width >= 180 + 230 + 8 * 88, "at least 8 scenario columns without scrolling");
 });
 
 test("DRV-78 UI-48: the interactive decision table button is in the panel, after Decision table, and off where Decision table is off", () => {

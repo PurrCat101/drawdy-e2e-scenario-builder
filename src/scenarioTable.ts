@@ -3,6 +3,7 @@
 // text come from core/testSteps.ts; this file draws them.
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
+import { themeCss } from "./webview";
 import type { Flow } from "./core/flow";
 import { flowStepRows, flowStepsToTsv, scenarioRows, scenariosToTsv, STEP_COLUMNS, STEPS_LIST_COLUMNS, type ScenarioItem } from "./core/testSteps";
 
@@ -60,12 +61,12 @@ function tablesHtml(scenarios: ScenarioItem[], COLS: Col[]): string {
         })
         .join("");
     return (
-        '<!doctype html><html><head><meta charset="utf-8"><style>' +
-        "body{margin:0;padding:12px;font:13px/1.45 system-ui,'Segoe UI',sans-serif;color:#1d2127;background:#fff;overflow:hidden}" +
+        '<!doctype html><html><head><meta charset="utf-8"><style>' + themeCss() +
+        "body{margin:0;padding:12px;font:13px/1.45 system-ui,'Segoe UI',sans-serif;color:var(--dd-text-primary,#1d2127);background:var(--dd-surface-panel,#fff);overflow:hidden}" +
         "h3{margin:18px 0 6px;font-size:14px}h3:first-child{margin-top:0}" +
         "table{border-collapse:collapse;width:100%;table-layout:fixed}" +
-        "th,td{box-sizing:border-box;border:1px solid #c9ccd2;padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}" +
-        "th{background:#eceef1;font-weight:600}" +
+        "th,td{box-sizing:border-box;border:1px solid var(--dd-border-medium,#c9ccd2);padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}" +
+        "th{background:var(--dd-control-surface,#eceef1);font-weight:600}" +
         "</style></head><body>" +
         body +
         "</body></html>"
@@ -155,18 +156,18 @@ function testStepsHtml(scenarios: ScenarioItem[]): string {
         '</div><input id="q" type="search" placeholder="Find ID or text" aria-label="Find a scenario"><div id="pager"><button id="prev" aria-label="Previous scenario">&#8249;</button>' +
         '<span id="pos"></span><button id="next" aria-label="Next scenario">&#8250;</button></div></div>';
     return (
-        '<!doctype html><html><head><meta charset="utf-8"><style>' +
-        "body{margin:0;padding:12px;font:13px/1.45 system-ui,'Segoe UI',sans-serif;color:#1d2127;background:#fff;overflow:hidden}" +
+        '<!doctype html><html><head><meta charset="utf-8"><style>' + themeCss() +
+        "body{margin:0;padding:12px;font:13px/1.45 system-ui,'Segoe UI',sans-serif;color:var(--dd-text-primary,#1d2127);background:var(--dd-surface-panel,#fff);overflow:hidden}" +
         "#bar{display:flex;align-items:center;justify-content:space-between;gap:10px;height:32px;margin-bottom:12px}" +
         "#tabs,#pager{display:flex;align-items:center;gap:6px}" +
-        "#q{flex:1;min-width:0;max-width:260px;font:inherit;padding:4px 8px;border:1px solid #c9ccd2;border-radius:4px}" +
-        "button{font:inherit;padding:4px 10px;border:1px solid #c9ccd2;border-radius:4px;background:#fff;cursor:pointer}" +
-        "button[aria-pressed=true]{background:#1d2127;color:#fff;border-color:#1d2127}" +
+        "#q{flex:1;min-width:0;max-width:260px;font:inherit;padding:4px 8px;border:1px solid var(--dd-border-medium,#c9ccd2);border-radius:4px}" +
+        "button{font:inherit;padding:4px 10px;border:1px solid var(--dd-border-medium,#c9ccd2);border-radius:4px;background:var(--dd-control-surface,#fff);color:var(--dd-text-primary,#1d2127);cursor:pointer}" +
+        "button[aria-pressed=true]{background:var(--dd-accent,#1d2127);color:var(--dd-on-accent,#fff);border-color:var(--dd-accent,#1d2127)}" +
         "button:disabled{opacity:.4;cursor:default}" +
-        "#pos{min-width:120px;text-align:center;color:#5b616b;white-space:nowrap}" +
+        "#pos{min-width:120px;text-align:center;color:var(--dd-text-secondary,#5b616b);white-space:nowrap}" +
         "table{border-collapse:collapse;width:100%;table-layout:fixed}" +
-        "th,td{box-sizing:border-box;border:1px solid #c9ccd2;padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}" +
-        "th{background:#eceef1;font-weight:600}" +
+        "th,td{box-sizing:border-box;border:1px solid var(--dd-border-medium,#c9ccd2);padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}" +
+        "th{background:var(--dd-control-surface,#eceef1);font-weight:600}" +
         "</style></head><body>" +
         bar +
         sections +

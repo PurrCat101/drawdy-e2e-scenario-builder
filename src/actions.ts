@@ -7,7 +7,7 @@ import { analyze } from "./core/analysis";
 import { MODE_LABEL, orderScenarios } from "./core/scenarioText";
 import { buildDecisionTable, decisionToTsv, MAX_DECISION_SCENARIOS } from "./core/decisionTable";
 import { renderDecisionTables } from "./decisionBoard";
-import { decisionPageElement, decisionPageSize } from "./decisionHtml";
+import { decisionPageElement, decisionPageSize, MAX_PAGE_SCENARIOS, type PageModeTable } from "./decisionHtml";
 import type { Scenario } from "./core/scenarios";
 import { scenarioFlow, scenarioFromText, pathFails } from "./core/scenarioFlow";
 import type { Template } from "./core/templates";
@@ -327,12 +327,19 @@ export async function decisionHtmlAction(text: string, uiMode: Mode): Promise<st
     let first = "";
     let warn = false;
     for (const src of got) {
+        // the page holds All, Pair and Each of the same flow, switched on the page (OUT-70)
+        const a = analyze(src.flow);
+        const modes: PageModeTable[] = (["all", "pair", "min"] as const).map((m) => {
+            const scenarios = a.pick(m);
+            const table = scenarios.length > MAX_PAGE_SCENARIOS ? null : buildDecisionTable(src.flow, scenarios);
+            return { mode: m, count: scenarios.length, table };
+        });
         const dt = buildDecisionTable(src.flow, src.scenarios);
         warn ||= !dt.decides;
         const name = `Decision table (interactive) · ${MODE_LABEL[src.mode]}`;
-        const size = decisionPageSize(dt);
+        const size = decisionPageSize(modes);
         const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
-        const el = decisionPageElement({ table: dt, name, origin, generateId });
+        const el = decisionPageElement({ modes, active: src.mode, name, origin, generateId });
         const failed = await put((dx, dy) => addInBatches(moved([el], dx, dy)));
         if (failed) return "Could not draw the interactive decision table: " + failed;
         drawn += dt.columns.length;
