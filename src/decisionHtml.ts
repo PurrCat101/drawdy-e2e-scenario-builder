@@ -251,9 +251,9 @@ ${note}${tables}
     // the Success and Negative bars span the columns that are shown; a bar with none is taken out
     var bars = fresh.querySelectorAll('thead tr.bar th.ok, thead tr.bar th.bad');
     for (var b = 0; b < bars.length; b++) {
-      var kind = bars[b].classList.contains('ok') ? 'ok' : 'bad';
+      var barKind = bars[b].classList.contains('ok') ? 'ok' : 'bad';
       var span = 0;
-      for (var h = 0; h < n; h++) if (vis[h] && heads[h].classList.contains(kind)) span++;
+      for (var h = 0; h < n; h++) if (vis[h] && heads[h].classList.contains(barKind)) span++;
       if (span) bars[b].setAttribute('colspan', span);
       else bars[b].parentNode.removeChild(bars[b]);
     }

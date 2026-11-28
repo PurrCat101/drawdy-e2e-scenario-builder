@@ -365,6 +365,9 @@ test("OUT-70 UI: the page has Happy and Negative buttons beside the mode buttons
     const html: string = page.schema.child.srcDoc;
     assert.match(html, /<button data-kind="ok" aria-pressed="false"[^>]*>Happy<\/button>/);
     assert.match(html, /<button data-kind="bad" aria-pressed="false"[^>]*>Negative<\/button>/);
+    // a second `var kind` in the page script would hide the kind filter inside build() (it did once)
+    const src = html.match(/<script>([\s\S]*)<\/script>/)![1];
+    assert.equal((src.match(/\bvar kind\b/g) ?? []).length, 1, "kind is declared once");
     const script = html.match(/<script>([\s\S]*)<\/script>/)![1];
     assert.doesNotThrow(() => new Function(script), "the page script compiles");
 });
