@@ -148,18 +148,22 @@ function orderFreeKey(path: PathItem[], idx: Record<string, number>): string {
 
 /**
  * Scenario IDs in running order: `TSS-001`, `TSS-002`... for Happy and `TSN-001`...
- * for Negative, each counted in the order of `list`. A mode numbers the scenarios it
- * picks, so the biggest ID of a mode is its count (5 picked: at most `TSS-003` and
- * `TSN-002` for 3 Happy and 2 Negative). The same flow and mode always give the same
- * IDs; a flow that gains a scenario can move the IDs after it. Three digits at least
- * (`TSS-1000` past 999). Returns copies; `n` (the place in All) is kept.
+ * for Negative. The numbers follow the order the scenarios are shown in (OUT-22: by
+ * priority, then the order of `list`), so the IDs of a table or a list read up in order.
+ * A mode numbers the scenarios it picks, so the biggest ID of a mode is its count (5
+ * picked: at most `TSS-003` and `TSN-002` for 3 Happy and 2 Negative). The same flow and
+ * mode always give the same IDs; a flow that gains a scenario can move the IDs after it.
+ * Three digits at least (`TSS-1000` past 999). Returns copies; `n` (the place in All) is kept.
  */
 function renumber(list: Scenario[]): Scenario[] {
     const count = { happy: 0, neg: 0 };
-    return list.map((sc) => ({
-        ...sc,
-        id: (sc.type === "happy" ? "TSS-" : "TSN-") + String(++count[sc.type]).padStart(3, "0"),
-    }));
+    const shown = list.map((_, i) => i).sort((a, b) => list[a].pri - list[b].pri || a - b);
+    const ids: string[] = [];
+    for (const i of shown) {
+        const type = list[i].type;
+        ids[i] = (type === "happy" ? "TSS-" : "TSN-") + String(++count[type]).padStart(3, "0");
+    }
+    return list.map((sc, i) => ({ ...sc, id: ids[i] }));
 }
 
 /**

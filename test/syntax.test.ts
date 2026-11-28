@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { formatFlow, hasMarker, needFromWords, needToWords, parseFlowText } from "../src/core/syntax.ts";
 import { generate, pick } from "../src/core/scenarios.ts";
+import { orderScenarios } from "../src/core/scenarioText.ts";
 import { reportHeader } from "../src/core/scenarioText.ts";
 import type { Flow } from "../src/core/flow.ts";
 import { renderScenarios } from "../src/scenarioBoard.ts";
@@ -932,6 +933,18 @@ test("CALC-50 CALC-55: scenario IDs run TSS-001.. and TSN-001.. in list order", 
         two.list.map((s) => s.id),
         ["TSS-001", "TSS-002", "TSN-001", "TSN-002"]
     );
+});
+
+test("CALC-55 OUT-22: IDs run up in the order the scenarios are shown, by priority first, so a P2 negative is not numbered before a P1 one", () => {
+    const g = generate(parseFlowText("1. a\n- ok\n- x -> end [P2]\n- y -> end [P1]\n2. b\n- p\n- q").flow);
+    const shown = orderScenarios(g.list).map((s) => s.id);
+    assert.deepEqual(shown, ["TSS-001", "TSS-002", "TSN-001", "TSN-002"]);
+    assert.equal(g.list.find((s) => s.pri === 1)!.id, "TSN-001", "the P1 negative takes the first negative number");
+});
+
+test("CALC-55 OUT-22: past 999 the IDs still run up in the shown order (TSS-1000 after TSS-999, not after TSS-100)", () => {
+    const list = [1000, 2, 101, 100].map((n) => ({ id: "TSS-" + String(n).padStart(3, "0"), type: "happy", pri: 1 }));
+    assert.deepEqual(orderScenarios(list as any).map((s) => s.id), ["TSS-002", "TSS-100", "TSS-101", "TSS-1000"]);
 });
 
 test("CALC-56: the same flow gives the same IDs; a new scenario moves only the ones after it", () => {

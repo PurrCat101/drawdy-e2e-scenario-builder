@@ -144,10 +144,13 @@ export function requirementLines(shown: Scenario[], flow: Flow): string[] {
 
 /** Happy scenarios first, then negative; each group by priority (P1 first), then id. */
 export function orderScenarios(list: Scenario[]): Scenario[] {
+    // the number of the ID, not its text: past 999 the text of TSS-1000 sorts before TSS-101
+    const num = (id: string) => Number(id.slice(4));
     return [...list].sort(
         (a, b) =>
             (a.type === "happy" ? 0 : 1) - (b.type === "happy" ? 0 : 1) ||
             a.pri - b.pri ||
+            num(a.id) - num(b.id) ||
             a.id.localeCompare(b.id)
     );
 }

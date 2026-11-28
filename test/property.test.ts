@@ -10,6 +10,7 @@ import { formatFlow, parseFlowText } from "../src/core/syntax.ts";
 import { generate, pick, singles } from "../src/core/scenarios.ts";
 import { analyze, clearCache } from "../src/core/analysis.ts";
 import { buildDecisionTable } from "../src/core/decisionTable.ts";
+import { orderScenarios } from "../src/core/scenarioText.ts";
 
 const RUNS = Number(process.env.PBT_RUNS ?? 300);
 
@@ -143,7 +144,8 @@ test("CALC-50, CALC-55, CALC-56 (property): scenario IDs are unique, run 1, 2, 3
             assert.deepEqual(ids(a.list), ids(b.list));
             assert.equal(new Set(ids(a.list)).size, a.list.length, "IDs must be unique");
             const count = { happy: 0, neg: 0 };
-            for (const s of a.list) {
+            // the IDs run up in the order they are shown (CALC-55, OUT-22)
+            for (const s of orderScenarios(a.list)) {
                 count[s.type]++;
                 const prefix = s.type === "happy" ? "TSS" : "TSN";
                 assert.equal(s.id, `${prefix}-${String(count[s.type]).padStart(3, "0")}`);
@@ -160,7 +162,7 @@ test("CALC-57 (property): every mode numbers the scenarios it picks 1, 2, 3 per 
             for (const mode of ["all", "pair", "min"] as const) {
                 const got = pick(g, mode);
                 const count = { happy: 0, neg: 0 };
-                for (const s of got) {
+                for (const s of orderScenarios(got)) {
                     count[s.type]++;
                     assert.equal(s.id, `${s.type === "happy" ? "TSS" : "TSN"}-${String(count[s.type]).padStart(3, "0")}`, mode);
                 }

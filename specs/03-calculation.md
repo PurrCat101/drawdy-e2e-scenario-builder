@@ -150,9 +150,11 @@ check), `src/core/analysis.ts` (remembering results).
   can move when the flow gains or loses a scenario (CALC-56).
 - **CALC-54** Any `TSS-`/`TSN-` number is read back (older boards used `TSS-001` or, in
   0.2.0, five digits such as `TSS-04821`).
-- **CALC-55** The numbers are given after the list is sorted (CALC-42), one count per
-  prefix: the first Happy scenario of the list is `TSS-001`, the next `TSS-002`, and
-  the first Negative one is `TSN-001`. So 3 Happy and 2 Negative scenarios are
+- **CALC-55** The numbers are given in the order the scenarios are shown (OUT-22): by
+  priority, P1 first, and within a priority in the order of the list (CALC-42), one count
+  per prefix. So the numbers read up in every table and list, and a P2 negative never takes
+  a number before a P1 one. The first Happy scenario shown is `TSS-001`, the next `TSS-002`,
+  and the first Negative one is `TSN-001`. So 3 Happy and 2 Negative scenarios are
   `TSS-001` to `TSS-003` and `TSN-001`, `TSN-002`.
 - **CALC-56** The same flow always gives the same IDs. When the flow gains or loses a
   scenario, the scenarios sorted after it of the same prefix move by one (or more);
