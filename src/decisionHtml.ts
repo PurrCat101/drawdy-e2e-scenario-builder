@@ -217,12 +217,14 @@ ${note}${tables}
     var cols = fresh.querySelectorAll('colgroup col');
     var shown = 0;
     var happy = 0;
+    var vis = [];
     for (var k = 0; k < n; k++) {
       var ok = true;
       for (var j = 0; j < keys.length; j++) {
         if (filters[keys[j]].cols.indexOf(k) < 0) { ok = false; break; }
       }
       if (heads[k].classList.contains('ok')) happy++;
+      vis[k] = ok;
       if (ok) {
         shown++;
       } else {
@@ -230,6 +232,15 @@ ${note}${tables}
         for (var i = 0; i < gone.length; i++) gone[i].parentNode.removeChild(gone[i]);
         cols[k + 2].parentNode.removeChild(cols[k + 2]);
       }
+    }
+    // the Success and Negative bars span the columns that are shown; a bar with none is taken out
+    var bars = fresh.querySelectorAll('thead tr.bar th.ok, thead tr.bar th.bad');
+    for (var b = 0; b < bars.length; b++) {
+      var kind = bars[b].classList.contains('ok') ? 'ok' : 'bad';
+      var span = 0;
+      for (var h = 0; h < n; h++) if (vis[h] && heads[h].classList.contains(kind)) span++;
+      if (span) bars[b].setAttribute('colspan', span);
+      else bars[b].parentNode.removeChild(bars[b]);
     }
     fresh.style.width = (${LABEL_W} + ${COMBO_W} + shown * ${COL_W}) + 'px';
     // the filter boxes that are on
