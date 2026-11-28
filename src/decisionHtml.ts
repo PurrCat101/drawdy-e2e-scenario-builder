@@ -318,9 +318,11 @@ ${note}${tables}
  * most MAX_COLS, the rest scroll sideways), and the height of every row of the tallest mode,
  * so every condition shows without scrolling down.
  */
-export function decisionPageSize(modes: PageModeTable[]): { width: number; height: number } {
+export function decisionPageSize(modes: PageModeTable[], active: PageMode): { width: number; height: number } {
     const drawn = modes.flatMap((m) => (m.table ? [m.table] : []));
-    const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, ...drawn.map((t) => t.columns.length), 0));
+    // the width fits the mode shown (its columns, at least MIN_COLS); switching to a bigger mode scrolls
+    const shown = modes.find((m) => m.mode === active)?.table;
+    const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, shown ? shown.columns.length : 0));
     const width = LABEL_W + COMBO_W + cols * COL_W + 24;
     const rows = Math.max(0, ...drawn.map((t) => layoutRows(t).total));
     const height = TOP_H + HS_H + BAR_H + HEAD_H + rows + 8;
@@ -340,7 +342,7 @@ export function decisionPageElement(opts: {
     /** the ids of the choices that loop back (a `loop` action in the flow) */
     loops?: Set<string>;
 }): DrawdyElementSchema {
-    const { width, height } = decisionPageSize(opts.modes);
+    const { width, height } = decisionPageSize(opts.modes, opts.active);
     const shown = opts.modes.find((m) => m.mode === opts.active)?.table ?? null;
     return {
         type: "component",

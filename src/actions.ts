@@ -337,7 +337,7 @@ export async function decisionHtmlAction(text: string, uiMode: Mode): Promise<st
         const dt = buildDecisionTable(src.flow, src.scenarios);
         warn ||= !dt.decides;
         const name = `Decision table (interactive) · ${MODE_LABEL[src.mode]}`;
-        const size = decisionPageSize(modes);
+        const size = decisionPageSize(modes, src.mode);
         const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
         // the choices that loop back to an earlier step (shown ↻ on the page)
         const loops = new Set(src.flow.steps.flatMap((s) => s.conds.filter((c) => c.action === "loop").map((c) => c.id)));

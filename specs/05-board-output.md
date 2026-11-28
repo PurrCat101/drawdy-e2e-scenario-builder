@@ -122,7 +122,8 @@ the board, `src/actions.ts` decides what to draw for each button.
     more has its button greyed out and the page says so.
   - **Height**: the page is as tall as its tallest mode needs, so every condition and every
     choice shows without scrolling down.
-  - **Width**: at least 8 scenario columns show without scrolling, at most 20 (about what
+  - **Width**: the page is as wide as the mode it opens on needs: its scenario columns, at
+    least 8 and at most 20 (about what
     a 23-inch screen shows); more scroll sideways, with the scrollbar on top. The wheel,
     shift + wheel and a sideways swipe scroll sideways too. A scrollbar on the right shows
     when the rows are taller than the page, so a cut-off row says it scrolls.
