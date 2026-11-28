@@ -358,6 +358,17 @@ test("OUT-70 UI: the page has no Fit frame or Reset size (the frame is resized o
     assert.match(html, /<div id="hs">/, "the scrollbar on top");
 });
 
+test("OUT-70 UI: the page has Happy and Negative buttons beside the mode buttons, and they are checked by the page script", async () => {
+    const h = await drawn();
+    await h.action("decisionhtml", FLOW);
+    const page = [...h.scene.values()].find((e: any) => e.meta?.e2eDecisionPage) as any;
+    const html: string = page.schema.child.srcDoc;
+    assert.match(html, /<button data-kind="ok" aria-pressed="false"[^>]*>Happy<\/button>/);
+    assert.match(html, /<button data-kind="bad" aria-pressed="false"[^>]*>Negative<\/button>/);
+    const script = html.match(/<script>([\s\S]*)<\/script>/)![1];
+    assert.doesNotThrow(() => new Function(script), "the page script compiles");
+});
+
 test("OUT-70: the page is tall enough for every condition and wide enough for at least 8 scenarios by default", async () => {
     const h = await drawn();
     await h.action("decisionhtml", FLOW);

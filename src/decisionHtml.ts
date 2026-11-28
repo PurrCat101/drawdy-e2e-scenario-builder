@@ -179,6 +179,7 @@ export function decisionHtml(modes: PageModeTable[], active: PageMode, title: st
 <body>
 <div class="top">
   <div class="seg" role="group" aria-label="Mode">${buttons}</div>
+  <div class="seg kindseg" role="group" aria-label="Kind"><button data-kind="ok" aria-pressed="false" title="Show only the Happy scenarios">Happy</button><button data-kind="bad" aria-pressed="false" title="Show only the Negative scenarios">Negative</button></div>
   ${loops.size ? '<span class="legend">↻ loops back to an earlier step</span>' : ""}
   <div id="msg"></div>
   <div class="tools">
@@ -201,6 +202,8 @@ ${note}${tables}
   var base = {};
   // the filters: one per condition step, all of them must hold (and); step index -> filter
   var filters = {};
+  // the kind shown alone: 'ok' Happy, 'bad' Negative, or null for both
+  var kind = null;
   var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
   function current() { return wrap.querySelector('table.mt'); }
   // the top scrollbar follows the table, and the table follows it
@@ -234,6 +237,8 @@ ${note}${tables}
         if (filters[keys[j]].cols.indexOf(k) < 0) { ok = false; break; }
       }
       if (heads[k].classList.contains('ok')) happy++;
+      if (kind === 'ok' && !heads[k].classList.contains('ok')) ok = false;
+      if (kind === 'bad' && !heads[k].classList.contains('bad')) ok = false;
       vis[k] = ok;
       if (ok) {
         shown++;
@@ -259,12 +264,14 @@ ${note}${tables}
       el.classList.toggle('on', !!f && f.key === el.getAttribute('data-key'));
     });
     cur.parentNode.replaceChild(fresh, cur);
-    if (!keys.length) {
+    var chips = [];
+    if (kind) chips.push('<b>' + (kind === 'ok' ? 'Happy' : 'Negative') + ' only</b>');
+    keys.forEach(function (key) { chips.push('<b>' + esc(filters[key].label) + '</b>'); });
+    if (!chips.length) {
       msg.innerHTML = n + ' scenarios (' + happy + ' Happy, ' + (n - happy) + ' Negative) · click a condition or a choice to see the scenarios that take it';
       clear.hidden = true;
     } else {
-      var labels = keys.map(function (key) { return '<b>' + esc(filters[key].label) + '</b>'; }).join(' and ');
-      msg.innerHTML = labels + ' · ' + (shown ? shown : 'none') + ' of ' + n + ' scenarios' + (shown ? '' : ' take all of these');
+      msg.innerHTML = chips.join(' and ') + ' · ' + (shown ? shown : 'none') + ' of ' + n + ' scenarios' + (shown ? '' : ' take all of these');
       clear.hidden = false;
     }
     fit();
@@ -283,8 +290,22 @@ ${note}${tables}
     var el = e.target && e.target.closest ? e.target.closest('[data-key]') : null;
     if (el) pick(el);
   });
+  function setKindButtons() {
+    document.querySelectorAll('.kindseg button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-kind') === kind));
+    });
+  }
+  document.querySelectorAll('.kindseg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      kind = kind === b.getAttribute('data-kind') ? null : b.getAttribute('data-kind');
+      setKindButtons();
+      build();
+    });
+  });
   function clearAll() {
     filters = {};
+    kind = null;
+    setKindButtons();
     build();
   }
   function showMode(m) {

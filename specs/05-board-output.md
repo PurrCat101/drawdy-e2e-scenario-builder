@@ -116,6 +116,9 @@ the board, `src/actions.ts` decides what to draw for each button.
   so it can scroll and filter; the boxes of OUT-60 stay as they are, and both can be drawn
   for the same scenarios. The page shows the same table as OUT-60 and OUT-64 (the same
   rows, the same X marks, the same ID heads, the Success and Negative bars).
+  - **Kind**: beside the mode buttons, `Happy` and `Negative` show only the scenarios of that
+    kind (the others are hidden); a second click clears it. It combines with the filters on
+    conditions and choices, and `Clear selected` clears it too.
   - **Modes**: the top has three buttons, `All n`, `Pair n` and `Each n`, each with the
     number of scenarios of that mode. The page opens on the mode the panel chose, and a
     button shows that mode's table. All is in the page up to 1000 scenarios; a mode with
