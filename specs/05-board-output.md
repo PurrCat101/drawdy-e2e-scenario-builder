@@ -70,7 +70,7 @@ the board, `src/actions.ts` decides what to draw for each button.
   the element alone, named by its label `<label> · N scenarios` (`Test steps · MODE` for
   many scenarios), and it shows one scenario at a time (OUT-33), each as a table of its rows
   (OUT-31). A frame would own the elements inside it, and the page inside a frame did not
-  take clicks in testing; the steps list (OUT-67) keeps its frame. Each scenario's title is `<ID> · Happy|Negative[ · P<n>][ · via negative]   <choices>`,
+  take clicks in testing; the steps list (OUT-67) is drawn the same way, with no frame. Each scenario's title is `<ID> · Happy|Negative[ · P<n>][ · via negative]   <choices>`,
   and its ID is the Scenario column.
 - **OUT-31** Columns: Scenario (the ID), `#`, Step, Condition, Setup, Test data, Expected
   result; one row per test step (TERM-06), the rows of each scenario in order. Step fields
@@ -91,8 +91,8 @@ the board, `src/actions.ts` decides what to draw for each button.
 
 ## Starter notes
 
-- **OUT-67** The steps list (DRV-61) is one frame named `Steps list · N steps`, holding one
-  embedded page with a table per flow (`All steps` for one flow, `Flow 1`, `Flow 2`... for
+- **OUT-67** The steps list (DRV-61) is one embedded page, with no frame around it, named
+  `Steps list · N steps` (the name is on its iframe), holding a table per flow (`All steps` for one flow, `Flow 1`, `Flow 2`... for
   more) with the columns of OUT-31 and a last column `Req`. One row per choice of a step,
   in the order of the flow; a step with no choice is one row. A row shows the step's fields
   and the choice's fields as OUT-31 does, and in `Req` the requirement IDs of the step and
@@ -149,7 +149,7 @@ the board, `src/actions.ts` decides what to draw for each button.
   `--dd-border-medium` and the others the panel uses), each with a fallback colour for
   when the theme has no such token. So they follow light and dark themes like the panel.
   No page sets a fixed colour outside those fallbacks.
-
+- **OUT-72** (removed) The By ID box and its buttons, and Fit page, are taken out (UI-49). An interactive decision table still keeps the flow and the mode it was made from in its data, as a scenario frame does (OUT-66).
 - **OUT-40** One note, an online-shop checkout (Authentication, products with a loop,
   shipping, payment), a text box 520 units wide with a yellow fill, font 14. It is a complete `@builder` flow
   whose `#` lines explain the syntax it uses, and it uses every kind of choice and field

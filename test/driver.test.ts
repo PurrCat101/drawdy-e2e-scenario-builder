@@ -107,8 +107,8 @@ async function makeHost(opts: { noPreview?: boolean } = {}) {
             body: { webviewDomId: PANEL, message },
         } as any);
     };
-    const action = (a: string, text = "", mode = "pair") =>
-        panel({ type: "action", action: a, text, mode });
+    const action = (a: string, text = "", mode = "pair", id?: string) =>
+        panel({ type: "action", action: a, text, mode, id });
     const select = (...ids: string[]) => {
         selection = ids;
     };
@@ -763,11 +763,12 @@ const REQ_FLOW = `@builder
    - paid
 `;
 
-test("DRV-61 OUT-67: Steps list draws one frame with every step and choice of the flow, and a Req column", async () => {
+test("DRV-61 OUT-67: Steps list draws one table (no frame) with every step and choice of the flow, and a Req column", async () => {
     const h = await makeHost();
     await h.action("stepslist", REQ_FLOW, "pair");
     const frames = stepsFrames(h);
     assert.equal(frames.length, 1);
+    assert.equal(h.find((e) => e.type === "frame").length, 0, "no frame around the steps list");
     assert.equal(frames[0].name, "Steps list · 3 steps");
     const rows = frames[0].meta.tsv.split("\n").map((r: string) => r.split("\t"));
     assert.deepEqual(rows[0], ["#", "Step", "Condition", "Setup", "Test data", "Expected result", "Req"]);

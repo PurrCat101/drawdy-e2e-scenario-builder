@@ -127,11 +127,17 @@ async function collectScenarios(text: string, uiMode: Mode): Promise<Collected |
     const scenarioNotes = sel.filter((x) => x.meta?.kind === "scenario" && Array.isArray(x.meta.path));
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
     const flowFrame = sel.find((x) => x.meta?.e2eFlow);
+    const page = pageOf(sel);
     if (frame) {
         const mode = modeOr(frame.meta.mode, uiMode);
         fromList(frame.meta.flow as Flow, mode);
         anchor = frame;
         label = `Test steps · ${mode.toUpperCase()}`;
+    } else if (page) {
+        // an interactive decision table: its flow, in the mode the panel has (OUT-72)
+        fromList(page.meta.flow as Flow, uiMode);
+        anchor = page;
+        label = `Test steps · ${uiMode.toUpperCase()}`;
     } else if (scenarioNotes.length) {
         let unknown = 0;
         for (const p of scenarioNotes) {
@@ -243,6 +249,11 @@ export async function copyDecisionAction(text: string, uiMode: Mode): Promise<st
     return "";
 }
 
+/** The selected interactive decision table, if any: it keeps its flow (OUT-72). */
+function pageOf(sel: Picked[]): Picked | undefined {
+    return sel.find((p) => p.meta?.e2eDecisionPage && Array.isArray(p.meta.flow?.steps));
+}
+
 /** A flow and the scenarios to make a decision table of, with where to draw it. */
 type DecisionSource = { flow: Flow; scenarios: Scenario[]; mode: Mode; anchor: Box };
 
@@ -254,6 +265,9 @@ async function collectDecision(text: string, uiMode: Mode): Promise<DecisionSour
     const flowNotes = sel.filter((x) => !x.meta?.kind && x.text.trim() && hasMarker(x.text));
     const flowFrame = sel.find((x) => x.meta?.e2eFlow);
     const of = (flow: Flow, mode: Mode, anchor: Box): DecisionSource => ({ flow, mode, scenarios: analyze(flow).pick(mode), anchor });
+    // an interactive decision table: its flow, in the mode the panel has (OUT-72)
+    const page = pageOf(sel);
+    if (page) return [of(page.meta.flow as Flow, uiMode, page)];
     if (frame) return [of(frame.meta.flow as Flow, modeOr(frame.meta.mode, uiMode), frame)];
     if (scenarioNotes.length) {
         // the notes of the first frame: their flow is stored on it
@@ -341,7 +355,7 @@ export async function decisionHtmlAction(text: string, uiMode: Mode): Promise<st
         const origin = await placeFor(src.anchor.x, src.anchor.y + src.anchor.height + 120, size.width, size.height);
         // the choices that loop back to an earlier step (shown ↻ on the page)
         const loops = new Set(src.flow.steps.flatMap((s) => s.conds.filter((c) => c.action === "loop").map((c) => c.id)));
-        const el = decisionPageElement({ modes, active: src.mode, name, origin, generateId, loops });
+        const el = decisionPageElement({ modes, active: src.mode, name, origin, generateId, loops, flow: src.flow });
         const failed = await put((dx, dy) => addInBatches(moved([el], dx, dy)));
         if (failed) return "Could not draw the interactive decision table: " + failed;
         drawn += dt.columns.length;

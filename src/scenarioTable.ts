@@ -191,7 +191,6 @@ export function renderScenarioTables(opts: {
     const { scenarios, name, origin, generateId } = opts;
     const COLS = opts.stepsList ? LIST_COLS : TEST_COLS;
     const [ox, oy] = origin;
-    const frameId = generateId();
     // kept on the table, so "copy" can read it from a selection
     const tsv = opts.stepsList ? scenarios.map((cs) => flowStepsToTsv(cs.flow)).join("\n\n") : scenariosToTsv(scenarios);
     // what a copy says it copied: scenarios, or the steps of a steps list
@@ -220,10 +219,8 @@ export function renderScenarioTables(opts: {
         }
         inner += TOOLBAR_H + (12 + LINE + 1) + tallest;
     }
-    const frameW = tableW + 80 + 24;
     const compW = tableW + 24;
     const compH = Math.min(MAX_H, Math.round(inner * 1.03) + 24);
-    const frameH = compH + 80;
     const component = (x: number, y: number, id: string, parent?: string): DrawdyElementSchema =>
         ({
             type: "component",
@@ -242,26 +239,10 @@ export function renderScenarioTables(opts: {
                 styles: { width: [compW, "px"], height: [compH, "px"] },
             },
         }) as DrawdyElementSchema;
-    // A Test steps table is the iframe alone: a frame around it owns the elements inside it,
-    // and its embedded page then does not take clicks (see specs OUT-30). The steps list keeps its frame.
-    if (!opts.stepsList) {
-        const id = generateId();
-        return { frameId: id, elements: [component(ox, oy, id)], width: compW, height: compH };
-    }
-    const elements: DrawdyElementSchema[] = [
-        {
-            type: "frame",
-            drawdyElementId: frameId,
-            name,
-            position: [ox, oy],
-            width: frameW,
-            height: frameH,
-            rotation: 0,
-            meta: { e2eScenarioTable: true, scenarios: scenarios.length, tsv, ...(opts.stepsList ? { count, unit: "steps" } : {}) },
-        },
-        component(ox + 40, oy + 50, generateId(), frameId),
-    ];
-    return { frameId, elements, width: frameW, height: frameH };
+    // A table (Test steps and the steps list) is the iframe alone: a frame around it would own the
+    // elements inside it, and its embedded page would then not take clicks (see specs OUT-30, OUT-67).
+    const id = generateId();
+    return { frameId: id, elements: [component(ox, oy, id)], width: compW, height: compH };
 }
 
 export function renderScenarioTable(opts: {

@@ -93,7 +93,9 @@ export async function onPanelMessage(m: any) {
         const flowFrame = sel.find((p) => p.meta?.e2eFlow);
         let kind = "none";
         let n = 0;
-        if (table) [kind, n] = ["table", tableCount(table.meta)];
+        const page = sel.find((p) => p.meta?.e2eDecisionPage);
+        if (page) [kind, n] = ["decisionpage", Number(page.meta.scenarios ?? 0)];
+        else if (table) [kind, n] = ["table", tableCount(table.meta)];
         else if (frame) [kind, n] = ["frame", Number(frame.meta.count ?? 0)];
         else if (notes.length) [kind, n] = ["scenarios", notes.length];
         else if (flows.length) [kind, n] = ["flows", flows.length];

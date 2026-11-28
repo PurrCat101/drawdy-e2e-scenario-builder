@@ -130,6 +130,8 @@ Code: `src/placement.ts`.
   flies to the table. When a flow it was drawn for has no step with two or more choices
   (CALC-94), the status goes on with ". Warning: no step has two or more choices, so
   there is nothing to decide"; the status is not marked bad (DRV-29).
+- **DRV-79** (removed) The ID lookup (`ids`, `idflow`, `idtable`) is taken out with the By ID box (UI-49).
+- **DRV-80** (removed) Fit page (`fit`) is taken out (UI-49). An interactive table is resized with the handles on the board.
 - **DRV-78** Decision table (interactive) (`decisionhtml`): draws the page of OUT-70 for
   the same scenarios, from the same selection and mode as Decision table (DRV-57), below
   the selection or in view, one page for each `@builder` note selected. It is one iframe

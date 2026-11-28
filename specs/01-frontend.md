@@ -34,6 +34,7 @@ control: flows are written on the board, not in the panel.
   **Decision table (interactive)** button (decisionhtml, UI-48).
 - **UI-06** (removed) Three groups with a separate Export group; see UI-18.
 - **UI-07** The status line, in the footer.
+- **UI-49** (removed) The By ID group (the box and its two buttons) and Fit page are taken out of the panel. The selection kind `decisionpage` (an interactive table is selected) still turns off the buttons that draw from notes and frames, and says so in the label. An interactive table is resized with the handles on the board.
 - **UI-48** **Decision table (interactive)** (decisionhtml) is on and off exactly as
   Decision table is (UI-31), and its label takes the same ` · N scenarios` (UI-33). Its
   tooltip says it is the same scenarios as Decision table, as a page that scrolls and filters

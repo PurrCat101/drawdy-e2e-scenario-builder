@@ -243,6 +243,9 @@
     } else if (k === 'flows') {
       line = n === 1 && countsShown() ? '1 flow note · ' + count(lastCounts.steps, 'step') : count(n, 'flow note') + ' selected';
       full = 'The draw buttons use the selected @builder notes';
+    } else if (k === 'decisionpage') {
+      line = 'Interactive decision table selected';
+      full = 'Its flow is used by the buttons of this panel, in its mode';
     } else if (k === 'flowframe') {
       line = 'Flow frame selected';
       full = 'Scenarios / Flow + Scenarios draw new scenarios from the flow of this frame';
@@ -264,6 +267,7 @@
     else if (k === 'frame') { ok.flow = false; ok.board = false; }          // a scenario frame: new scenarios, table or copy
     else if (k === 'flowframe') { ok.flow = false; }                        // a drawn flow: new scenarios, table or copy
     else if (k === 'table') { all.forEach(function (id) { ok[id] = id === 'copy'; }); } // a table: only copy
+    else if (k === 'decisionpage') { ok.flow = ok.scenarios = ok.flowcards = ok.board = ok.stepslist = ok.copysteps = false; } // an interactive table: its ID, Fit and the table buttons
     // a selected scenario note: the Flow button draws that scenario's flow and its table
     $('flow').textContent = k === 'scenarios' ? 'Flow + Test steps' : 'Flow';
     // and the button that would draw new scenarios (off here) draws just the flow, no test steps

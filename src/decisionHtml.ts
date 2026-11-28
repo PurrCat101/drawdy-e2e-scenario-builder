@@ -7,6 +7,7 @@
 
 import type { DrawdyElementSchema } from "@drawdy/driver-protocol";
 import { decisionToTsv, type DecisionTable } from "./core/decisionTable";
+import type { Flow } from "./core/flow";
 import { fitHeight } from "./textBox";
 import { themeCss } from "./webview";
 
@@ -341,6 +342,8 @@ export function decisionPageElement(opts: {
     generateId: () => string;
     /** the ids of the choices that loop back (a `loop` action in the flow) */
     loops?: Set<string>;
+    /** the flow the page was made from: kept on the page, so its scenarios can be used later (OUT-72) */
+    flow?: Flow;
 }): DrawdyElementSchema {
     const { width, height } = decisionPageSize(opts.modes, opts.active);
     const shown = opts.modes.find((m) => m.mode === opts.active)?.table ?? null;
@@ -351,7 +354,13 @@ export function decisionPageElement(opts: {
         y: opts.origin[1],
         width,
         height,
-        meta: { e2eDecisionPage: true, scenarios: shown ? shown.columns.length : 0, tsv: shown ? decisionToTsv(shown) : "" },
+        meta: {
+            e2eDecisionPage: true,
+            scenarios: shown ? shown.columns.length : 0,
+            tsv: shown ? decisionToTsv(shown) : "",
+            mode: opts.active,
+            ...(opts.flow ? { flow: opts.flow } : {}),
+        },
         schema: {
             type: "iframe",
             label: opts.name,
