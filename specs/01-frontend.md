@@ -11,7 +11,7 @@ control: flows are written on the board, not in the panel.
   footer that stay in place, and a middle that scrolls when something in it is unfolded.
   With nothing unfolded the middle needs no scrolling. The header holds the target line
   (UI-02) and the mode switch (UI-05); the middle holds the messages (UI-03), the buttons
-  and, under them, "Write flow" and "Start with a template"; the footer holds Place
+  and, under them, "Write flow" and "Template"; the footer holds Place
   (UI-60) and the status line (UI-07).
 - **UI-01** (removed) A title in the page: Drawdy's window already shows the name.
 - **UI-02** The target line: one line saying what the buttons will use, from the board
@@ -28,7 +28,7 @@ control: flows are written on the board, not in the panel.
   ("Pair 5") when the counts are those of what the draw buttons use: the text box with
   nothing selected, or the one selected flow note (UI-40). Otherwise only the names show.
 - **UI-18** The action buttons, in two groups, each under a small heading: **Draw**
-  (Flow + Scenarios, which is primary and full width, then Flow, Scenarios and Flow per scenario, which is full width) and
+  (Flow + Scenarios, which is primary and full width, then Flow, Scenarios and Per scenario, which share one row) and
   **Tables** (Test steps, Decision table and Steps list, each with a **Copy** button
   beside it: copy, copydecision, copysteps), and under Decision table a full-width
   **Decision table (interactive)** button (decisionhtml, UI-48).
@@ -39,7 +39,7 @@ control: flows are written on the board, not in the panel.
   Decision table is (UI-31), and its label takes the same ` · N scenarios` (UI-33). Its
   tooltip says it is the same scenarios as Decision table, as a page that scrolls and filters
   (OUT-70). It has no Copy button: Copy decision table copies the same text.
-- **UI-08** "Start with a template": one button; its tooltip says what it does.
+- **UI-08** "Template": one button; its tooltip says what it does.
 - **UI-09** "Write flow" shows the text box in place of the middle of the panel, with
   "← Back" to return and "Pull from selected note".
 - **UI-10** "syntax", folded, under the text box: a short syntax reminder.

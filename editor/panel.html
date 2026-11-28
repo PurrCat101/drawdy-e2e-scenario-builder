@@ -5,27 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>E2E Scenario Builder</title>
 <style>
-  :root { --ink:var(--dd-text-primary,#111827); --mut:var(--dd-text-secondary,#6b7280); --line:var(--dd-border-medium,#e5e7eb); --bg:var(--dd-surface-panel,#ffffff); --soft:var(--dd-control-surface,#f3f4f6); --hover:var(--dd-interaction-hover,#e5e7eb); --lime:var(--dd-accent,#c8f500); --lime2:var(--dd-accent-hover,#b5de00); --onlime:var(--dd-on-accent,#111827); --bad:var(--dd-status-danger,#b42318); --badbg:var(--dd-status-danger-subtle,#fdecea); }
+  :root { --ink:var(--dd-text-primary,#111827); --mut:var(--dd-text-secondary,#6b7280); --line:var(--dd-border-medium,#e5e7eb); --bg:var(--dd-surface-panel,#ffffff); --soft:var(--dd-control-surface,#f3f4f6); --hover:var(--dd-interaction-hover,#e5e7eb); --lime:var(--dd-accent,#c8f500); --lime2:var(--dd-accent-hover,#b5de00); --limesoft:var(--dd-accent-subtle,#f6fbd6); --onlime:var(--dd-on-accent,#111827); --bad:var(--dd-status-danger,#b42318); --badbg:var(--dd-status-danger-subtle,#fdecea); }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--dd-font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif); }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 var(--dd-font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif); }
   /* three parts: the header and the footer stay, only the middle scrolls */
   body { display: flex; flex-direction: column; overflow: hidden; }
-  header { flex: none; padding: 6px 10px 4px; }
-  main, .view { flex: 1; min-height: 0; overflow: auto; padding: 2px 10px 4px; }
-  footer { flex: none; border-top: 1px solid var(--line); padding: 4px 10px; }
+  header { flex: none; padding: 8px 12px 6px; }
+  main, .view { flex: 1; min-height: 0; overflow: auto; padding: 2px 12px 4px; }
+  footer { flex: none; border-top: 1px solid var(--line); padding: 6px 12px 8px; }
   [hidden] { display: none !important; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  button { font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 16px; padding: 0 8px; height: 28px; }
-  button:hover { background: var(--hover); }
-  .ghost { height: 28px; font-weight: 400; background: var(--bg); }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-  .seg button { border: 0; border-radius: 0; height: 26px; font-weight: 400; background: var(--bg); padding: 0 12px; }
-  .seg button.on { background: var(--lime); color: var(--onlime); font-weight: 600; }
-  #mode { display: flex; margin-top: 6px; }
-  #mode button { flex: 1; height: 30px; }
   .lbl { font-size: 12px; color: var(--mut); }
-  .target { font-size: 12px; font-weight: 600; margin: 0; padding: 6px 10px; border-radius: 10px; background: var(--soft); border-left: 4px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .target.sel { border-left-color: var(--lime); background: var(--dd-accent-subtle, #f6fbd6); }
+  /* the buttons: pills, with an icon from a mask so a changed label keeps it */
+  button { --icon: none; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 5px 10px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: normal; line-height: 1.2; min-width: 0; }
+  button:hover { background: var(--hover); }
+  button[disabled] { opacity: .45; cursor: default; }
+  button::before { content: ""; flex: none; width: 16px; height: 16px; background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+  button > span { text-align: center; }
+  #flowcards { white-space: nowrap; }
+  #flowcards::before { display: none; }
+  .ghost::before, #back::before, #pull::before, #place button::before, .seg button::before { display: none; }
+  #board { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E"); }
+  #flow { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='2' width='6' height='5' rx='1'/%3E%3Crect x='2' y='17' width='6' height='5' rx='1'/%3E%3Crect x='16' y='17' width='6' height='5' rx='1'/%3E%3Cpath d='M12 7v4M5 17v-3h14v3' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #scenarios { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l9 5v10l-9 5-9-5V7z' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #flowcards { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E"); }
+  #table { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%23000' stroke-width='2'/%3E%3Cpath d='M8 12l3 3 5-6' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #decision { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' fill='none' stroke='%23000' stroke-width='2'/%3E%3Cpath d='M3 9h18M3 15h18M9 3v18' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #decisionhtml { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2L4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E"); }
+  #stepslist { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #write { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20l4-1 11-11-3-3L5 16z' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  #tpl-shop { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z'/%3E%3C/svg%3E"); }
+  .cp { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='8' y='8' width='12' height='12' rx='2' fill='none' stroke='%23000' stroke-width='2'/%3E%3Cpath d='M4 16V5a1 1 0 0 1 1-1h11' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); }
+  .cp::before { width: 14px; height: 14px; }
+  /* the mode switch: three equal pills, the chosen one in the accent colour */
+  .seg { display: flex; width: 100%; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--soft); padding: 3px; gap: 3px; }
+  .seg button { flex: 1; height: 28px; border: 0; border-radius: 999px; background: transparent; font-weight: 500; padding: 0 8px; }
+  .seg button:hover { background: var(--hover); }
+  .seg button.on { background: var(--lime); color: var(--onlime); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  #mode { margin-top: 2px; }
+  /* what is selected */
+  .target { font-size: 12px; font-weight: 600; margin: 0 0 6px; padding: 6px 12px; border-radius: 999px; background: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .target.sel { background: var(--limesoft); }
   .issues { font-size: 12px; }
   .issues details { margin-bottom: 4px; }
   .issues summary { cursor: pointer; color: var(--dd-status-warning, #b54708); }
@@ -35,23 +55,30 @@
   .iss.err { color: var(--bad); }
   .iss.warn { color: var(--dd-status-warning, #b54708); }
   .iss.info { color: var(--mut); }
-  .grp { font-size: 11px; color: var(--mut); margin: 4px 0 0; letter-spacing: .02em; }
-  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  /* the groups */
+  .grp { font-size: 11px; font-weight: 600; color: var(--mut); margin: 8px 2px 3px; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .acts.row3 { grid-template-columns: 1fr 1fr 1fr; }
+  .acts.row3 button { font-size: 12px; padding: 5px 6px; }
   .acts .wide { grid-column: 1 / -1; }
+  .acts .primary-btn { grid-column: 1 / -1; background: var(--limesoft); border-color: var(--limesoft); font-weight: 600; height: 36px; }
+  .acts .primary-btn:hover { background: var(--lime); }
   /* a table button with its copy button beside it */
-  .acts .pair { grid-column: 1 / -1; display: flex; gap: 4px; }
-  .pair button:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pair button + button { width: 58px; }
-  .more { display: flex; gap: 4px; margin-top: 6px; }
-  .more button { flex: 1; }
+  .acts .pair { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 72px; gap: 6px; }
+  .more { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+
   .acts button.scoped { border-color: var(--lime); box-shadow: 0 0 0 2px var(--lime); }
   .primary { background: var(--lime); border-color: var(--lime); color: var(--onlime); }
   .primary:hover { background: var(--lime2); }
-  .acts button[disabled] { opacity: .45; cursor: default; }
-  .status { min-height: 17px; max-height: 51px; overflow: auto; font-size: 12px; color: var(--mut); margin-top: 4px; }
+  .status { height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; color: var(--mut); margin-top: 4px; }
   .status.bad { color: var(--bad); }
-  .view { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--mut); }
-  textarea { flex: 1; width: 100%; min-height: 120px; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
+  .status:empty { display: none; }
+  /* the place switch in the footer */
+  #place { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--soft); padding: 3px; gap: 3px; }
+  #place button { height: 26px; border: 0; background: transparent; padding: 0 12px; }
+  #place button.on { background: var(--lime); color: var(--onlime); font-weight: 600; }
+  .view { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--mut); }
+  textarea { flex: 1; width: 100%; min-height: 120px; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink); background: var(--soft); }
   textarea:focus { outline: 2px solid var(--lime); background: var(--bg); }
   details code, .view code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
   .view p { margin: 4px 0; }
@@ -71,30 +98,32 @@
 
   <main id="main">
     <div class="issues" id="issues"></div>
-    <div class="acts">
-      <div class="grp wide">Draw</div>
-      <button id="board" class="primary wide" title="Draw the flow, then the scenario notes">Flow + Scenarios</button>
+    <div class="grp">Draw</div>
+    <div class="acts row3">
+      <button id="board" class="primary-btn" title="Draw the flow, then the scenario notes">Flow + Scenarios</button>
       <button id="flow" title="Draw only the flow diagram">Flow</button>
       <button id="scenarios" title="Draw only the scenario notes of the chosen mode">Scenarios</button>
-      <button id="flowcards" class="wide" title="Draw the flow of every scenario of the chosen mode, one card each, its end green when it passes and red when it fails">Flow per scenario</button>
-      <div class="grp wide">Tables</div>
+      <button id="flowcards" title="Draw the flow of every scenario of the chosen mode, one card each, its end green when it passes and red when it fails">Per scenario</button>
+    </div>
+    <div class="grp">Tables</div>
+    <div class="acts">
       <div class="pair">
         <button id="table" title="The test steps of each scenario as a table (step, condition, setup, test data, expected result)">Test steps</button>
-        <button id="copy" title="Copy the test steps, or the selected table, as tab-separated text, ready to paste into a spreadsheet">Copy</button>
+        <button id="copy" class="cp" title="Copy the test steps, or the selected table, as tab-separated text, ready to paste into a spreadsheet">Copy</button>
       </div>
       <div class="pair">
         <button id="decision" title="Decision table: every step and the scenarios that take each choice, as boxes you can edit on the board">Decision table</button>
-        <button id="copydecision" title="Copy the decision table as tab-separated text, one long row of scenarios for a spreadsheet (freeze the first two columns); no limit on scenarios">Copy</button>
+        <button id="copydecision" class="cp" title="Copy the decision table as tab-separated text, one long row of scenarios for a spreadsheet (freeze the first two columns); no limit on scenarios">Copy</button>
       </div>
       <button id="decisionhtml" class="wide" title="Decision table as an interactive page: the first two columns and the heads stay in view while you scroll, and a click on a condition or a choice shows the scenarios that take it. Same scenarios as Decision table, no limit on their number">Decision table (interactive)</button>
       <div class="pair">
         <button id="stepslist" title="Steps list: every step and every choice of the whole flow as one table, with a Req column (not scenarios; no limit on size)">Steps list</button>
-        <button id="copysteps" title="Copy the steps list as tab-separated text, without drawing it">Copy</button>
+        <button id="copysteps" class="cp" title="Copy the steps list as tab-separated text, without drawing it">Copy</button>
       </div>
     </div>
     <div class="more">
-      <button id="write" class="ghost" title="Write or paste a flow here instead of on the board">Write flow</button>
-      <button id="tpl-shop" class="ghost" title="Drops a note with an online-shop checkout on the board. Edit it there, select it, press Flow + Scenarios.">Start with a template</button>
+      <button id="write" title="Write or paste a flow here instead of on the board"><span>Write flow</span></button>
+      <button id="tpl-shop" title="Drops a note with an online-shop checkout on the board. Edit it there, select it, press Flow + Scenarios."><span>Template</span></button>
     </div>
   </main>
 
@@ -123,9 +152,9 @@
   </div>
 
   <footer>
-    <div class="row">
+    <div class="row" style="justify-content: space-between;">
       <span class="lbl">Place</span>
-      <span class="seg" id="place">
+      <span id="place">
         <button id="place-hand" class="on" title="Carry the result with the pointer and click the board to put it down">By hand</button>
         <button id="place-auto" title="Put the result in free space and fly to it">Auto</button>
       </span>

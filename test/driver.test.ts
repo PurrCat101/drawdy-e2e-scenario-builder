@@ -199,16 +199,16 @@ test("DRV-24: Table: a selected scenario note gives one table, the text gives al
 
 test("UI-06 UI-18: the buttons are in two groups, Draw and Tables, each table with its copy button", () => {
     const html = readFileSync(new URL("../editor/panel.html", import.meta.url), "utf8");
-    const block = html.slice(html.indexOf('<div class="acts">'), html.indexOf('<div class="more">'));
+    const block = html.slice(html.indexOf('<div class="grp">Draw'), html.indexOf('<div class="more">'));
     // headings and buttons, in the order the user sees them
-    const order = [...block.matchAll(/<div class="grp wide">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
+    const order = [...block.matchAll(/<div class="grp">([^<]+)<\/div>|<button id="([a-z]+)"/g)].map((m) => m[1] ?? m[2]);
     assert.deepEqual(order, ["Draw", "board", "flow", "scenarios", "flowcards", "Tables", "table", "copy", "decision", "copydecision", "decisionhtml", "stepslist", "copysteps"]);
     const label = (id: string) => block.match(new RegExp(`<button id="${id}"[^>]*>([^<]*)</button>`))![1];
     assert.deepEqual(order.filter((x) => !/^[A-Z]/.test(x)).map(label), [
-        "Flow + Scenarios", "Flow", "Scenarios", "Flow per scenario", "Test steps", "Copy", "Decision table", "Copy", "Decision table (interactive)", "Steps list", "Copy",
+        "Flow + Scenarios", "Flow", "Scenarios", "Per scenario", "Test steps", "Copy", "Decision table", "Copy", "Decision table (interactive)", "Steps list", "Copy",
     ]);
     // Flow + Scenarios is the primary button
-    assert.match(block, /<button id="board" class="primary wide"/);
+    assert.match(block, /<button id="board" class="primary-btn"/);
 });
 
 test("UI-15: panel: the target line and the mode stay at the top, Place and the status at the bottom", () => {

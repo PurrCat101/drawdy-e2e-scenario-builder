@@ -7,7 +7,7 @@ scenarios (happy, negative and loop) drawn on the board, with a table of the
 test steps of each scenario.
 
 Install the extension, click its button on the right edge of the board, press a
-**Start with a template** button to drop a ready-made flow note on the
+**Template** button to drop a ready-made flow note on the
 board, edit it there, select it and press **Flow + Scenarios**. (Or write a flow in the
 panel's **Write flow** box, or in any note, sticky note or text box, that starts with `@builder`.)
 
@@ -72,7 +72,7 @@ panel's **Write flow** box, or in any note, sticky note or text box, that starts
      expect: 409 OUT_OF_STOCK, the cart item count does not change
 ```
 
-The first three steps of the starter template (**Start with a template** drops all of it on the board). The whole text is under [Text syntax](#text-syntax).
+The first three steps of the starter template (**Template** drops all of it on the board). The whole text is under [Text syntax](#text-syntax).
 
 ## Terms
 
@@ -175,7 +175,7 @@ in the panel does not need the marker.)
 Everything can be written in the text, so no UI is needed.
 The words are English; the labels you write can be in any language.
 
-This is the starter template, the note that **Start with a template** drops on the board. It is the standard example for everything below: the `#` lines explain each piece of the syntax as it is used, and the tables after it list the same pieces.
+This is the starter template, the note that **Template** drops on the board. It is the standard example for everything below: the `#` lines explain each piece of the syntax as it is used, and the tables after it list the same pieces.
 
 ```
 @builder
@@ -743,7 +743,7 @@ release, check by hand in Drawdy (about five minutes):
    IDs as heads and a **Group** row.
 8. Copy a scenario note, change a step name in the copy and select it: the line says
    "1 flow note", and **Flow** draws only the flow.
-9. Press **Start with a template**: a yellow note that starts with `@builder` appears in
+9. Press **Template**: a yellow note that starts with `@builder` appears in
    view and the camera flies to it; a second press puts the next note below the first,
    not on top. Select a note and press **Flow + Scenarios**: a
    flow and scenarios are drawn. Open **Write flow** and press **← Back**.
